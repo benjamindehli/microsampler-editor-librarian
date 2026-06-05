@@ -142,4 +142,47 @@ try:
 except Exception as e:
     assert '0x29' in str(e), e
 
+# --- backup/restore ops over the op runner -----------------------------------
+import tempfile, time as _t
+from test_bank import FakeWriteMS, FakeWriteDev
+
+B.BACKUP_ROOT = tempfile.mkdtemp()
+
+bk = B.Device()
+bk.ms = FakeMS(bytes(blob), samples, seqs)
+bk.channel = 0
+bk.cable = 1
+res = bk.start_backup()
+for _ in range(100):
+    if bk.op['done']:
+        break
+    _t.sleep(0.05)
+assert bk.op['done'] and bk.op['ok'], bk.op['lines']
+assert any('backup complete' in l for l in bk.op['lines'])
+lst = B.list_backups()
+assert len(lst) == 1 and lst[0]['name'] == 'TESTBANK' and lst[0]['samples'] == 1
+
+rs = B.Device()
+rs.ms = FakeWriteMS()
+rs.ms.dev = FakeWriteDev(rs.ms)
+rs.channel = 0
+rs.cable = 1
+rs.start_restore(res['dir'], 4)
+for _ in range(100):
+    if rs.op['done']:
+        break
+    _t.sleep(0.05)
+assert rs.op['done'] and rs.op['ok'], rs.op['lines']
+assert rs.ms.w_bank == 4 and rs.ms.left_dump == 1
+assert bytes(rs.ms.w_samples[0][1]) == samples[0][1]      # PCM round-trips
+
+# busy guard: second op while one runs must 409 at the device layer
+try:
+    bk.op['done'] = False
+    bk.start_backup()
+    raise AssertionError('expected busy error')
+except RuntimeError as e:
+    assert 'already running' in str(e)
+bk.op['done'] = True
+
 print('bridge offline test: OK')

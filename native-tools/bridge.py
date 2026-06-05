@@ -47,6 +47,7 @@ import upload as UL
 
 WEB_ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                          '..', 'web-editor'))
+BACKUP_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backups')
 MIME = {'.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
         '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml',
         '.wav': 'audio/wav', '.webp': 'image/webp', '.jpg': 'image/jpeg'}
@@ -71,6 +72,7 @@ class Device:
         self.inquiry = None
         self.listeners = []                 # SSE queues
         self.reader_enabled = reader
+        self.op = None                      # current/last backup or restore
         self._stop = threading.Event()
         self._reader = None
 
@@ -139,16 +141,71 @@ class Device:
                 self.lock.release()
             time.sleep(0.005)
 
-    def _on_sysex(self, msg):
-        evt = P.parse_reply(msg)
-        if evt.get('type') != 'parameter_change':
-            return
-        data = json.dumps(evt)
+    def _emit(self, obj):
+        data = json.dumps(obj)
         for q in list(self.listeners):
             try:
                 q.put_nowait(data)
             except queue.Full:
                 pass
+
+    def _on_sysex(self, msg):
+        evt = P.parse_reply(msg)
+        if evt.get('type') == 'parameter_change':
+            self._emit(evt)
+
+    # -- long-running ops (backup/restore): one at a time, progress over SSE --
+    def start_op(self, name, fn):
+        if self.op and not self.op['done']:
+            raise RuntimeError('another operation is already running')
+        self.op = {'name': name, 'lines': [], 'done': False, 'ok': None}
+
+        def run():
+            ok = False
+            try:
+                with self.lock:
+                    self._inquire()
+                    fn(self.op_log)
+                ok = True
+            except Exception as e:
+                traceback.print_exc()
+                self.op_log('ERROR: %s' % e)
+            finally:
+                self.op['ok'] = ok
+                self.op['done'] = True
+                self._emit({'type': 'op_done', 'name': name, 'ok': ok})
+
+        threading.Thread(target=run, daemon=True).start()
+
+    def op_log(self, line):
+        line = str(line)
+        print(line)
+        self.op['lines'].append(line)
+        self._emit({'type': 'op', 'name': self.op['name'], 'line': line})
+
+    def op_status(self):
+        return self.op or {'name': None, 'lines': [], 'done': True, 'ok': None}
+
+    def start_backup(self):
+        import bank as BK
+        os.makedirs(BACKUP_ROOT, exist_ok=True)
+        label = time.strftime('%Y%m%d-%H%M%S')
+        out = os.path.join(BACKUP_ROOT, label)
+        self.start_op('backup',
+                      lambda log: BK.backup(self.ms, self.channel, None, out,
+                                            log=log))
+        return {'dir': label}
+
+    def start_restore(self, dirname, bank):
+        import bank as BK
+        src = os.path.join(BACKUP_ROOT, os.path.basename(dirname))
+        if not os.path.isfile(os.path.join(src, 'manifest.json')):
+            raise RuntimeError('unknown backup: %s' % dirname)
+        self.start_op('restore',
+                      lambda log: BK.restore(self.ms, self.channel, bank, src,
+                                             log=log))
+        return {'dir': dirname,
+                'target': 'current' if bank is None else bank + 1}
 
     # -- operations (all hold the lock) --------------------------------------
     def status(self):
@@ -270,6 +327,49 @@ class MockDevice(Device):
     def send_param(self, obj, param, value):
         pass
 
+    def _inquire(self):
+        pass
+
+    def start_backup(self):
+        os.makedirs(BACKUP_ROOT, exist_ok=True)
+        label = time.strftime('%Y%m%d-%H%M%S') + '-mock'
+        out = os.path.join(BACKUP_ROOT, label)
+
+        def fake(log):
+            os.makedirs(out, exist_ok=True)
+            manifest = {'name': 'MOCKBANK', 'bpm': 120.0,
+                        'samples': [{'slot': i, 'empty': i not in self._slots,
+                                     'name': self._slots.get(i, {}).get('name')}
+                                    for i in range(36)],
+                        'sequences': [{'pattern': q, 'empty': q > 3, 'size': 1308}
+                                      for q in range(16)]}
+            log("bank 'MOCKBANK'  BPM 120.0")
+            for i, s in self._slots.items():
+                time.sleep(.25)
+                log("  s%02d: '%s' %d bytes" % (i, s['name'], len(s['pcm'])))
+            with open(os.path.join(out, 'manifest.json'), 'w') as f:
+                json.dump(manifest, f)
+            log('backup complete: %d samples -> %s/' % (len(self._slots), label))
+
+        self.start_op('backup', fake)
+        return {'dir': label}
+
+    def start_restore(self, dirname, bank):
+        src = os.path.join(BACKUP_ROOT, os.path.basename(dirname))
+        if not os.path.isfile(os.path.join(src, 'manifest.json')):
+            raise RuntimeError('unknown backup: %s' % dirname)
+
+        def fake(log):
+            log("bank blob ACKed ('MOCKBANK')")
+            for i in range(3):
+                time.sleep(.3)
+                log('  s%02d: restored' % i)
+            log('restore complete -> %s'
+                % ('current bank (RAM)' if bank is None else 'user bank %d' % (bank + 1)))
+
+        self.start_op('restore', fake)
+        return {'dir': dirname, 'target': 'current' if bank is None else bank + 1}
+
     def bank_summary(self):
         slots = []
         for i in range(36):
@@ -313,6 +413,26 @@ class MockDevice(Device):
                 'stereo': len(chans) == 2}
 
 
+def list_backups():
+    out = []
+    if os.path.isdir(BACKUP_ROOT):
+        for d in sorted(os.listdir(BACKUP_ROOT), reverse=True):
+            mf = os.path.join(BACKUP_ROOT, d, 'manifest.json')
+            if not os.path.isfile(mf):
+                continue
+            try:
+                with open(mf) as f:
+                    m = json.load(f)
+            except Exception:
+                continue
+            out.append({
+                'dir': d, 'name': m.get('name', '?'), 'bpm': m.get('bpm'),
+                'samples': sum(1 for s in m.get('samples', []) if not s['empty']),
+                'patterns': sum(1 for s in m.get('sequences', []) if not s['empty']),
+            })
+    return out
+
+
 # ---------------------------------------------------------------------------
 # HTTP layer
 # ---------------------------------------------------------------------------
@@ -354,6 +474,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(DEVICE.status())
             if path == '/api/bank':
                 return self._json(DEVICE.bank_summary())
+            if path == '/api/backups':
+                return self._json({'backups': list_backups()})
+            if path == '/api/op':
+                return self._json(DEVICE.op_status())
             m = re.match(r'^/api/sample/(\d+)\.wav$', path)
             if m:
                 slot = int(m.group(1))
@@ -382,6 +506,17 @@ class Handler(BaseHTTPRequestHandler):
                 DEVICE.send_param(int(body['obj']), int(body['param']),
                                   int(body['value']))
                 return self._json({'ok': True})
+            if path == '/api/backup':
+                return self._json(DEVICE.start_backup())
+            if path == '/api/restore':
+                n = int(self.headers.get('Content-Length', 0))
+                body = json.loads(self.rfile.read(n) or b'{}')
+                bank = body.get('bank')          # null = current, 0..7 = user
+                if bank is not None:
+                    bank = int(bank)
+                    if not 0 <= bank <= 7:
+                        return self._err('bank must be null or 0..7', 400)
+                return self._json(DEVICE.start_restore(str(body['dir']), bank))
             m = re.match(r'^/api/sample/(\d+)$', path)
             if m:
                 slot = int(m.group(1))
