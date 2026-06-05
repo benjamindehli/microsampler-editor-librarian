@@ -242,6 +242,129 @@ def sequence_header_send(channel, seq_no, data_size):
 BANK_SEND_OK, BANK_SEND_ERR = {0x23}, {0x24, 0x29}
 
 
+# --- Pattern / sequence blob (1308 bytes, decoded 2026-06-05 from -----------
+# --- GetInitPatternPtr + ConvertToSmf/ConvertSeq in the original binary -----
+# Layout (ALL multi-byte fields BIG-endian):
+#   0x000 "SEQP"; 0x004 u32 size (0x51C); 0x008 u16 specified bars;
+#   0x00A u16 bars; 0x00C u32 = 8; 0x010 100*u32 bar-start offsets;
+#   0x1A0 64*0xFF reserved; 0x1E0 sample# (0xFF none); 0x1E8 name[8];
+#   0x200.. 4-byte events:
+#     F0 00 tt tt  advance BE16 ticks (96/quarter note -> 384/4-4 bar)
+#     FF bb -- --  bar marker; ends the pattern when bb >= bars
+#     9c nn vv --  note-on  (c bit0: 0=sample/global ch, 1=keyboard ch)
+#     8c nn vv --  note-off
+PATTERN_SIZE = 0x51C
+PATTERN_TICKS_PER_QUARTER = 96
+PATTERN_TICKS_PER_BAR = 384
+
+
+def parse_pattern(blob):
+    """Decode a 1308-byte pattern blob -> dict with header fields, raw events
+    and note list [(tick, channel_sel, note, velocity, duration_ticks)]."""
+    blob = bytes(blob)
+    if len(blob) < PATTERN_SIZE or blob[0:4] != b'SEQP':
+        return None
+    bars = int.from_bytes(blob[0x0a:0x0c], 'big')
+    out = {
+        'size': int.from_bytes(blob[4:8], 'big'),
+        'spec_bars': int.from_bytes(blob[8:10], 'big'),
+        'bars': bars,
+        'bar_offsets': [int.from_bytes(blob[0x10 + 4*i:0x14 + 4*i], 'big')
+                        for i in range(100)],
+        'sample': None if blob[0x1e0] == 0xff else blob[0x1e0],
+        'name': blob[0x1e8:0x1f0].decode('latin1').rstrip('\xff '),
+        'events': [],
+        'notes': [],
+    }
+    tick = 0
+    open_notes = {}                       # (ch, note) -> (start_tick, vel)
+    off = 0x200
+    while off + 4 <= len(blob):
+        b0, b1, b2, b3 = blob[off:off + 4]
+        off += 4
+        if b0 == 0xf0:                    # time advance
+            tick += (b2 << 8) | b3
+            out['events'].append(('advance', (b2 << 8) | b3))
+        elif b0 == 0xff:                  # bar marker / end
+            out['events'].append(('bar', b1))
+            if b1 >= (bars & 0xff):
+                break
+        elif b0 & 0xee == 0x80:           # note on/off
+            ch, on = b0 & 1, bool(b0 & 0x10)
+            out['events'].append(('note_on' if on else 'note_off', ch, b1, b2))
+            if on:
+                open_notes[(ch, b1)] = (tick, b2)
+            else:
+                start = open_notes.pop((ch, b1), None)
+                if start:
+                    out['notes'].append((start[0], ch, b1, start[1],
+                                         tick - start[0]))
+        else:
+            break                         # invalid -> stop
+    out['ticks'] = tick
+    return out
+
+
+def build_init_pattern():
+    """Byte-exact reproduction of the binary's INIT pattern (GetInitPatternPtr
+    @0x236ae0): 4 bars, no notes, sample 0, name INITPTRN."""
+    b = bytearray()
+    b += b'SEQP'
+    b += PATTERN_SIZE.to_bytes(4, 'big')
+    b += (4).to_bytes(2, 'big') + (4).to_bytes(2, 'big')
+    b += (8).to_bytes(4, 'big')
+    for i in range(100):                  # bar offset table
+        b += (0x200 + 8 * i).to_bytes(4, 'big')
+    b += b'\xff' * 64                     # 0x1A0 reserved
+    b += bytes([0x00]) + b'\xff' * 7      # 0x1E0 sample 0
+    b += b'INITPTRN'                      # 0x1E8 name
+    b += b'\xff' * 16                     # 0x1F0
+    for i in range(99):                   # bar marker + one-bar advance each
+        b += bytes([0xff, i, 0x00, 0x02, 0xf0, 0x00, 0x01, 0x80])
+    b += bytes([0xff, 99, 0x00, 0x01])    # last bar truncated, count=1 (ROM)
+    return bytes(b)
+
+
+def pattern_to_smf(blob, sample_channel=0, kbd_channel=1):
+    """Pattern blob -> Standard MIDI File bytes (type 0, 96 tpqn), mirroring
+    ConvertToSmf: track name + tempo 120 + program change (sample#) + notes."""
+    p = parse_pattern(blob)
+    if p is None:
+        raise ValueError('not a SEQP pattern blob')
+    ch = (sample_channel & 0x0f, kbd_channel & 0x0f)
+
+    track = bytearray()
+
+    def vlq(n):
+        out = [n & 0x7f]
+        while n > 0x7f:
+            n >>= 7
+            out.append((n & 0x7f) | 0x80)
+        return bytes(reversed(out))
+
+    def ev(delta, *data):
+        track.extend(vlq(delta))
+        track.extend(data)
+
+    name = p['name'].ljust(8)[:8].encode('latin1')
+    ev(0, 0xff, 0x03, 0x08, *name)                       # track name
+    ev(0, 0xff, 0x51, 0x03, 0x07, 0xa1, 0x20)            # tempo 120
+    ev(0, 0xc0 | ch[0], (p['sample'] or 0) & 0x7f)       # program = sample#
+    delta = 0
+    for e in p['events']:
+        if e[0] == 'advance':
+            delta += e[1]
+        elif e[0] in ('note_on', 'note_off'):
+            status = (0x90 if e[0] == 'note_on' else 0x80) | ch[e[1]]
+            ev(delta, status, e[2] & 0x7f, e[3] & 0x7f)
+            delta = 0
+    ev(delta, 0xff, 0x2f, 0x00)                          # end of track
+    return (b'MThd' + (6).to_bytes(4, 'big') + (0).to_bytes(2, 'big')
+            + (1).to_bytes(2, 'big')
+            + PATTERN_TICKS_PER_QUARTER.to_bytes(2, 'big')
+            + b'MTrk' + len(track).to_bytes(4, 'big') + bytes(track))
+
+
 def parameter_change(channel, obj, param, value):
     """Live-edit Parameter Change (func 0x41) — THREE 14-bit LE values
     (hardware-verified 2026-06-04; desc[5..7]=1; sent by
@@ -448,6 +571,26 @@ def _selftest():
     assert korg_decode(snd[6:-1])[:BANK_BLOB_SIZE] == bytes(bank)
     snd0 = bank_dump_send(0, bytes(bank))
     assert snd0[4] == 0x40 and korg_decode(snd0[5:-1])[:BANK_BLOB_SIZE] == bytes(bank)
+
+    # pattern blob: init reproduction (sha vs the binary's ROM copy),
+    # parse, note pairing, SMF export
+    import hashlib
+    init = build_init_pattern()
+    assert len(init) == PATTERN_SIZE
+    assert hashlib.sha256(init).hexdigest().startswith('76be701c8d62feb2')
+    pi = parse_pattern(init)
+    assert pi['name'] == 'INITPTRN' and pi['bars'] == 4 and pi['sample'] == 0
+    assert pi['notes'] == [] and pi['ticks'] == 4 * PATTERN_TICKS_PER_BAR
+    pb = bytearray(init)
+    pb[0x200:0x220] = bytes([0xff, 0, 0, 0,  0x90, 60, 100, 0,
+                             0xf0, 0, 0, 96,  0x80, 60, 0, 0,
+                             0xf0, 0, 1, 0x20,  0xff, 1, 0, 0,
+                             0xf0, 0, 1, 0x80,  0xff, 4, 0, 0])
+    pp = parse_pattern(pb)
+    assert pp['notes'] == [(0, 0, 60, 100, 96)] and pp['ticks'] == 768
+    smf = pattern_to_smf(pb)
+    assert smf[:4] == b'MThd' and smf[12:14] == bytes([0, 96])
+    assert bytes([0x90, 60, 100]) in smf and bytes([0x80, 60, 0]) in smf
 
     # param reply round-trip
     blob = bytearray([0xff] * 64)
