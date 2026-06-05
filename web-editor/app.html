@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>microSAMPLER — Sample Edit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<!-- ── offline curtain ─────────────────────────────────────────────────── -->
+<div id="offline" class="offline" hidden>
+  <div class="offline-card">
+    <div class="offline-led"></div>
+    <h2>BRIDGE OFFLINE</h2>
+    <p>The local bridge isn’t running. Start it on this machine:</p>
+    <code>sudo python3 native-tools/bridge.py</code>
+    <p class="dim">…then this page will reconnect by itself.</p>
+  </div>
+</div>
+
+<!-- ── top rail ────────────────────────────────────────────────────────── -->
+<header class="rail reveal">
+  <div class="brand">
+    <span class="brand-micro">micro</span><span class="brand-sampler">SAMPLER</span>
+    <span class="brand-sub">EDITOR / LIBRARIAN</span>
+  </div>
+
+  <div class="lcd bank-lcd" id="bank-lcd">
+    <span class="lcd-label">BANK</span>
+    <span class="lcd-text" id="bank-name">--------</span>
+    <span class="lcd-label">BPM</span>
+    <span class="lcd-text" id="bank-bpm">---.-</span>
+  </div>
+
+  <div class="rail-right">
+    <span id="mock-badge" class="mock-badge" hidden>MOCK</span>
+    <div class="led-block">
+      <span class="led" id="conn-led"></span>
+      <span class="led-caption" id="conn-caption">SCANNING</span>
+    </div>
+    <button class="hw-btn" id="refresh-btn" title="Re-read bank from device">
+      <span class="hw-btn-cap">RECEIVE</span>
+    </button>
+  </div>
+</header>
+
+<!-- ── body ────────────────────────────────────────────────────────────── -->
+<main class="deck">
+
+  <!-- slot pads -->
+  <aside class="pads reveal" style="--d:.08s">
+    <div class="panel-title">SAMPLE <em>01–36</em></div>
+    <div class="pad-grid" id="pad-grid"></div>
+    <div class="pads-hint">CLICK A PAD TO EDIT · <b id="count-used">0</b>/36 USED</div>
+  </aside>
+
+  <!-- sample editor -->
+  <section class="editor reveal" style="--d:.16s">
+    <div class="screw tl"></div><div class="screw tr"></div>
+    <div class="screw bl"></div><div class="screw br"></div>
+
+    <div class="editor-empty" id="editor-empty">
+      <div class="editor-empty-inner">
+        <div class="ghost-wave"></div>
+        <p>SELECT A SAMPLE PAD</p>
+        <p class="dim">or drop a WAV on an empty pad panel to upload</p>
+      </div>
+    </div>
+
+    <div class="editor-body" id="editor-body" hidden>
+      <!-- name row -->
+      <div class="name-row">
+        <div class="lcd name-lcd">
+          <span class="lcd-slot" id="sel-slot">F#3</span>
+          <span class="lcd-text big" id="sel-name">--------</span>
+          <span class="lcd-sub" id="sel-long"></span>
+        </div>
+        <div class="chips" id="info-chips"></div>
+        <div class="name-actions">
+          <button class="hw-btn" id="audition-btn"><span class="hw-btn-cap">▶ PLAY</span></button>
+          <a class="hw-btn" id="download-btn" download><span class="hw-btn-cap">⇩ WAV</span></a>
+          <button class="hw-btn accent" id="upload-btn"><span class="hw-btn-cap">⇧ LOAD…</span></button>
+        </div>
+      </div>
+
+      <!-- waveform screen -->
+      <div class="screen" id="screen">
+        <canvas id="wave"></canvas>
+        <div class="screen-status" id="wave-status">READING…</div>
+        <div class="screen-glass"></div>
+      </div>
+      <div class="screen-meta">
+        <span id="meta-points">START 0 · END 0</span>
+        <span id="meta-fmt"></span>
+      </div>
+
+      <!-- control strip -->
+      <div class="strip">
+        <div class="ctl" data-flash="16">
+          <span class="ctl-label">LOOP</span>
+          <button class="switch" id="ctl-loop" role="switch" aria-checked="false">
+            <span class="switch-track"><span class="switch-knob"></span></span>
+            <span class="switch-val" id="val-loop">OFF</span>
+          </button>
+        </div>
+
+        <div class="ctl" data-flash="17">
+          <span class="ctl-label">BPM SYNC</span>
+          <div class="seg" id="ctl-sync" role="radiogroup">
+            <button data-v="0" class="on">OFF</button>
+            <button data-v="1">STRETCH</button>
+            <button data-v="2">PITCH</button>
+          </div>
+        </div>
+
+        <div class="ctl" data-flash="18">
+          <span class="ctl-label">REVERSE</span>
+          <button class="switch" id="ctl-reverse" role="switch" aria-checked="false">
+            <span class="switch-track"><span class="switch-knob"></span></span>
+            <span class="switch-val" id="val-reverse">OFF</span>
+          </button>
+        </div>
+
+        <div class="ctl fader-ctl" data-flash="21">
+          <span class="ctl-label">DECAY</span>
+          <input type="range" class="fader" id="ctl-decay" min="0" max="127" value="127">
+          <span class="ctl-val" id="val-decay">127</span>
+        </div>
+
+        <div class="ctl fader-ctl" data-flash="22">
+          <span class="ctl-label">RELEASE</span>
+          <input type="range" class="fader" id="ctl-release" min="0" max="127" value="0">
+          <span class="ctl-val" id="val-release">0</span>
+        </div>
+
+        <div class="ctl fader-ctl" data-flash="28" id="tune-block">
+          <span class="ctl-label">TUNE</span>
+          <input type="range" class="fader center" id="ctl-tune" min="0" max="127" value="64">
+          <span class="ctl-val" id="val-tune">0</span>
+        </div>
+      </div>
+
+      <!-- read-only info (param ids not yet learned) -->
+      <div class="ro-row" id="ro-row"></div>
+    </div>
+
+    <!-- drop veil -->
+    <div class="drop-veil" id="drop-veil" hidden><span>DROP WAV TO LOAD INTO SLOT</span></div>
+  </section>
+</main>
+
+<!-- ── activity ticker ─────────────────────────────────────────────────── -->
+<footer class="ticker reveal" style="--d:.24s">
+  <span class="ticker-led" id="ticker-led"></span>
+  <div class="ticker-log" id="ticker-log">— device event monitor —</div>
+  <span class="ticker-note">TRANSFERS TARGET THE CURRENT BANK (RAM) — SAVE TO A USER BANK ON THE DEVICE TO KEEP</span>
+</footer>
+
+<!-- ── upload dialog ───────────────────────────────────────────────────── -->
+<dialog id="upload-dialog" class="hw-dialog">
+  <form method="dialog">
+    <h3>LOAD SAMPLE → <span id="ud-slot">PAD 1</span></h3>
+    <p class="warn">⚠ OVERWRITES this slot in the device’s current bank (RAM).</p>
+    <label>FILE <input type="file" id="ud-file" accept=".wav,audio/wav"></label>
+    <label>NAME <input type="text" id="ud-name" maxlength="8" spellcheck="false"></label>
+    <label>TEMPO <input type="number" id="ud-tempo" min="20" max="300" step="0.1" value="120.0"></label>
+    <div class="ud-progress" id="ud-progress" hidden><div></div></div>
+    <menu>
+      <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
+      <button value="ok" id="ud-ok" class="hw-btn accent"><span class="hw-btn-cap">TRANSMIT</span></button>
+    </menu>
+  </form>
+</dialog>
+
+<div class="grain"></div>
+<script type="module" src="js/sampleApp.js"></script>
+</body>
+</html>
