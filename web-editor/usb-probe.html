@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>microSAMPLER WebUSB probe</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23ff5d3b'/%3E%3C/svg%3E">
+  <style>
+    body { background:#15171c; color:#e6e8ec; font:14px/1.6 system-ui,sans-serif; max-width:760px; margin:40px auto; padding:0 18px; }
+    h1 { color:#ff5d3b; font-size:20px; }
+    button { background:#ff5d3b; color:#1a0d0a; border:0; border-radius:8px; padding:10px 18px; font:inherit; font-weight:600; cursor:pointer; }
+    pre { background:#0c0d11; border:1px solid #2e333d; border-radius:8px; padding:14px; white-space:pre-wrap; word-break:break-word; font-family:ui-monospace,Menlo,monospace; font-size:12.5px; }
+    .verdict { padding:12px 14px; border-radius:8px; margin:14px 0; font-weight:600; }
+    .ok { background:rgba(58,210,159,.14); color:#3ad29f; border:1px solid rgba(58,210,159,.4); }
+    .bad { background:rgba(255,90,90,.12); color:#ff7a7a; border:1px solid rgba(255,90,90,.4); }
+    .warn { background:rgba(255,204,85,.1); color:#ffcc55; border:1px solid rgba(255,204,85,.4); }
+    code { background:#0c0d11; padding:1px 5px; border-radius:4px; }
+  </style>
+</head>
+<body>
+  <h1>microSAMPLER WebUSB probe</h1>
+  <p>This checks whether Chrome can reach the microSAMPLER's raw-USB bulk interface
+     (the channel used for sample/bank transfer). Plug in the keyboard, close any
+     other software using it, then click below.</p>
+  <p><b>Use Chrome or Edge over <code>http://localhost</code> or <code>https://</code>.</b>
+     WebUSB is not in Safari or Firefox.</p>
+  <button id="go">Probe microSAMPLER (VID 0x0944 / PID 0x010C)</button>
+  <div id="verdict"></div>
+  <pre id="out">No device inspected yet.</pre>
+
+  <script>
+    const out = document.getElementById('out');
+    const verdictEl = document.getElementById('verdict');
+    const classNames = {
+      0x00: 'Per-interface', 0x01: 'Audio', 0x02: 'CDC', 0x03: 'HID',
+      0x08: 'Mass Storage', 0x0a: 'CDC-Data', 0x0e: 'Video', 0xfe: 'App-specific',
+      0xff: 'Vendor-specific',
+    };
+    document.getElementById('go').onclick = async () => {
+      if (!navigator.usb) {
+        verdict('bad', 'navigator.usb is undefined — this browser has no WebUSB. Use Chrome/Edge.');
+        return;
+      }
+      let dev;
+      try {
+        dev = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x0944 }] });
+      } catch (e) {
+        verdict('warn', 'No device selected / permission dismissed: ' + e.message);
+        return;
+      }
+      const lines = [];
+      lines.push(`Product:  ${dev.productName || '(none)'}  [VID 0x${dev.vendorId.toString(16)} PID 0x${dev.productId.toString(16)}]`);
+      lines.push(`Manufacturer: ${dev.manufacturerName || '(none)'}`);
+      lines.push(`USB ${dev.usbVersionMajor}.${dev.usbVersionMinor}, deviceClass ${dev.deviceClass}`);
+      try { await dev.open(); lines.push('open(): ✓ Chrome could OPEN the device'); }
+      catch (e) { lines.push('open(): ✗ ' + e.message); }
+
+      let bulkVendorIface = false, anyBulk = false;
+      for (const cfg of dev.configurations) {
+        lines.push(`\nConfiguration ${cfg.configurationValue}:`);
+        for (const itf of cfg.interfaces) {
+          for (const alt of itf.alternates) {
+            const cls = classNames[alt.interfaceClass] ?? alt.interfaceClass;
+            const eps = alt.endpoints.map(e => `${e.type}/${e.direction}#${e.endpointNumber}(${e.packetSize}B)`).join(', ');
+            const isVendor = alt.interfaceClass === 0xff;
+            const hasBulk = alt.endpoints.some(e => e.type === 'bulk');
+            if (hasBulk) anyBulk = true;
+            if (hasBulk && isVendor) bulkVendorIface = true;
+            lines.push(`  itf ${itf.interfaceNumber}.${alt.alternateSetting}  class=${cls}  endpoints: [${eps || 'none'}]`
+              + (hasBulk && isVendor ? '   ← bulk on a vendor interface (claimable!)' : ''));
+            // Try claiming a vendor interface with bulk endpoints.
+            if (hasBulk && isVendor) {
+              try { await dev.claimInterface(itf.interfaceNumber); lines.push(`        claimInterface(${itf.interfaceNumber}): ✓ CLAIMED`); await dev.releaseInterface(itf.interfaceNumber); }
+              catch (e) { lines.push(`        claimInterface(${itf.interfaceNumber}): ✗ ${e.message}`); }
+            }
+          }
+        }
+      }
+      out.textContent = lines.join('\n');
+      try { await dev.close(); } catch {}
+
+      if (bulkVendorIface)      verdict('ok',  '✓ Good news: the microSAMPLER exposes bulk endpoints on a vendor-specific interface, and Chrome could claim it. Sample transfer over WebUSB is feasible.');
+      else if (anyBulk)         verdict('warn', '⚠ Bulk endpoints exist, but not on a vendor-specific interface (or claim failed). WebUSB may be blocked by macOS; a native app might be required. See details above.');
+      else                      verdict('bad', '✗ No bulk endpoints were visible to WebUSB. Sample transfer would need a native (IOKit/libusb) app.');
+    };
+    function verdict(cls, msg) { verdictEl.className = 'verdict ' + cls; verdictEl.textContent = msg; }
+  </script>
+</body>
+</html>
