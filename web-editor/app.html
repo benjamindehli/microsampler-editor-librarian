@@ -29,6 +29,11 @@
     <span class="brand-sub">EDITOR / LIBRARIAN</span>
   </div>
 
+  <nav class="views">
+    <button class="view-btn on" data-view="samples">SAMPLES</button>
+    <button class="view-btn" data-view="utility">UTILITY</button>
+  </nav>
+
   <div class="lcd bank-lcd" id="bank-lcd">
     <span class="lcd-label">BANK</span>
     <span class="lcd-text" id="bank-name">--------</span>
@@ -48,8 +53,62 @@
   </div>
 </header>
 
-<!-- ── body ────────────────────────────────────────────────────────────── -->
-<main class="deck">
+<!-- ── utility view ────────────────────────────────────────────────────── -->
+<main class="deck utility-deck" id="view-utility" hidden>
+  <section class="editor">
+    <div class="screw tl"></div><div class="screw tr"></div>
+    <div class="screw bl"></div><div class="screw br"></div>
+
+    <div class="util-cols">
+      <div class="util-col">
+        <div class="panel-title">BACKUP <em>DEVICE → COMPUTER</em></div>
+        <p class="util-note">Pulls the CURRENT bank (bank settings, all samples,
+          all 16 patterns) into <code>native-tools/backups/</code>.
+          Takes a minute or two for a full bank.</p>
+        <button class="hw-btn accent" id="backup-btn">
+          <span class="hw-btn-cap">⛁ BACKUP CURRENT BANK</span></button>
+      </div>
+
+      <div class="util-col">
+        <div class="panel-title">RESTORE <em>COMPUTER → DEVICE</em></div>
+        <p class="util-note">Writes a backup to the device. CURRENT BANK = RAM
+          (temporary). USER BANK 1–8 = <b>persistent flash, overwrites that
+          bank</b>.</p>
+        <div id="backup-list" class="backup-list"></div>
+      </div>
+    </div>
+
+    <div class="panel-title" style="margin-top:1.2rem">TRANSFER LOG</div>
+    <div class="op-console" id="op-console">— idle —</div>
+  </section>
+</main>
+
+<!-- ── restore dialog ──────────────────────────────────────────────────── -->
+<dialog id="restore-dialog" class="hw-dialog">
+  <form method="dialog">
+    <h3>RESTORE <span id="rd-name">?</span></h3>
+    <p class="warn" id="rd-warning"></p>
+    <label>TARGET
+      <select id="rd-target">
+        <option value="">CURRENT BANK (RAM — temporary)</option>
+        <option value="0">USER BANK 1 (A) — FLASH</option>
+        <option value="1">USER BANK 2 (B) — FLASH</option>
+        <option value="2">USER BANK 3 (C) — FLASH</option>
+        <option value="3">USER BANK 4 (D) — FLASH</option>
+        <option value="4">USER BANK 5 (E) — FLASH</option>
+        <option value="5">USER BANK 6 (F) — FLASH</option>
+        <option value="6">USER BANK 7 (G) — FLASH</option>
+        <option value="7">USER BANK 8 (H) — FLASH</option>
+      </select></label>
+    <menu>
+      <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
+      <button value="ok" id="rd-ok" class="hw-btn accent"><span class="hw-btn-cap">RESTORE</span></button>
+    </menu>
+  </form>
+</dialog>
+
+<!-- ── samples view ────────────────────────────────────────────────────── -->
+<main class="deck" id="view-samples">
 
   <!-- slot pads -->
   <aside class="pads reveal" style="--d:.08s">
