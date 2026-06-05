@@ -83,7 +83,7 @@ def leave_dump_mode(ms, channel, commit=True):
                      timeout_ms=35000, what='leave-dump-mode ACK (func 0x4a)')
 
 
-def backup(ms, channel, bank, out):
+def backup(ms, channel, bank, out, log=print):
     os.makedirs(os.path.join(out, 'samples'), exist_ok=True)
     os.makedirs(os.path.join(out, 'sequences'), exist_ok=True)
     manifest = {'bank': 'current' if bank is None else bank + 1,
@@ -91,7 +91,7 @@ def backup(ms, channel, bank, out):
 
     # ---- 1. bank blob -----------------------------------------------------
     bp = fetch_bank_blob(ms, channel, bank)
-    print(f"bank '{bp['name']}'  BPM {bp['bpm']:.1f}")
+    log(f"bank '{bp['name']}'  BPM {bp['bpm']:.1f}")
     with open(os.path.join(out, 'bank.bin'), 'wb') as f:
         f.write(bp['raw'])
     manifest['name'] = bp['name']
@@ -105,9 +105,9 @@ def backup(ms, channel, bank, out):
             hdr = fetch_header(ms, channel, i)
             entry = {'slot': i, 'name': par['name'], 'empty': hdr['data_size'] == 0}
             if hdr['data_size'] == 0:
-                print(f"  s{i:02d}: empty")
+                log(f"  s{i:02d}: empty")
             else:
-                print(f"  s{i:02d}: '{par['name']}' {hdr['data_size']} bytes "
+                log(f"  s{i:02d}: '{par['name']}' {hdr['data_size']} bytes "
                       f"{hdr['rate_hz']} Hz {'stereo' if hdr['stereo'] else 'mono'}")
                 pcm = fetch_pcm(ms, channel, hdr['data_size'])
                 write_wav(os.path.join(out, 'samples', f's{i:02d}.wav'),
@@ -124,7 +124,7 @@ def backup(ms, channel, bank, out):
             data = fetch_sequence(ms, channel, q)
             entry = {'pattern': q, 'empty': not data, 'size': len(data)}
             if data:
-                print(f"  q{q:02d}: {len(data)} bytes")
+                log(f"  q{q:02d}: {len(data)} bytes")
                 with open(os.path.join(out, 'sequences', f'q{q:02d}.bin'), 'wb') as f:
                     f.write(data)
             manifest['sequences'].append(entry)
@@ -132,16 +132,16 @@ def backup(ms, channel, bank, out):
         # ---- 4. leave dump mode ---------------------------------------------
         try:
             leave_dump_mode(ms, channel, commit=True)
-            print("left dump mode (func 0x1a -> 0x4a ACK)")
+            log("left dump mode (func 0x1a -> 0x4a ACK)")
         except DownloadError as e:
-            print(f"warning: leave-dump-mode: {e} (power-cycle the device "
+            log(f"warning: leave-dump-mode: {e} (power-cycle the device "
                   f"if it is unresponsive)")
 
     with open(os.path.join(out, 'manifest.json'), 'w') as f:
         json.dump(manifest, f, indent=2)
     n = sum(1 for s in manifest['samples'] if not s['empty'])
     nq = sum(1 for s in manifest['sequences'] if not s['empty'])
-    print(f"backup complete: {n} samples, {nq} patterns -> {out}/")
+    log(f"backup complete: {n} samples, {nq} patterns -> {out}/")
 
 
 def _read_wav_as_wire_pcm(path):
@@ -158,7 +158,7 @@ def _read_wav_as_wire_pcm(path):
     return samples.tobytes(), rate, nch == 2
 
 
-def restore(ms, channel, bank, src):
+def restore(ms, channel, bank, src, log=print):
     with open(os.path.join(src, 'manifest.json')) as f:
         manifest = json.load(f)
     with open(os.path.join(src, 'bank.bin'), 'rb') as f:
@@ -172,7 +172,7 @@ def restore(ms, channel, bank, src):
     ms.send_sysex(P.bank_dump_send(channel, blob, bank))
     _wait_korg_reply(ms, P.BANK_SEND_OK, P.BANK_SEND_ERR,
                      timeout_ms=10000, what='bank blob ACK (func 0x23)')
-    print(f"bank blob ACKed ('{manifest.get('name', '?')}')")
+    log(f"bank blob ACKed ('{manifest.get('name', '?')}')")
 
     try:
         # ---- 2. samples (header + PCM; empty slots = header w/ dataSize 0) --
@@ -184,7 +184,7 @@ def restore(ms, channel, bank, src):
                 ms.send_sysex(hdr_msg)
                 _wait_korg_reply(ms, P.UPLOAD_HDR_OK, P.UPLOAD_HDR_ERR,
                                  timeout_ms=8000, what=f's{i:02d} header ACK')
-                print(f"  s{i:02d}: cleared (empty)")
+                log(f"  s{i:02d}: cleared (empty)")
                 continue
             pcm, rate, stereo = _read_wav_as_wire_pcm(
                 os.path.join(src, 'samples', f's{i:02d}.wav'))
@@ -202,6 +202,7 @@ def restore(ms, channel, bank, src):
             print()
             _wait_korg_reply(ms, P.UPLOAD_DATA_OK, P.UPLOAD_DATA_ERR,
                              timeout_ms=30000, what=f's{i:02d} PCM ACK')
+            log(f"  s{i:02d}: '{entry['name']}' {len(pcm)} bytes ok")
 
         # ---- 3. sequences ----------------------------------------------------
         for entry in manifest['sequences']:
@@ -217,19 +218,19 @@ def restore(ms, channel, bank, src):
                     ms.dev.write(0x01, data[off:off + 0x4000], timeout=5000)
                 _wait_korg_reply(ms, P.UPLOAD_DATA_OK, P.UPLOAD_DATA_ERR,
                                  timeout_ms=15000, what=f'q{q:02d} data ACK')
-                print(f"  q{q:02d}: {len(data)} bytes")
+                log(f"  q{q:02d}: {len(data)} bytes")
     finally:
         # ---- 4. leave dump mode (commit) -------------------------------------
         try:
             leave_dump_mode(ms, channel, commit=True)
-            print("left dump mode with commit (func 0x1a 01 -> 0x4a ACK)")
+            log("left dump mode with commit (func 0x1a 01 -> 0x4a ACK)")
         except DownloadError as e:
-            print(f"warning: leave-dump-mode: {e} (power-cycle the device "
+            log(f"warning: leave-dump-mode: {e} (power-cycle the device "
                   f"if it is unresponsive)")
 
     where = 'current bank (RAM — save on the device to keep!)' if bank is None \
             else f'user bank {bank + 1} (persistent)'
-    print(f"restore complete -> {where}")
+    log(f"restore complete -> {where}")
 
 
 def main():
