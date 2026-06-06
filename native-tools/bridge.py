@@ -136,11 +136,28 @@ class Device:
                 if not self.ms:
                     return
                 raw = self.ms._read_raw(timeout=60)
-                for msg in self.ms.reasm.feed(from_usb_midi(raw)):
+                midi = from_usb_midi(raw)
+                for msg in self.ms.reasm.feed(midi):
                     self._on_sysex(msg)
+                self._scan_cc(midi)
             finally:
                 self.lock.release()
             time.sleep(0.005)
+
+    def _scan_cc(self, midi):
+        """Forward Control Change messages as SSE events. The panel's FX EDIT
+        1/2 knobs transmit plain CC (not SysEx param changes) — the app maps
+        them onto the knob-assigned effect params. Safe to scan the flat
+        stream: status bytes (>=0x80) cannot occur inside SysEx bodies."""
+        i, n = 0, len(midi)
+        while i < n:
+            if midi[i] & 0xf0 == 0xb0 and i + 2 < n \
+                    and midi[i + 1] < 0x80 and midi[i + 2] < 0x80:
+                self._emit({'type': 'cc', 'ch': midi[i] & 0x0f,
+                            'cc': midi[i + 1], 'value': midi[i + 2]})
+                i += 3
+            else:
+                i += 1
 
     def _emit(self, obj):
         data = json.dumps(obj)

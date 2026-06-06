@@ -135,6 +135,27 @@ assert got.get('evt', {}).get('obj') == 28, got
 assert got['evt']['param'] == 17 and got['evt']['value'] == 2
 assert got['evt']['sample'] == 12
 
+# --- CC scan + SSE forward (panel FX-knob path) ----------------------------------
+got_cc = {}
+def listen_cc():
+    c = http.client.HTTPConnection('127.0.0.1', PORT, timeout=10)
+    c.request('GET', '/api/events')
+    r = c.getresponse()
+    while True:
+        line = r.fp.readline().decode()
+        if line.startswith('data: '):
+            evt = json.loads(line[6:])
+            if evt.get('type') == 'cc':
+                got_cc['evt'] = evt
+                break
+t2 = threading.Thread(target=listen_cc, daemon=True)
+t2.start()
+time.sleep(0.3)
+# CC#12 val 99 on ch 0, embedded between clock bytes and a note-on
+B.DEVICE._scan_cc(bytes([0xf8, 0x90, 0x3c, 0x40, 0xb0, 12, 99, 0xf8]))
+t2.join(timeout=5)
+assert got_cc.get('evt') == {'type': 'cc', 'ch': 0, 'cc': 12, 'value': 99}, got_cc
+
 # --- static serving ----------------------------------------------------------------
 st, ct, data = req('GET', '/index.html')
 assert st == 200 and ct == 'text/html' and b'microSAMPLER' in data
