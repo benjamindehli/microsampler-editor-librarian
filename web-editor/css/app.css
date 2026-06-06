@@ -340,12 +340,18 @@ body {
 .switch[aria-checked="true"] .switch-val { color: var(--amber); text-shadow: 0 0 6px rgba(255,138,30,.4); }
 
 /* segmented switch */
-.seg { display: flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.ctl-wide { grid-column: span 2; }
+.seg {
+  display: flex; border: 1px solid var(--line); border-radius: 4px;
+  overflow: hidden; max-width: 100%;
+}
 .seg button {
   appearance: none; border: 0; cursor: pointer;
-  font: 600 .58rem/1 "Chakra Petch"; letter-spacing: .08em;
+  font: 600 .58rem/1 "Chakra Petch"; letter-spacing: .06em;
   color: var(--ink-dim); background: #101013;
-  padding: .5rem .5rem;
+  padding: .5rem .45rem;
+  flex: 0 1 auto; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: clip;
   border-right: 1px solid var(--line);
   transition: color .15s, background .15s;
 }
