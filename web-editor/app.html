@@ -31,6 +31,7 @@
 
   <nav class="views">
     <button class="view-btn on" data-view="samples">SAMPLES</button>
+    <button class="view-btn" data-view="effect">EFFECT</button>
     <button class="view-btn" data-view="patterns">PATTERNS</button>
     <button class="view-btn" data-view="utility">UTILITY</button>
   </nav>
@@ -53,6 +54,41 @@
     </button>
   </div>
 </header>
+
+<!-- ── effect view ─────────────────────────────────────────────────────── -->
+<main class="deck utility-deck" id="view-effect" hidden>
+  <section class="editor">
+    <div class="screw tl"></div><div class="screw tr"></div>
+    <div class="screw bl"></div><div class="screw br"></div>
+
+    <div class="fx-head">
+      <div>
+        <div class="panel-title">BANK EFFECT</div>
+        <p class="util-note">One effect per bank, applied to samples with
+          FX&nbsp;SW on. Edits are live (current bank = RAM — save on the
+          device to keep them).</p>
+      </div>
+      <div class="fx-type-block">
+        <span class="ctl-label">EFFECT TYPE</span>
+        <select class="fx-select fx-type-select" id="fx-type"></select>
+      </div>
+      <div class="fx-knobs">
+        <div class="fx-knob-assign">
+          <span class="ctl-label">FX KNOB 1</span>
+          <select class="fx-select" id="fx-knob1"></select>
+        </div>
+        <div class="fx-knob-assign">
+          <span class="ctl-label">FX KNOB 2</span>
+          <select class="fx-select" id="fx-knob2"></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="fx-params" id="fx-params">
+      <p class="backup-empty">NO BANK DATA — PRESS RECEIVE</p>
+    </div>
+  </section>
+</main>
 
 <!-- ── patterns view ───────────────────────────────────────────────────── -->
 <main class="deck utility-deck" id="view-patterns" hidden>
