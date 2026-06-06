@@ -290,12 +290,15 @@ body {
 }
 
 /* ── control strip ────────────────────────────────────────────────────── */
+/* groups wrap as whole units — controls inside a group never line-break */
 .strip {
   margin-top: 1.1rem;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: .6rem;
+  display: flex; flex-wrap: wrap; gap: .6rem;
 }
+.ctl-group { display: flex; gap: .6rem; min-width: 0; }
+.ctl-group .ctl { flex: 1 1 0; min-width: 0; }
+.ctl-group.g2 { flex: 2 1 252px; }
+.ctl-group.g3 { flex: 3 1 380px; }
 .ctl {
   background: linear-gradient(180deg, var(--steel-2), #131316);
   border: 1px solid var(--line); border-top-color: var(--line-hi);

@@ -238,81 +238,85 @@
       </div>
 
       <!-- control strip — grouped: playback switches · sync · pitch ·
-           envelope · dynamics/mix -->
+           envelope · dynamics/mix; each group wraps as one unit -->
       <div class="strip">
-        <div class="ctl" data-flash="16">
-          <span class="ctl-label">LOOP</span>
-          <button class="switch" id="ctl-loop" role="switch" aria-checked="false">
-            <span class="switch-track"><span class="switch-knob"></span></span>
-            <span class="switch-val" id="val-loop">OFF</span>
-          </button>
-        </div>
-
-        <div class="ctl" data-flash="18">
-          <span class="ctl-label">REVERSE</span>
-          <button class="switch" id="ctl-reverse" role="switch" aria-checked="false">
-            <span class="switch-track"><span class="switch-knob"></span></span>
-            <span class="switch-val" id="val-reverse">OFF</span>
-          </button>
-        </div>
-
-        <div class="ctl" data-flash="26">
-          <span class="ctl-label">FX SW</span>
-          <button class="switch" id="ctl-fx" role="switch" aria-checked="false">
-            <span class="switch-track"><span class="switch-knob"></span></span>
-            <span class="switch-val" id="val-fx">OFF</span>
-          </button>
-        </div>
-
-        <div class="ctl ctl-wide" data-flash="17">
-          <span class="ctl-label">BPM SYNC</span>
-          <div class="seg" id="ctl-sync" role="radiogroup">
-            <button data-v="0" class="on">OFF</button>
-            <button data-v="1">STRETCH</button>
-            <button data-v="2">PITCH</button>
+        <div class="ctl-group g3">
+          <div class="ctl" data-flash="16">
+            <span class="ctl-label">LOOP</span>
+            <button class="switch" id="ctl-loop" role="switch" aria-checked="false">
+              <span class="switch-track"><span class="switch-knob"></span></span>
+              <span class="switch-val" id="val-loop">OFF</span>
+            </button>
+          </div>
+          <div class="ctl" data-flash="18">
+            <span class="ctl-label">REVERSE</span>
+            <button class="switch" id="ctl-reverse" role="switch" aria-checked="false">
+              <span class="switch-track"><span class="switch-knob"></span></span>
+              <span class="switch-val" id="val-reverse">OFF</span>
+            </button>
+          </div>
+          <div class="ctl" data-flash="26">
+            <span class="ctl-label">FX SW</span>
+            <button class="switch" id="ctl-fx" role="switch" aria-checked="false">
+              <span class="switch-track"><span class="switch-knob"></span></span>
+              <span class="switch-val" id="val-fx">OFF</span>
+            </button>
           </div>
         </div>
 
-        <div class="ctl fader-ctl" data-flash="28" id="tune-block">
-          <span class="ctl-label">TUNE</span>
-          <input type="range" class="fader center" id="ctl-tune" min="0" max="127" value="64">
-          <span class="ctl-val" id="val-tune">0</span>
+        <div class="ctl-group g2">
+          <div class="ctl" data-flash="17">
+            <span class="ctl-label">BPM SYNC</span>
+            <div class="seg" id="ctl-sync" role="radiogroup">
+              <button data-v="0" class="on">OFF</button>
+              <button data-v="1">STRETCH</button>
+              <button data-v="2">PITCH</button>
+            </div>
+          </div>
         </div>
 
-        <div class="ctl fader-ctl" data-flash="27" id="semitone-block">
-          <span class="ctl-label">SEMITONE</span>
-          <input type="range" class="fader center" id="ctl-semitone" min="-24" max="24" value="0">
-          <span class="ctl-val" id="val-semitone">0</span>
+        <div class="ctl-group g2">
+          <div class="ctl fader-ctl" data-flash="28" id="tune-block">
+            <span class="ctl-label">TUNE</span>
+            <input type="range" class="fader center" id="ctl-tune" min="0" max="127" value="64">
+            <span class="ctl-val" id="val-tune">0</span>
+          </div>
+          <div class="ctl fader-ctl" data-flash="27" id="semitone-block">
+            <span class="ctl-label">SEMITONE</span>
+            <input type="range" class="fader center" id="ctl-semitone" min="-24" max="24" value="0">
+            <span class="ctl-val" id="val-semitone">0</span>
+          </div>
         </div>
 
-        <div class="ctl fader-ctl" data-flash="21">
-          <span class="ctl-label">DECAY</span>
-          <input type="range" class="fader" id="ctl-decay" min="0" max="127" value="127">
-          <span class="ctl-val" id="val-decay">127</span>
+        <div class="ctl-group g2">
+          <div class="ctl fader-ctl" data-flash="21">
+            <span class="ctl-label">DECAY</span>
+            <input type="range" class="fader" id="ctl-decay" min="0" max="127" value="127">
+            <span class="ctl-val" id="val-decay">127</span>
+          </div>
+          <div class="ctl fader-ctl" data-flash="22">
+            <span class="ctl-label">RELEASE</span>
+            <input type="range" class="fader" id="ctl-release" min="0" max="127" value="0">
+            <span class="ctl-val" id="val-release">0</span>
+          </div>
         </div>
 
-        <div class="ctl fader-ctl" data-flash="22">
-          <span class="ctl-label">RELEASE</span>
-          <input type="range" class="fader" id="ctl-release" min="0" max="127" value="0">
-          <span class="ctl-val" id="val-release">0</span>
-        </div>
-
-        <div class="ctl fader-ctl" data-flash="29">
-          <span class="ctl-label">VELO INT</span>
-          <input type="range" class="fader center" id="ctl-velo" min="-63" max="63" value="0">
-          <span class="ctl-val" id="val-velo">0</span>
-        </div>
-
-        <div class="ctl fader-ctl" data-flash="24">
-          <span class="ctl-label">LEVEL</span>
-          <input type="range" class="fader" id="ctl-level" min="0" max="127" value="101">
-          <span class="ctl-val" id="val-level">+0.0dB</span>
-        </div>
-
-        <div class="ctl fader-ctl" data-flash="25">
-          <span class="ctl-label">PAN</span>
-          <input type="range" class="fader center" id="ctl-pan" min="0" max="127" value="64">
-          <span class="ctl-val" id="val-pan">CNT</span>
+        <div class="ctl-group g3">
+          <div class="ctl fader-ctl" data-flash="29">
+            <span class="ctl-label">VELO INT</span>
+            <input type="range" class="fader center" id="ctl-velo" min="-63" max="63" value="0">
+            <span class="ctl-val" id="val-velo">0</span>
+          </div>
+          <div class="ctl fader-ctl" data-flash="24">
+            <span class="ctl-label">LEVEL</span>
+            <input type="range" class="fader" id="ctl-level" min="0" max="127" value="101">
+            <span class="ctl-val" id="val-level">+0.0dB</span>
+          </div>
+          <div class="ctl fader-ctl" data-flash="25">
+            <span class="ctl-label">PAN</span>
+            <input type="range" class="fader center" id="ctl-pan" min="0" max="127" value="64">
+            <span class="ctl-val" id="val-pan">CNT</span>
+          </div>
         </div>
       </div>
 
