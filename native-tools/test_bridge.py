@@ -38,6 +38,7 @@ assert bank['slots'][35]['empty'] is True
 e = bank['effect']
 assert e['type'] == 2 and e['knobs'] == [2, 3] and len(e['params']) == 32
 assert e['params'][0] == 100                       # Dry/Wet byte
+assert bank['seq_lengths'] == [4] * 16             # pattern storage units
 
 # --- sample download -------------------------------------------------------------
 st, ct, data = req('GET', '/api/sample/0.wav')
@@ -187,6 +188,7 @@ real.cable = 1
 out = real.bank_summary()
 assert out['name'] == 'TESTBANK'
 assert len(out['effect']['params']) == 32          # packed @0x950 -> JSON
+assert len(out['seq_lengths']) == 16               # pattern storage units
 used = [s for s in out['slots'] if not s['empty']]
 assert len(used) == 1 and used[0]['name'] == 'SMPA' and used[0]['end'] == 62
 assert real.ms.left_dump == 1                  # committed leave-dump-mode
