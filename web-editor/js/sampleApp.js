@@ -651,13 +651,6 @@ function renderFx() {
   const fx = fxDesc();
   $('#fx-type').innerHTML = FX_TYPES.map((f, i) =>
     `<option value="${i}"${i === state.fx.type ? ' selected' : ''}>${esc(f.name)}</option>`).join('');
-  const assignable = fx.params.filter(p => p.knob);
-  for (const k of [0, 1]) {
-    const sel = $(k ? '#fx-knob2' : '#fx-knob1');
-    sel.innerHTML = assignable.map(p =>
-      `<option value="${p.idx}"${p.idx === state.fx.knobs[k] ? ' selected' : ''}>${esc(p.name)}</option>`).join('');
-    sel.disabled = !assignable.length;
-  }
   const grid = $('#fx-params');
   grid.innerHTML = fx.params.length ? '' :
     '<p class="backup-empty">EFFECT OFF — NO PARAMETERS</p>';
@@ -726,12 +719,53 @@ function fxUpdateControl(idx) {
 // conditional graying, straight from the firmware's isEnable rules
 const FX_PRED = { eq0: v => v === 0, ne0: v => v !== 0,
                   le3: v => v <= 3, gt3: v => v > 3 };
-function applyFxEnable() {
+function fxEnabledMap() {
   const fx = fxDesc();
   const enabled = {};
   for (const p of fx.params) enabled[p.idx] = true;
   for (const r of fx.rules)
     enabled[r.p] = FX_PRED[r.when](state.fx.vals[r.cond]);
+  return enabled;
+}
+
+// firmware setKnobAssign behavior: a knob target always SNAPS to the
+// currently-ACTIVE member of a swap pair (Reverb Time long/short, LFO
+// Frequency/Sync Note, delay Time-Ratio pairs…). The device does the same
+// internally when the physical knob is used; assigning the inactive twin
+// explicitly makes the device display INVALID — so the app never offers it.
+function fxSnapKnob(idx) {
+  for (const s of fxDesc().swaps) {
+    const on = FX_PRED[s.when](state.fx.vals[s.cond]);
+    if (on && idx === s.off) return s.on;
+    if (!on && idx === s.on) return s.off;
+  }
+  return idx;
+}
+
+function renderFxKnobs() {
+  const fx = fxDesc();
+  const seen = new Set();
+  const opts = [];
+  for (const p of fx.params) {
+    if (!p.knob) continue;
+    const idx = fxSnapKnob(p.idx);
+    if (seen.has(idx)) continue;
+    seen.add(idx);
+    opts.push(fx.params.find(q => q.idx === idx));
+  }
+  for (const k of [0, 1]) {
+    const sel = $(k ? '#fx-knob2' : '#fx-knob1');
+    const cur = fxSnapKnob(state.fx.knobs[k]);
+    const html = opts.map(p =>
+      `<option value="${p.idx}"${p.idx === cur ? ' selected' : ''}>${esc(p.name)}</option>`).join('');
+    if (sel.innerHTML !== html) sel.innerHTML = html;   // don't disturb an
+    sel.disabled = !opts.length;                        // open dropdown
+  }
+}
+
+function applyFxEnable() {
+  const fx = fxDesc();
+  const enabled = fxEnabledMap();
   for (const div of document.querySelectorAll('#fx-params .fx-param')) {
     const idx = +div.dataset.fxp;
     const on = enabled[idx] !== false;
@@ -744,6 +778,7 @@ function applyFxEnable() {
     div.hidden = !on && fx.params.some(q =>
       q.idx !== idx && q.name === p.name && enabled[q.idx] !== false);
   }
+  renderFxKnobs();        // active swap twins may have changed
 }
 
 $('#fx-type').onchange = ev => {
@@ -769,7 +804,8 @@ function onCC(evt) {
   const k = FX_KNOB_CC.indexOf(evt.cc);
   if (k < 0) { tick(`← CC#${evt.cc} = ${evt.value}`); return; }
   if (!state.fx) return;
-  const idx = state.fx.knobs[k];
+  // the device applies the knob to the ACTIVE swap twin — mirror that
+  const idx = fxSnapKnob(state.fx.knobs[k]);
   const p = fxDesc().params.find(q => q.idx === idx);
   if (!p) return;
   const v = p.min + Math.round(evt.value * (p.max - p.min) / 127);
