@@ -60,13 +60,22 @@ class FakeMS:
                                     *P.korg_encode(hdr), 0xf7]))
         elif func == 0x14:                     # param request — does NOT close
             # the select session (hardware-verified 2026-06-05; the original's
-            # Target=1 flow is dead code on real firmware)
-            blob = (self.bank_blob[0x40 + self.cur_sample*0x40:
-                                   0x80 + self.cur_sample*0x40]
-                    if len(self.bank_blob) >= P.BANK_BLOB_SIZE
-                    else bytes([0xff]) * 64)
+            # Target=1 flow is dead code on real firmware). Works standalone
+            # too — real firmware answers for the slot named IN the message.
+            q = midi[5] & 0x3f
+            if q in getattr(self, 'w_params', {}):
+                blob = bytes(self.w_params[q])
+            elif len(self.bank_blob) >= P.BANK_BLOB_SIZE:
+                blob = self.bank_blob[0x40 + q*0x40: 0x80 + q*0x40]
+            else:
+                blob = bytes([0xff]) * 64
             self._push_sysex(bytes([0xf0, 0x42, 0x30, 0x7f, 0x44, midi[5] & 0x3f,
                                     *P.korg_encode(blob), 0xf7]))
+        elif func == 0x44:                     # param blob WRITE (standalone)
+            if not hasattr(self, 'w_params'):
+                self.w_params = {}
+            self.w_params[midi[5] & 0x3f] = P.korg_decode(midi[6:-1])
+            self._push_sysex(bytes([0xf0, 0x42, 0x30, 0x7f, 0x23, 0xf7]))
         elif func == 0x1f:                     # sample PCM request (closes session)
             self.selected = None
             pcm = self.samples[self.cur_sample][1]

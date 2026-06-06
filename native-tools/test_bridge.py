@@ -65,6 +65,20 @@ st, _, data = req('GET', '/api/bank')
 s5 = json.loads(data)['slots'][5]
 assert s5['name'] == 'BEEPY' and s5['tempo_bpm'] == 99.5
 
+# --- start/end points (mock HTTP) ---------------------------------------------
+st, _, data = req('POST', '/api/sample/0/points',
+                  body=json.dumps({'start': 1000, 'end': 20000}))
+assert st == 200 and json.loads(data) == {'slot': 0, 'start': 1000, 'end': 20000}
+st, _, data = req('GET', '/api/bank')
+s0p = json.loads(data)['slots'][0]
+assert s0p['start'] == 1000 and s0p['end'] == 20000
+st, _, _ = req('POST', '/api/sample/0/points',
+               body=json.dumps({'start': 500, 'end': 500}))   # start must be < end
+assert st == 400
+st, _, _ = req('POST', '/api/sample/35/points',
+               body=json.dumps({'start': 0, 'end': 10}))      # empty slot
+assert st == 500
+
 # --- patterns (mock HTTP) ----------------------------------------------------
 st, _, data = req('GET', '/api/patterns')
 pats = json.loads(data)['patterns']
@@ -149,6 +163,23 @@ assert real.ms.selected is None                # PCM dump closed the session
 # a second bank summary must work back-to-back (no stranded state)
 out2 = real.bank_summary()
 assert out2['name'] == 'TESTBANK'
+
+# --- start/end points over the real Device path (param-blob write) -------------
+# set_points must fetch the CURRENT blob (0x14), patch ONLY the two u32s,
+# and write it back (0x44) — without opening a select session.
+res_pts = real.set_points(0, 7, 55)
+assert res_pts == {'slot': 0, 'start': 7, 'end': 55}
+wp = bytes(real.ms.w_params[0])
+assert int.from_bytes(wp[0x0c:0x10], 'little') == 7
+assert int.from_bytes(wp[0x10:0x14], 'little') == 55
+orig_par = bytes(blob)[0x40:0x80]                  # slot 0 blob from the bank
+assert wp[:0x0c] == orig_par[:0x0c]                # name/flags untouched
+assert wp[0x14:] == orig_par[0x14:]                # all other params untouched
+assert real.ms.selected is None                    # no select session opened
+# read-back reflects the write (FakeMS serves w_params on 0x14)
+par2 = real.set_points(0, 9, 60)
+wp2 = bytes(real.ms.w_params[0])
+assert int.from_bytes(wp2[0x0c:0x10], 'little') == 9
 
 # a failing blob request propagates cleanly
 class ErrMS(FakeMS):
