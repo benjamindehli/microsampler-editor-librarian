@@ -299,7 +299,10 @@ class Device:
                 except Exception:
                     traceback.print_exc()
         return {'name': bank['name'], 'bpm': bank['bpm'], 'slots': slots,
-                'effect': self._effect_json(bank['effect'])}
+                'effect': self._effect_json(bank['effect']),
+                # pattern storage, 0x200-byte units per pattern (= the
+                # 0x800-block-rounded size; device pool = 0x60000 bytes)
+                'seq_lengths': bank['seq_lengths']}
 
     @staticmethod
     def _effect_json(packed):
@@ -547,7 +550,8 @@ class MockDevice(Device):
         return {'name': 'MOCKBANK', 'bpm': 120.0, 'slots': slots,
                 'effect': {'type': self._effect['type'],
                            'knobs': list(self._effect['knobs']),
-                           'params': list(self._effect['params'])}}
+                           'params': list(self._effect['params'])},
+                'seq_lengths': [4] * 16}
 
     def download_wav(self, slot):
         s = self._slots.get(slot)
