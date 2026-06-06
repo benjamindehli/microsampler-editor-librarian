@@ -281,7 +281,16 @@ class Device:
                     self._leave_dump(commit=True)
                 except Exception:
                     traceback.print_exc()
-        return {'name': bank['name'], 'bpm': bank['bpm'], 'slots': slots}
+        return {'name': bank['name'], 'bpm': bank['bpm'], 'slots': slots,
+                'effect': self._effect_json(bank['effect'])}
+
+    @staticmethod
+    def _effect_json(packed):
+        # 36B packed effect data (bank blob @0x950) maps onto EffectData
+        # bytes 4..0x27: [0]=fx type, [2]/[3]=knob assigns, [4+i]=param i
+        # byte (= display value + descriptor center; client de-centers).
+        return {'type': packed[0], 'knobs': [packed[2], packed[3]],
+                'params': list(packed[4:36])}
 
     @staticmethod
     def _slot_json(i, par):
@@ -376,6 +385,10 @@ class MockDevice(Device):
                            for j in range(n))
             self._slots[i] = {'name': name, 'rate': 48000, 'stereo': False,
                               'pcm': pcm, 'tempo': 120.0}
+        # stateful effect for UI dev: Filter w/ a few non-default bytes
+        self._effect = {'type': 2, 'knobs': [2, 3],
+                        'params': [100, 2, 63, 20, 64, 0, 30, 1, 20, 2,
+                                   0, 0, 0, 0] + [0] * 18}
 
     def open(self):
         pass
@@ -387,7 +400,17 @@ class MockDevice(Device):
         return {'connected': True, 'inquiry': self.inquiry, 'mock': True}
 
     def send_param(self, obj, param, value):
-        pass
+        # keep the mock's effect state live so the page round-trips in UI dev
+        if obj == 80:
+            e = self._effect
+            sval = value - 16384 if value >= 8192 else value   # signed-14
+            if param == 1:
+                e['type'] = sval
+                e['params'] = [0] * 32          # device re-inits on type change
+            elif param in (2, 3):
+                e['knobs'][param - 2] = sval
+            elif 16 <= param <= 47:
+                e['params'][param - 16] = sval & 0xff
 
     def _inquire(self):
         pass
@@ -486,7 +509,10 @@ class MockDevice(Device):
                           'start': start, 'end': end, 'level': 101,
                           'pan': 64, 'semitone': i, 'tune': 64, 'velo_int': 0,
                           'decay': 127, 'release': 0, 'fx_sw': i == 0})
-        return {'name': 'MOCKBANK', 'bpm': 120.0, 'slots': slots}
+        return {'name': 'MOCKBANK', 'bpm': 120.0, 'slots': slots,
+                'effect': {'type': self._effect['type'],
+                           'knobs': list(self._effect['knobs']),
+                           'params': list(self._effect['params'])}}
 
     def download_wav(self, slot):
         s = self._slots.get(slot)

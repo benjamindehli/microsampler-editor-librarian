@@ -34,6 +34,11 @@ s0 = bank['slots'][0]
 assert s0['name'] == 'OCTSTRAT' and s0['fx_sw'] is True and not s0['empty']
 assert bank['slots'][35]['empty'] is True
 
+# --- effect summary (mock) ------------------------------------------------------
+e = bank['effect']
+assert e['type'] == 2 and e['knobs'] == [2, 3] and len(e['params']) == 32
+assert e['params'][0] == 100                       # Dry/Wet byte
+
 # --- sample download -------------------------------------------------------------
 st, ct, data = req('GET', '/api/sample/0.wav')
 assert st == 200 and ct == 'audio/wav'
@@ -151,6 +156,7 @@ real.channel = 0
 real.cable = 1
 out = real.bank_summary()
 assert out['name'] == 'TESTBANK'
+assert len(out['effect']['params']) == 32          # packed @0x950 -> JSON
 used = [s for s in out['slots'] if not s['empty']]
 assert len(used) == 1 and used[0]['name'] == 'SMPA' and used[0]['end'] == 62
 assert real.ms.left_dump == 1                  # committed leave-dump-mode
