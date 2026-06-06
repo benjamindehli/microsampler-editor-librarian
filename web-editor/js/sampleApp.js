@@ -478,7 +478,13 @@ $('#audition-btn').onclick = () => {
   src.onended = () => { state.playing = null; cap.textContent = '▶ PLAY'; };
   const cap = $('#audition-btn .hw-btn-cap');
   cap.textContent = '■ STOP';
-  src.start();
+  // honor the START/END points like the hardware does. Points are DEVICE
+  // frames; decodeAudioData may have resampled, so map proportionally.
+  const s = slotData(state.sel);
+  const total = s.frames || Math.round(buf.duration * (s.rate_hz || 48000));
+  const t0 = Math.max(0, (s.start / total) * buf.duration);
+  const t1 = Math.min(buf.duration, ((s.end + 2) / total) * buf.duration);
+  src.start(0, t0, Math.max(0.01, t1 - t0));
   state.playing = src;
 };
 
