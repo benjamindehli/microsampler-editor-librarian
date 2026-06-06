@@ -225,3 +225,20 @@ __marimo__/
 
 # macOS
 .DS_Store
+# ── microSAMPLER project ────────────────────────────────────────────────
+# personal device data — bank backups made by the UTILITY page / bank.py
+# (folders are recreated automatically on the next backup)
+native-tools/backups/
+native-tools/bank_current/
+
+# ad-hoc dumps written by the CLI tools (download.py etc.)
+native-tools/*.wav
+native-tools/*.bin
+native-tools/*.mid
+
+# launcher app if rebuilt locally
+microSAMPLER Editor.app/
+
+# Korg's original installer — needed only for the reverse-engineering tools
+# (tools/re/); do NOT commit it (copyrighted software, not ours to publish)
+microSAMPLER Editor.pkg/
