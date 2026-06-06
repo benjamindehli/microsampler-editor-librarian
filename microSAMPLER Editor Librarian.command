@@ -6,7 +6,7 @@
 # window once the bridge is ready, and shows live bridge output.
 # Stop with Ctrl+C or by closing the window.
 
-echo "── microSAMPLER editor launcher ────────────────────────────────"
+echo "── microSAMPLER Editor / Librarian ────────────────────────────────"
 
 pause_exit() {                       # never vanish silently
   echo "ERROR: $1"
