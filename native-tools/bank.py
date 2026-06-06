@@ -144,6 +144,21 @@ def backup(ms, channel, bank, out, log=print):
     log(f"backup complete: {n} samples, {nq} patterns -> {out}/")
 
 
+def send_sequence(ms, channel, q, data):
+    """Write one pattern: func 0x43 header w/ 3-byte size -> ACK -> raw bytes
+    (CmdId 12 direct, no marker in the OUT direction) -> ACK. Mirrors
+    SequenceWrite::process; also used standalone by the bridge."""
+    _drain(ms)
+    ms.send_sysex(P.sequence_header_send(channel, q, len(data)))
+    _wait_korg_reply(ms, P.UPLOAD_HDR_OK, P.UPLOAD_HDR_ERR,
+                     timeout_ms=8000, what=f'q{q:02d} header ACK')
+    if data:
+        for off in range(0, len(data), 0x4000):
+            ms.dev.write(0x01, data[off:off + 0x4000], timeout=5000)
+        _wait_korg_reply(ms, P.UPLOAD_DATA_OK, P.UPLOAD_DATA_ERR,
+                         timeout_ms=15000, what=f'q{q:02d} data ACK')
+
+
 def _read_wav_as_wire_pcm(path):
     """WAV -> (BE wire PCM bytes, rate, stereo)."""
     with wave.open(path, 'rb') as w:
@@ -209,15 +224,8 @@ def restore(ms, channel, bank, src, log=print):
             q = entry['pattern']
             path = os.path.join(src, 'sequences', f'q{q:02d}.bin')
             data = open(path, 'rb').read() if os.path.exists(path) else b''
-            _drain(ms)
-            ms.send_sysex(P.sequence_header_send(channel, q, len(data)))
-            _wait_korg_reply(ms, P.UPLOAD_HDR_OK, P.UPLOAD_HDR_ERR,
-                             timeout_ms=8000, what=f'q{q:02d} header ACK')
+            send_sequence(ms, channel, q, data)
             if data:
-                for off in range(0, len(data), 0x4000):
-                    ms.dev.write(0x01, data[off:off + 0x4000], timeout=5000)
-                _wait_korg_reply(ms, P.UPLOAD_DATA_OK, P.UPLOAD_DATA_ERR,
-                                 timeout_ms=15000, what=f'q{q:02d} data ACK')
                 log(f"  q{q:02d}: {len(data)} bytes")
     finally:
         # ---- 4. leave dump mode (commit) -------------------------------------

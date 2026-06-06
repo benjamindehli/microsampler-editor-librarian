@@ -79,6 +79,18 @@ assert st == 200 and ct == 'audio/midi' and data[:4] == b'MThd'
 st, _, _ = req('GET', '/api/pattern/77.mid')
 assert st == 400
 
+# SMF import round-trip over HTTP: export P1, import into P5, re-export
+st, _, mid0 = req('GET', '/api/pattern/0.mid')
+st, _, data = req('POST', '/api/pattern/5', body=mid0)
+imp = json.loads(data)
+assert st == 200 and imp['note_count'] == 20 and imp['bars'] == 4, imp
+st, _, mid5 = req('GET', '/api/pattern/5.mid')
+assert mid5 == mid0                       # converters reach a fixpoint
+# init endpoint resets notes but keeps the sample assignment (was 0)
+st, _, data = req('POST', '/api/pattern/5/init')
+ini = json.loads(data)
+assert ini['note_count'] == 0 and ini['name'] == 'INITPTRN' and ini['sample'] == 0
+
 # --- live param edit --------------------------------------------------------------
 st, _, data = req('POST', '/api/param', body=json.dumps(
     {'obj': 16, 'param': 16, 'value': 1}), headers={'Content-Type': 'application/json'})
@@ -168,6 +180,18 @@ assert len(ps) == 16 and all(p['valid'] for p in ps)
 assert ps[3]['name'] == 'INITPTRN' and ps[3]['bars'] == 4
 mid = realp.pattern_mid(5)
 assert mid[:4] == b'MThd'
+
+# --- pattern write over the real Device path (fake write transport) -----------
+wpat = B.Device()
+wpat.ms = FakeWriteMS2 = __import__('test_bank').FakeWriteMS()
+wpat.ms.dev = __import__('test_bank').FakeWriteDev(wpat.ms)
+wpat.channel = 0
+wpat.cable = 1
+blob5 = P2.smf_to_pattern(P2.pattern_to_smf(P2.build_init_pattern()))
+res5 = wpat.pattern_write(5, blob5)
+assert res5['valid'] and res5['name'] == 'INITPTRN'
+assert bytes(wpat.ms.w_seqs[5][1]) == blob5        # exact bytes on the wire
+assert wpat.pattern_cache[5] == blob5
 
 # --- backup/restore ops over the op runner -----------------------------------
 import tempfile, time as _t

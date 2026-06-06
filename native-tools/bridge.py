@@ -214,6 +214,15 @@ class Device:
             return None
         return P.pattern_to_smf(blob)
 
+    def pattern_write(self, q, blob):
+        """Write a pattern blob (standalone SequenceWrite flow), update cache."""
+        from bank import send_sequence
+        with self.lock:
+            self._inquire()
+            send_sequence(self.ms, self.channel, q, blob)
+            self.pattern_cache[q] = blob
+        return _pattern_json(q, blob)
+
     def start_backup(self):
         import bank as BK
         os.makedirs(BACKUP_ROOT, exist_ok=True)
@@ -390,6 +399,11 @@ class MockDevice(Device):
     def pattern_mid(self, q):
         self._mock_patterns()
         return P.pattern_to_smf(self.pattern_cache[q])
+
+    def pattern_write(self, q, blob):
+        self._mock_patterns()
+        self.pattern_cache[q] = blob
+        return _pattern_json(q, blob)
 
     def start_backup(self):
         os.makedirs(BACKUP_ROOT, exist_ok=True)
@@ -606,6 +620,21 @@ class Handler(BaseHTTPRequestHandler):
                     if not 0 <= bank <= 7:
                         return self._err('bank must be null or 0..7', 400)
                 return self._json(DEVICE.start_restore(str(body['dir']), bank))
+            m = re.match(r'^/api/pattern/(\d+)(/init)?$', path)
+            if m:
+                q = int(m.group(1))
+                if not 0 <= q <= 15:
+                    return self._err('pattern 0..15', 400)
+                if m.group(2):                       # /init: factory pattern,
+                    old = DEVICE.pattern_cache.get(q)  # keep sample assignment
+                    keep = P.parse_pattern(old)['sample'] if old else None
+                    blob = bytearray(P.build_init_pattern())
+                    blob[0x1e0] = 0xff if keep is None else keep
+                    return self._json(DEVICE.pattern_write(q, bytes(blob)))
+                n = int(self.headers.get('Content-Length', 0))
+                smf = self.rfile.read(n)
+                blob = P.smf_to_pattern(smf)
+                return self._json(DEVICE.pattern_write(q, blob))
             m = re.match(r'^/api/sample/(\d+)$', path)
             if m:
                 slot = int(m.group(1))

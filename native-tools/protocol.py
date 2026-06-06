@@ -326,6 +326,195 @@ def build_init_pattern():
     return bytes(b)
 
 
+def parse_smf(data):
+    """Minimal SMF reader (format 0/1): merged, time-ordered note events with
+    ticks rescaled to 96/quarter. -> {'notes': [(tick, ch, note, vel)...where
+    vel 0 = off], 'programs': {midi_ch: program}, 'end_tick': n}"""
+    data = bytes(data)
+    if data[0:4] != b'MThd' or int.from_bytes(data[4:8], 'big') != 6:
+        raise ValueError('not a standard MIDI file')
+    fmt = int.from_bytes(data[8:10], 'big')
+    ntrk = int.from_bytes(data[10:12], 'big')
+    division = int.from_bytes(data[12:14], 'big')
+    if fmt > 1:
+        raise ValueError('SMF format %d not supported (use 0 or 1)' % fmt)
+    if division & 0x8000:
+        raise ValueError('SMPTE time division not supported')
+
+    events = []                       # (tick96, seq#, kind, ch, a, b)
+    programs = {}
+    end_tick = 0
+    track_name = None
+    off, seq = 14, 0
+    for _ in range(ntrk):
+        if data[off:off + 4] != b'MTrk':
+            raise ValueError('bad track header')
+        tlen = int.from_bytes(data[off + 4:off + 8], 'big')
+        p, end = off + 8, off + 8 + tlen
+        tick = 0
+        status = 0
+        while p < end:
+            delta = 0                 # variable-length delta time
+            while True:
+                delta = (delta << 7) | (data[p] & 0x7f)
+                more = data[p] & 0x80
+                p += 1
+                if not more:
+                    break
+            tick += delta
+            t96 = tick * PATTERN_TICKS_PER_QUARTER // division
+            b0 = data[p]
+            if b0 & 0x80:
+                status = b0
+                p += 1
+            typ, ch = status & 0xf0, status & 0x0f
+            if status == 0xff:        # meta
+                meta, p = data[p], p + 1
+                mlen = 0
+                while True:
+                    mlen = (mlen << 7) | (data[p] & 0x7f)
+                    more = data[p] & 0x80
+                    p += 1
+                    if not more:
+                        break
+                if meta == 0x03 and track_name is None:
+                    track_name = data[p:p + mlen].decode('latin1', 'replace')
+                p += mlen
+                end_tick = max(end_tick, t96)
+            elif status in (0xf0, 0xf7):
+                slen = 0
+                while True:
+                    slen = (slen << 7) | (data[p] & 0x7f)
+                    more = data[p] & 0x80
+                    p += 1
+                    if not more:
+                        break
+                p += slen
+            elif typ in (0x80, 0x90):
+                note, vel = data[p], data[p + 1]
+                p += 2
+                if typ == 0x80:
+                    vel = 0
+                events.append((t96, seq, ch, note, vel))
+                end_tick = max(end_tick, t96)
+                seq += 1
+            elif typ in (0xa0, 0xb0, 0xe0):
+                p += 2
+            elif typ in (0xc0, 0xd0):
+                if typ == 0xc0:
+                    programs.setdefault(ch, data[p])
+                p += 1
+            else:
+                raise ValueError('unexpected byte 0x%02x in track' % b0)
+        off = end
+    events.sort(key=lambda e: (e[0], e[1]))
+    return {'notes': [(t, ch, n, v) for (t, _, ch, n, v) in events],
+            'programs': programs, 'end_tick': end_tick, 'name': track_name}
+
+
+def smf_to_pattern(smf_bytes, sample_channel=0, kbd_channel=1,
+                   name=None, sample=None):
+    """SMF -> pattern blob, emulating the original's ConvertSeq exactly:
+    - notes on `sample_channel` -> sample-mode track (status bit0 = 0; the
+      note number selects the pad); any other channel -> keyboard-mode track
+      (bit0 = 1) playing the assigned sample
+    - `sample` defaults to the program change seen on the keyboard channel
+    - bars (4/4, 384 ticks) derived from content, padded with empty bars to
+      100 like ConvertSeq; size is variable (u32@4 = used size; 1308 = empty)
+    - note-offs landing exactly on a bar boundary are pooled into the next
+      bar (PutPoolEvent semantics); note records carry b3 = 1."""
+    smf = parse_smf(smf_bytes)
+    if sample is None:
+        sample = smf['programs'].get(kbd_channel & 0x0f, 0)
+    if name is None:
+        name = (smf['name'] or 'INITPTRN').strip() or 'INITPTRN'
+    last = max([smf['end_tick']] + [t for (t, _, _, _) in smf['notes']])
+    bars = max(1, min(99, -(-max(last, 1) // PATTERN_TICKS_PER_BAR)))
+
+    stream = bytearray()
+    table = [0] * 100
+    bar_count_at = {}                 # bar -> (marker_offset, count)
+    cur_bar = -1
+    count = 0
+    last_tick = 0                     # within current bar, absolute
+    pool = []                         # note-offs deferred to next bar start
+
+    def patch_count():
+        moff, _ = bar_count_at[cur_bar]
+        stream[moff + 2] = (count >> 8) & 0xff
+        stream[moff + 3] = count & 0xff
+
+    def advance_to(tick):
+        nonlocal count, last_tick
+        if tick > last_tick:
+            d = tick - last_tick
+            stream.extend(bytes([0xf0, 0x00, (d >> 8) & 0xff, d & 0xff]))
+            last_tick = tick
+            count += 1
+
+    def start_bar(b):
+        nonlocal cur_bar, count
+        table[b] = 0x200 + len(stream)
+        bar_count_at[b] = (len(stream), 0)
+        stream.extend(bytes([0xff, b, 0x00, 0x00]))
+        cur_bar = b
+        count = 1
+        for (st, nn) in pool:         # flush pooled note-offs (delta 0)
+            stream.extend(bytes([st, nn, 0x00, 0x01]))
+            count += 1
+        del pool[:]
+
+    def end_bar(with_advance=True):
+        if with_advance:
+            advance_to((cur_bar + 1) * PATTERN_TICKS_PER_BAR)
+        patch_count()
+
+    start_bar(0)
+    for (t, ch, note, vel) in smf['notes']:
+        sel = 0 if ch == (sample_channel & 0x0f) else 1
+        tb = t // PATTERN_TICKS_PER_BAR
+        # an off at exactly the pattern END must stay INSIDE the last bar
+        # (anything after the terminating marker is unreachable — the device
+        # encodes it this way too)
+        final_off = vel == 0 and t >= bars * PATTERN_TICKS_PER_BAR
+        if (vel == 0 and t % PATTERN_TICKS_PER_BAR == 0
+                and cur_bar < tb <= 99 and not final_off):
+            # note-off exactly on a mid-pattern bar boundary: pooled into the
+            # next bar (PutPoolEvent semantics)
+            while cur_bar < tb - 1:
+                end_bar()
+                start_bar(cur_bar + 1)
+            end_bar()
+            pool.append((0x80 | sel, note & 0x7f))
+            start_bar(tb)
+            continue
+        if not final_off:
+            while t >= (cur_bar + 1) * PATTERN_TICKS_PER_BAR and cur_bar < 99:
+                end_bar()
+                start_bar(cur_bar + 1)
+        advance_to(min(t, (cur_bar + 1) * PATTERN_TICKS_PER_BAR))
+        status = (0x90 if vel else 0x80) | sel
+        stream.extend(bytes([status, note & 0x7f, vel & 0x7f, 0x01]))
+        count += 1
+    # close current bar, pad empty bars through 98, final marker bar 99
+    while cur_bar < 99:
+        end_bar()
+        start_bar(cur_bar + 1)
+    end_bar(with_advance=False)       # bar 99: marker only
+
+    blob = bytearray(b'\xff' * 0x200) + stream
+    blob[0:4] = b'SEQP'
+    blob[4:8] = len(blob).to_bytes(4, 'big')
+    blob[8:10] = bars.to_bytes(2, 'big')
+    blob[0x0a:0x0c] = bars.to_bytes(2, 'big')
+    blob[0x0c:0x10] = (8).to_bytes(4, 'big')
+    for i, o in enumerate(table):
+        blob[0x10 + 4*i:0x14 + 4*i] = o.to_bytes(4, 'big')
+    blob[0x1e0] = 0xff if sample is None else (sample & 0x7f)
+    blob[0x1e8:0x1f0] = name.ljust(8)[:8].encode('latin1', 'replace')
+    return bytes(blob)
+
+
 def pattern_to_smf(blob, sample_channel=0, kbd_channel=1):
     """Pattern blob -> Standard MIDI File bytes (type 0, 96 tpqn), mirroring
     ConvertToSmf: track name + tempo 120 + program change (sample#) + notes."""
@@ -596,6 +785,23 @@ def _selftest():
     smf = pattern_to_smf(pb)
     assert smf[:4] == b'MThd' and smf[12:14] == bytes([0, 96])
     assert bytes([0x90, 60, 100]) in smf and bytes([0x80, 60, 0]) in smf
+
+    # SMF import: init -> SMF -> pattern reproduces the ROM byte-exactly;
+    # a two-track pattern reaches a semantic fixpoint through the converters
+    rt = smf_to_pattern(pattern_to_smf(init))
+    assert rt == init, 'init SMF round-trip not byte-exact'
+    pb2 = bytearray(init)
+    pb2[0x200:0x228] = bytes([0xff, 0, 0, 0,  0x91, 64, 90, 1,
+                              0x90, 48, 100, 1,  0xf0, 0, 0, 96,
+                              0x80, 48, 0, 1,  0xf0, 0, 1, 0x20,
+                              0xff, 1, 0, 0,  0x81, 64, 0, 1,
+                              0xf0, 0, 1, 0x80,  0xff, 4, 0, 0])
+    s1 = pattern_to_smf(pb2)
+    p1 = smf_to_pattern(s1)
+    assert pattern_to_smf(p1) == s1 and smf_to_pattern(pattern_to_smf(p1)) == p1
+    q1 = parse_pattern(p1)
+    assert q1['bars'] == 2 and q1['size'] == 1328
+    assert sorted(q1['notes']) == [(0, 0, 48, 100, 96), (0, 1, 64, 90, 384)]
 
     # param reply round-trip
     blob = bytearray([0xff] * 64)
