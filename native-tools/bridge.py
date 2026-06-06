@@ -342,6 +342,25 @@ class Device:
         return {'slot': slot, 'frames': frames, 'rate_hz': target,
                 'stereo': len(chans) == 2}
 
+    def set_points(self, slot, start, end):
+        """Set START/END points. These are u32 frame counts — they don't fit a
+        live 0x41 value (14-bit), and the editor binary's id converter refuses
+        them — so (like the original) they go via the 64-byte param blob:
+        fetch the CURRENT blob (func 0x14, session-safe — does not open or
+        close a select session), patch the two u32s, send it back (func 0x44).
+        Fetching first means panel edits made since the bank read survive."""
+        with self.lock:
+            self._inquire()
+            par = DL.fetch_params(self.ms, self.channel, slot)
+            blob = bytearray(par['raw'])
+            blob[0x0c:0x10] = int(start).to_bytes(4, 'little')
+            blob[0x10:0x14] = int(end).to_bytes(4, 'little')
+            self.ms.send_sysex(P.sample_param_send(self.channel, slot,
+                                                   bytes(blob)))
+            DL._wait_korg_reply(self.ms, P.UPLOAD_DATA_OK, P.UPLOAD_DATA_ERR,
+                                what='param write ACK (func 0x44)')
+        return {'slot': slot, 'start': int(start), 'end': int(end)}
+
 
 class MockDevice(Device):
     """Hardware-free stand-in for UI development (--mock)."""
@@ -459,11 +478,12 @@ class MockDevice(Device):
                 slots.append({'slot': i, 'empty': True})
                 continue
             frames = len(s['pcm']) // 2
+            start, end = s.get('points', (0, frames - 2))
             slots.append({'slot': i, 'empty': False, 'name': s['name'],
                           'long_name': s['name'].title(), 'rate_hz': s['rate'],
                           'stereo': s['stereo'], 'frames': frames,
                           'seconds': frames / s['rate'], 'tempo_bpm': s['tempo'],
-                          'start': 0, 'end': frames - 2, 'level': 101,
+                          'start': start, 'end': end, 'level': 101,
                           'pan': 64, 'semitone': i, 'tune': 64, 'velo_int': 0,
                           'decay': 127, 'release': 0, 'fx_sw': i == 0})
         return {'name': 'MOCKBANK', 'bpm': 120.0, 'slots': slots}
@@ -492,6 +512,13 @@ class MockDevice(Device):
                              'tempo': tempo}
         return {'slot': slot, 'frames': frames, 'rate_hz': target,
                 'stereo': len(chans) == 2}
+
+    def set_points(self, slot, start, end):
+        s = self._slots.get(slot)
+        if not s:
+            raise RuntimeError('slot is empty')
+        s['points'] = (int(start), int(end))
+        return {'slot': slot, 'start': int(start), 'end': int(end)}
 
 
 def _pattern_json(q, blob):
@@ -641,6 +668,17 @@ class Handler(BaseHTTPRequestHandler):
                 smf = self.rfile.read(n)
                 blob = P.smf_to_pattern(smf)
                 return self._json(DEVICE.pattern_write(q, blob))
+            m = re.match(r'^/api/sample/(\d+)/points$', path)
+            if m:
+                slot = int(m.group(1))
+                if not 0 <= slot <= 35:
+                    return self._err('slot 0..35', 400)
+                n = int(self.headers.get('Content-Length', 0))
+                body = json.loads(self.rfile.read(n) or b'{}')
+                start, end = int(body['start']), int(body['end'])
+                if not 0 <= start < end:
+                    return self._err('need 0 <= start < end', 400)
+                return self._json(DEVICE.set_points(slot, start, end))
             m = re.match(r'^/api/sample/(\d+)$', path)
             if m:
                 slot = int(m.group(1))
