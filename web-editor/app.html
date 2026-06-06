@@ -31,6 +31,7 @@
 
   <nav class="views">
     <button class="view-btn on" data-view="samples">SAMPLES</button>
+    <button class="view-btn" data-view="patterns">PATTERNS</button>
     <button class="view-btn" data-view="utility">UTILITY</button>
   </nav>
 
@@ -52,6 +53,30 @@
     </button>
   </div>
 </header>
+
+<!-- ── patterns view ───────────────────────────────────────────────────── -->
+<main class="deck utility-deck" id="view-patterns" hidden>
+  <section class="editor">
+    <div class="screw tl"></div><div class="screw tr"></div>
+    <div class="screw bl"></div><div class="screw br"></div>
+
+    <div class="patterns-head">
+      <div>
+        <div class="panel-title">PATTERNS <em>01–16</em></div>
+        <p class="util-note">Patterns from the device's current bank.
+          Reading all 16 takes a few seconds. Export any pattern as a
+          Standard MIDI File (96 ticks/quarter, program&nbsp;change =
+          assigned sample).</p>
+      </div>
+      <button class="hw-btn" id="patterns-refresh">
+        <span class="hw-btn-cap">RECEIVE PATTERNS</span></button>
+    </div>
+
+    <div class="pattern-grid" id="pattern-grid">
+      <p class="backup-empty">PRESS “RECEIVE PATTERNS” TO READ THE DEVICE</p>
+    </div>
+  </section>
+</main>
 
 <!-- ── utility view ────────────────────────────────────────────────────── -->
 <main class="deck utility-deck" id="view-utility" hidden>
