@@ -247,7 +247,8 @@ BANK_SEND_OK, BANK_SEND_ERR = {0x23}, {0x24, 0x29}
 # Layout (ALL multi-byte fields BIG-endian):
 #   0x000 "SEQP"; 0x004 u32 size (0x51C); 0x008 u16 specified bars;
 #   0x00A u16 bars; 0x00C u32 = 8; 0x010 100*u32 bar-start offsets;
-#   0x1A0 64*0xFF reserved; 0x1E0 sample# (0xFF none); 0x1E8 name[8];
+#   0x1A0 64*0xFF reserved; 0x1E0 KEYBOARD-mode sample# (0xFF none — the
+#   sample-mode track selects pads by note number instead); 0x1E8 name[8];
 #   0x200.. 4-byte events:
 #     F0 00 tt tt  advance BE16 ticks (96/quarter note -> 384/4-4 bar)
 #     FF bb -- --  bar marker; ends the pattern when bb >= bars
@@ -349,7 +350,11 @@ def pattern_to_smf(blob, sample_channel=0, kbd_channel=1):
     name = p['name'].ljust(8)[:8].encode('latin1')
     ev(0, 0xff, 0x03, 0x08, *name)                       # track name
     ev(0, 0xff, 0x51, 0x03, 0x07, 0xa1, 0x20)            # tempo 120
-    ev(0, 0xc0 | ch[0], (p['sample'] or 0) & 0x7f)       # program = sample#
+    # program change = the KEYBOARD-mode sample assignment, on the keyboard
+    # channel (matches ConvertToSmf + manual: "Sample numbers to be used in
+    # Keyboard mode will be saved as Program Change messages"). Sample-mode
+    # notes (bit0=0) select pads by NOTE NUMBER instead.
+    ev(0, 0xc0 | ch[1], (p['sample'] or 0) & 0x7f)
     delta = 0
     for e in p['events']:
         if e[0] == 'advance':

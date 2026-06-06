@@ -73,6 +73,7 @@ class Device:
         self.listeners = []                 # SSE queues
         self.reader_enabled = reader
         self.op = None                      # current/last backup or restore
+        self.pattern_cache = {}             # q -> raw 1308B blob
         self._stop = threading.Event()
         self._reader = None
 
@@ -185,6 +186,33 @@ class Device:
 
     def op_status(self):
         return self.op or {'name': None, 'lines': [], 'done': True, 'ok': None}
+
+    def patterns_summary(self):
+        """Fetch all 16 patterns (single-sequence receive per pattern — the
+        original's standalone SequenceReceive flow) and parse. Each fetch's
+        data dump closes its own select session; patterns are a fixed 1308
+        bytes on this hardware so the data phase always runs."""
+        from bank import fetch_sequence
+        with self.lock:
+            self._inquire()
+            out = []
+            for q in range(16):
+                blob = fetch_sequence(self.ms, self.channel, q)
+                self.pattern_cache[q] = blob
+                out.append(_pattern_json(q, blob))
+        return {'patterns': out}
+
+    def pattern_mid(self, q):
+        blob = self.pattern_cache.get(q)
+        if blob is None:
+            from bank import fetch_sequence
+            with self.lock:
+                self._inquire()
+                blob = fetch_sequence(self.ms, self.channel, q)
+                self.pattern_cache[q] = blob
+        if not blob:
+            return None
+        return P.pattern_to_smf(blob)
 
     def start_backup(self):
         import bank as BK
@@ -330,6 +358,39 @@ class MockDevice(Device):
     def _inquire(self):
         pass
 
+    def _mock_patterns(self):
+        if self.pattern_cache:
+            return
+        for q in range(16):
+            blob = bytearray(P.build_init_pattern())
+            blob[0x1e0] = q % 3                       # sample assignment
+            if q == 0:                                # one "recorded" pattern
+                blob[0x1e8:0x1f0] = b'MOCKPTRN'
+                ev = bytearray()
+                for bar in range(4):
+                    ev += bytes([0xff, bar, 0, 0])
+                    ev += bytes([0x91, 64 + bar * 3, 90, 0])   # kbd-track note
+                    for step in range(4):             # four quarter hits/bar
+                        note = 48 + (bar * 4 + step) % 12
+                        ev += bytes([0x90, note, 100 - step * 8, 0])
+                        ev += bytes([0xf0, 0, 0, 48])
+                        ev += bytes([0x80, note, 0, 0])
+                        ev += bytes([0xf0, 0, 0, 48])
+                    ev += bytes([0x81, 64 + bar * 3, 0, 0])    # kbd note off
+                ev += bytes([0xff, 4, 0, 0])
+                blob[0x200:0x200 + len(ev)] = ev
+            self.pattern_cache[q] = bytes(blob)
+
+    def patterns_summary(self):
+        self._mock_patterns()
+        time.sleep(.4)
+        return {'patterns': [_pattern_json(q, self.pattern_cache[q])
+                             for q in range(16)]}
+
+    def pattern_mid(self, q):
+        self._mock_patterns()
+        return P.pattern_to_smf(self.pattern_cache[q])
+
     def start_backup(self):
         os.makedirs(BACKUP_ROOT, exist_ok=True)
         label = time.strftime('%Y%m%d-%H%M%S') + '-mock'
@@ -413,6 +474,23 @@ class MockDevice(Device):
                 'stereo': len(chans) == 2}
 
 
+def _pattern_json(q, blob):
+    p = P.parse_pattern(blob) if blob else None
+    if p is None:
+        return {'pattern': q, 'valid': False}
+    smp = sum(1 for n in p['notes'] if n[1] == 0)
+    return {
+        'pattern': q, 'valid': True,
+        'name': p['name'], 'sample': p['sample'],
+        'bars': p['bars'], 'spec_bars': p['spec_bars'],
+        'ticks': p['ticks'], 'note_count': len(p['notes']),
+        'smp_notes': smp,                    # ch bit0=0: sample-mode track
+        'kbd_notes': len(p['notes']) - smp,  # ch bit0=1: keyboard-mode track
+        # compact note list for the mini preview: [tick, ch, note, vel, dur]
+        'notes': [list(n) for n in p['notes'][:199]],
+    }
+
+
 def list_backups():
     out = []
     if os.path.isdir(BACKUP_ROOT):
@@ -478,6 +556,17 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({'backups': list_backups()})
             if path == '/api/op':
                 return self._json(DEVICE.op_status())
+            if path == '/api/patterns':
+                return self._json(DEVICE.patterns_summary())
+            m = re.match(r'^/api/pattern/(\d+)\.mid$', path)
+            if m:
+                q = int(m.group(1))
+                if not 0 <= q <= 15:
+                    return self._err('pattern 0..15', 400)
+                data = DEVICE.pattern_mid(q)
+                if data is None:
+                    return self._err('pattern is empty', 404)
+                return self._bytes(data, 'audio/midi')
             m = re.match(r'^/api/sample/(\d+)\.wav$', path)
             if m:
                 slot = int(m.group(1))
