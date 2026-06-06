@@ -69,7 +69,7 @@ native-tools/                 Python bridge + CLI tools (libusb USB-MIDI):
 tools/re/                     reverse-engineering toolkit (needs the original
                               Korg installer, not included) — regenerates
                               web-editor/js/fxData.js etc.
-tools/make_app_icon.sh        rebuild the launcher icon from the SVG logo
+tools/make_app_icon.sh        give the launcher its icon (run once, macOS)
 ```
 
 ## Development
