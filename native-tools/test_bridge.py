@@ -167,11 +167,11 @@ t2.join(timeout=5)
 assert got_cc.get('evt') == {'type': 'cc', 'ch': 0, 'cc': 12, 'value': 99}, got_cc
 
 # --- static serving ----------------------------------------------------------------
-st, ct, data = req('GET', '/index.html')
+st, ct, data = req('GET', '/app.html')
 assert st == 200 and ct == 'text/html' and b'microSAMPLER' in data
 st, _, _ = req('GET', '/../CLAUDE.md')             # path traversal blocked
 assert st == 404
-st, _, _ = req('GET', '/js/protocol.js')
+st, _, _ = req('GET', '/js/sampleApp.js')
 assert st == 200
 
 srv.shutdown()
