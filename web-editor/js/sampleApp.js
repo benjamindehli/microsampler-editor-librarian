@@ -149,6 +149,7 @@ async function showSlot(i, { keepWave = false } = {}) {
   $('#download-btn').href = `/api/sample/${i}.wav`;
   $('#download-btn').style.visibility = s.empty ? 'hidden' : 'visible';
   $('#audition-btn').style.visibility = s.empty ? 'hidden' : 'visible';
+  $('#rename-btn').style.visibility = s.empty ? 'hidden' : 'visible';
 
   renderChips(s);
 
@@ -572,6 +573,43 @@ $('#ud-ok').onclick = async e => {
   } finally {
     $('#ud-progress').hidden = true;
     $('#ud-ok').removeAttribute('aria-busy');
+  }
+};
+
+// rename (param-blob write: name bytes 0..7 + long name 0x20..0x3f)
+$('#rename-btn').onclick = () => {
+  if (state.sel == null) return;
+  const s = slotData(state.sel);
+  if (!s || s.empty) return;
+  $('#rn-slot').textContent = `PAD ${state.sel + 1} (${noteName(state.sel)})`;
+  $('#rn-name').value = s.name || '';
+  $('#rn-long').value = s.long_name || '';
+  $('#rename-dialog').showModal();
+};
+$('#rn-ok').onclick = async e => {
+  e.preventDefault();
+  const name = $('#rn-name').value.trim().toUpperCase().slice(0, 8);
+  if (!name) return;
+  const long_name = $('#rn-long').value.trim().slice(0, 32);
+  $('#rn-ok').setAttribute('aria-busy', 'true');
+  try {
+    const res = await apiJson(`/api/sample/${state.sel}/name`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, long_name }),
+    });
+    const s = slotData(state.sel);
+    s.name = res.name;
+    s.long_name = res.long_name;
+    tick(`✎ S${state.sel + 1} renamed "${res.name}"`);
+    $('#rename-dialog').close();
+    renderPads();
+    $('#sel-name').textContent = res.name.padEnd(8);
+    $('#sel-long').textContent = res.long_name;
+  } catch (err) {
+    tick(`⚠ rename failed: ${err.message}`);
+    alert('Rename failed: ' + err.message);
+  } finally {
+    $('#rn-ok').removeAttribute('aria-busy');
   }
 };
 

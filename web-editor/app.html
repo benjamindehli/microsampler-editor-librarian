@@ -201,6 +201,7 @@
         </div>
         <div class="chips" id="info-chips"></div>
         <div class="name-actions">
+          <button class="hw-btn" id="rename-btn" title="Rename sample"><span class="hw-btn-cap">✎ NAME</span></button>
           <button class="hw-btn" id="audition-btn"><span class="hw-btn-cap">▶ PLAY</span></button>
           <a class="hw-btn" id="download-btn" download><span class="hw-btn-cap">⇩ WAV</span></a>
           <button class="hw-btn accent" id="upload-btn"><span class="hw-btn-cap">⇧ LOAD…</span></button>
@@ -311,6 +312,19 @@
   <div class="ticker-log" id="ticker-log">— device event monitor —</div>
   <span class="ticker-note">TRANSFERS TARGET THE CURRENT BANK (RAM) — SAVE TO A USER BANK ON THE DEVICE TO KEEP</span>
 </footer>
+
+<!-- ── rename dialog ───────────────────────────────────────────────────── -->
+<dialog id="rename-dialog" class="hw-dialog">
+  <form method="dialog">
+    <h3>RENAME <span id="rn-slot">PAD 1</span></h3>
+    <label>NAME <input type="text" id="rn-name" maxlength="8" spellcheck="false"></label>
+    <label>LONG NAME <input type="text" id="rn-long" maxlength="32" spellcheck="false"></label>
+    <menu>
+      <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
+      <button value="ok" id="rn-ok" class="hw-btn accent"><span class="hw-btn-cap">RENAME</span></button>
+    </menu>
+  </form>
+</dialog>
 
 <!-- ── upload dialog ───────────────────────────────────────────────────── -->
 <dialog id="upload-dialog" class="hw-dialog">
