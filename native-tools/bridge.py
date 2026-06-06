@@ -368,6 +368,24 @@ class Device:
         return {'slot': slot, 'frames': frames, 'rate_hz': target,
                 'stereo': len(chans) == 2}
 
+    def rename(self, slot, name, long_name):
+        """Rename a sample: fetch the CURRENT param blob (func 0x14,
+        session-safe), patch name[0:8] (space-padded) + long name
+        [0x20:0x40] (UTF-8 <=32B, 0xFF-padded), send func 0x44."""
+        with self.lock:
+            self._inquire()
+            par = DL.fetch_params(self.ms, self.channel, slot)
+            blob = bytearray(par['raw'])
+            blob[0:8] = name[:8].ljust(8).encode('latin1', 'replace')
+            ln = (long_name or name).encode('utf-8')[:32]
+            blob[0x20:0x40] = ln.ljust(32, b'\xff')
+            self.ms.send_sysex(P.sample_param_send(self.channel, slot,
+                                                   bytes(blob)))
+            DL._wait_korg_reply(self.ms, P.UPLOAD_DATA_OK, P.UPLOAD_DATA_ERR,
+                                what='param write ACK (func 0x44)')
+        return {'slot': slot, 'name': name[:8].strip(),
+                'long_name': (long_name or name)[:32]}
+
     def set_points(self, slot, start, end):
         """Set START/END points. These are u32 frame counts — they don't fit a
         live 0x41 value (14-bit), and the editor binary's id converter refuses
@@ -563,6 +581,14 @@ class MockDevice(Device):
         s['points'] = (int(start), int(end))
         return {'slot': slot, 'start': int(start), 'end': int(end)}
 
+    def rename(self, slot, name, long_name):
+        s = self._slots.get(slot)
+        if not s:
+            raise RuntimeError('slot is empty')
+        s['name'] = name[:8].strip()
+        return {'slot': slot, 'name': s['name'],
+                'long_name': (long_name or name)[:32]}
+
 
 def _pattern_json(q, blob):
     p = P.parse_pattern(blob) if blob else None
@@ -711,6 +737,18 @@ class Handler(BaseHTTPRequestHandler):
                 smf = self.rfile.read(n)
                 blob = P.smf_to_pattern(smf)
                 return self._json(DEVICE.pattern_write(q, blob))
+            m = re.match(r'^/api/sample/(\d+)/name$', path)
+            if m:
+                slot = int(m.group(1))
+                if not 0 <= slot <= 35:
+                    return self._err('slot 0..35', 400)
+                n = int(self.headers.get('Content-Length', 0))
+                body = json.loads(self.rfile.read(n) or b'{}')
+                name = str(body.get('name', '')).strip()
+                if not name:
+                    return self._err('name required', 400)
+                long_name = str(body.get('long_name', '')).strip() or None
+                return self._json(DEVICE.rename(slot, name, long_name))
             m = re.match(r'^/api/sample/(\d+)/points$', path)
             if m:
                 slot = int(m.group(1))
