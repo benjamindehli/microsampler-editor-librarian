@@ -65,6 +65,20 @@ st, _, data = req('GET', '/api/bank')
 s5 = json.loads(data)['slots'][5]
 assert s5['name'] == 'BEEPY' and s5['tempo_bpm'] == 99.5
 
+# --- patterns (mock HTTP) ----------------------------------------------------
+st, _, data = req('GET', '/api/patterns')
+pats = json.loads(data)['patterns']
+assert len(pats) == 16 and all(p['valid'] for p in pats)
+assert pats[0]['name'] == 'MOCKPTRN' and pats[0]['note_count'] == 20
+assert pats[0]['smp_notes'] == 16 and pats[0]['kbd_notes'] == 4
+assert pats[1]['name'] == 'INITPTRN' and pats[1]['note_count'] == 0
+assert pats[0]['bars'] == 4 and pats[0]['ticks'] == 1536
+assert len(pats[0]['notes'][0]) == 5            # [tick, ch, note, vel, dur]
+st, ct, data = req('GET', '/api/pattern/0.mid')
+assert st == 200 and ct == 'audio/midi' and data[:4] == b'MThd'
+st, _, _ = req('GET', '/api/pattern/77.mid')
+assert st == 400
+
 # --- live param edit --------------------------------------------------------------
 st, _, data = req('POST', '/api/param', body=json.dumps(
     {'obj': 16, 'param': 16, 'value': 1}), headers={'Content-Type': 'application/json'})
@@ -141,6 +155,19 @@ try:
     raise AssertionError('expected DownloadError')
 except Exception as e:
     assert '0x29' in str(e), e
+
+# --- patterns over the real Device path (fake transport, SEQP blobs) ----------
+import protocol as P2
+seqs2 = {q: P2.build_init_pattern() for q in range(16)}
+realp = B.Device()
+realp.ms = FakeMS(bytes(blob), samples, seqs2)
+realp.channel = 0
+realp.cable = 1
+ps = realp.patterns_summary()['patterns']
+assert len(ps) == 16 and all(p['valid'] for p in ps)
+assert ps[3]['name'] == 'INITPTRN' and ps[3]['bars'] == 4
+mid = realp.pattern_mid(5)
+assert mid[:4] == b'MThd'
 
 # --- backup/restore ops over the op runner -----------------------------------
 import tempfile, time as _t
