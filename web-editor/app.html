@@ -176,6 +176,24 @@
     <div class="panel-title">SAMPLE <em>01–36</em></div>
     <div class="pad-grid" id="pad-grid"></div>
     <div class="pads-hint">CLICK A PAD TO EDIT · <b id="count-used">0</b>/36 USED</div>
+
+    <!-- device memory meters -->
+    <div class="mem-block" id="mem-block" hidden>
+      <div class="mem-row">
+        <span class="mem-label">SMPL</span>
+        <div class="mem-bar"><div class="mem-fill" id="mem-smpl-fill"></div></div>
+        <span class="mem-val" id="mem-smpl-val">--</span>
+      </div>
+      <div class="mem-row">
+        <span class="mem-label">PTRN</span>
+        <div class="mem-bar"><div class="mem-fill" id="mem-ptrn-fill"></div></div>
+        <span class="mem-val" id="mem-ptrn-val">--</span>
+      </div>
+      <div class="mem-foot">
+        <span id="mem-note" hidden>≈ ESTIMATED —</span>
+        <button class="mem-measure" id="mem-measure" hidden>MEASURE</button>
+      </div>
+    </div>
   </aside>
 
   <!-- sample editor -->

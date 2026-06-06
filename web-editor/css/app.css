@@ -626,3 +626,39 @@ body {
 .fx-param .fader { width: 100%; }
 .fx-param .fx-select { min-width: 0; width: 100%; }
 .fx-param .ctl-label { line-height: 1.25; }
+
+/* ── memory meters ───────────────────────────────────────────────────── */
+.mem-block {
+  margin-top: 1rem; padding-top: .8rem;
+  border-top: 1px solid rgba(255,138,30,.12);
+  display: flex; flex-direction: column; gap: .45rem;
+}
+.mem-row { display: flex; align-items: center; gap: .55rem; }
+.mem-label { font-size: .58rem; letter-spacing: .22em; color: var(--ink-dim); width: 2.6rem; }
+.mem-bar {
+  flex: 1; height: 7px; border-radius: 3px; overflow: hidden;
+  background: #160b02; border: 1px solid rgba(255,138,30,.22);
+}
+.mem-fill {
+  height: 100%; width: 0; background: var(--amber);
+  box-shadow: 0 0 8px rgba(255,138,30,.5);
+  transition: width .35s ease;
+}
+.mem-fill.warn { background: #ffc34d; }
+.mem-fill.crit { background: #ff5436; box-shadow: 0 0 8px rgba(255,84,54,.6); }
+.mem-val {
+  font-family: "Share Tech Mono", monospace; font-size: .62rem;
+  color: var(--amber); min-width: 6.4rem; text-align: right;
+}
+.mem-foot {
+  display: flex; align-items: center; gap: .5rem; min-height: 1rem;
+  font-size: .56rem; letter-spacing: .14em; color: var(--ink-dim);
+}
+.mem-measure {
+  font: inherit; font-size: .56rem; letter-spacing: .18em; cursor: pointer;
+  color: var(--amber); background: none;
+  border: 1px solid rgba(255,138,30,.35); border-radius: 3px;
+  padding: .14rem .5rem;
+}
+.mem-measure:hover { box-shadow: 0 0 0 1px var(--amber); }
+.mem-measure:disabled { opacity: .5; cursor: default; }

@@ -103,6 +103,7 @@ async function refreshBank() {
     $('#bank-name').textContent = (state.bank.name || '--------').padEnd(8);
     $('#bank-bpm').textContent = state.bank.bpm.toFixed(1);
     renderPads();
+    renderMeter();
     if (state.sel != null) showSlot(state.sel, { keepWave: true });
     if (state.bank.effect) { fxFromBank(state.bank.effect); renderFx(); }
   } finally {
@@ -176,6 +177,77 @@ async function showSlot(i, { keepWave = false } = {}) {
   if (!keepWave) await loadWave(i);
 }
 
+// ─────────────────────────────────────────────────────── memory meters ──
+// Device storage accounting (RE'd from SampleSet/SequenceSet::
+// getFreeStorageSize): sample pool 0xEA0000 (14.6 MB), each sample occupies
+// frames×channels×2 rounded UP to 32 KB blocks; pattern pool 0x60000
+// (384 KB), per-pattern usage = bank-blob seq_lengths[i] × 0x200 (the
+// 0x800-block-rounded size). Sample sizes are exact once a slot's WAV has
+// been seen (frames+channels known); otherwise estimated from the END point
+// assuming stereo, flagged "≈" with a MEASURE button to fetch the rest.
+const MEM_SMPL_TOTAL = 0xEA0000;
+const MEM_PTRN_TOTAL = 0x60000;
+const MEM_BLK = 0x8000;
+
+function renderMeter() {
+  if (!state.bank) return;
+  $('#mem-block').hidden = false;
+  let used = 0, est = false;
+  for (const s of state.bank.slots) {
+    if (s.empty) continue;
+    let bytes;
+    if (s.frames && s.stereo != null) {
+      bytes = s.frames * (s.stereo ? 2 : 1) * 2;
+    } else {
+      bytes = (s.end + 2) * 2 * 2;               // channels unknown → stereo
+      est = true;
+    }
+    used += Math.ceil(bytes / MEM_BLK) * MEM_BLK;
+  }
+  const ptrn = (state.bank.seq_lengths || [])
+    .reduce((a, b) => a + b * 0x200, 0);
+  setMeter('smpl', used, MEM_SMPL_TOTAL, est);
+  setMeter('ptrn', ptrn, MEM_PTRN_TOTAL, false);
+  $('#mem-note').hidden = !est;
+  $('#mem-measure').hidden = !est;
+}
+
+function setMeter(which, used, total, est) {
+  const pct = Math.min(100, 100 * used / total);
+  const fill = $(`#mem-${which}-fill`);
+  fill.style.width = pct.toFixed(1) + '%';
+  fill.classList.toggle('warn', pct > 85 && pct < 98);
+  fill.classList.toggle('crit', pct >= 98);
+  $(`#mem-${which}-val`).textContent =
+    `${est ? '≈' : ''}${fmtMem(used)}/${fmtMem(total)}`;
+}
+const fmtMem = b => b >= 1 << 20 ? (b / (1 << 20)).toFixed(1) + 'MB'
+  : `${Math.round(b / 1024)}KB`;
+
+$('#mem-measure').onclick = async () => {
+  const btn = $('#mem-measure');
+  btn.disabled = true;
+  try {
+    for (const s of state.bank.slots) {
+      if (s.empty || (s.frames && s.stereo != null)) continue;
+      btn.textContent = `READING ${String(s.slot + 1).padStart(2, '0')}…`;
+      const wav = await (await api(`/api/sample/${s.slot}.wav`)).arrayBuffer();
+      const fmt = wavFormat(wav.slice(0, 44));
+      if (fmt) {
+        s.rate_hz = fmt.rate;
+        s.stereo = fmt.channels === 2;
+        s.frames = Math.floor((wav.byteLength - 44) / (fmt.channels * 2));
+        s.seconds = s.frames / fmt.rate;
+      }
+      renderMeter();
+      if (state.sel === s.slot) renderChips(s);
+    }
+    tick('▦ memory measured');
+  } catch (e) { tick(`⚠ measure failed: ${e.message}`); }
+  btn.textContent = 'MEASURE';
+  btn.disabled = false;
+};
+
 // Rate/length aren't in the bank blob — they arrive once the WAV is fetched
 // (reading headers per slot would strand the device's sample-select state).
 function renderPoints(s) {
@@ -248,6 +320,7 @@ async function loadWave(i) {
     status.hidden = true;
     renderChips(s);
     renderMetaFmt(s);
+    renderMeter();                               // exact size now known
     drawWave(buf, s);
   } catch (e) {
     status.textContent = 'READ ERROR — ' + e.message.toUpperCase();
