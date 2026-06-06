@@ -226,9 +226,41 @@
           <input type="range" class="fader center" id="ctl-tune" min="0" max="127" value="64">
           <span class="ctl-val" id="val-tune">0</span>
         </div>
+
+        <div class="ctl fader-ctl" data-flash="24">
+          <span class="ctl-label">LEVEL</span>
+          <input type="range" class="fader" id="ctl-level" min="0" max="127" value="101">
+          <span class="ctl-val" id="val-level">+0.0dB</span>
+        </div>
+
+        <div class="ctl fader-ctl" data-flash="25">
+          <span class="ctl-label">PAN</span>
+          <input type="range" class="fader center" id="ctl-pan" min="0" max="127" value="64">
+          <span class="ctl-val" id="val-pan">CNT</span>
+        </div>
+
+        <div class="ctl fader-ctl" data-flash="27" id="semitone-block">
+          <span class="ctl-label">SEMITONE</span>
+          <input type="range" class="fader center" id="ctl-semitone" min="-24" max="24" value="0">
+          <span class="ctl-val" id="val-semitone">0</span>
+        </div>
+
+        <div class="ctl fader-ctl" data-flash="29">
+          <span class="ctl-label">VELO INT</span>
+          <input type="range" class="fader center" id="ctl-velo" min="-63" max="63" value="0">
+          <span class="ctl-val" id="val-velo">0</span>
+        </div>
+
+        <div class="ctl" data-flash="26">
+          <span class="ctl-label">FX SW</span>
+          <button class="switch" id="ctl-fx" role="switch" aria-checked="false">
+            <span class="switch-track"><span class="switch-knob"></span></span>
+            <span class="switch-val" id="val-fx">OFF</span>
+          </button>
+        </div>
       </div>
 
-      <!-- read-only info (param ids not yet learned) -->
+      <!-- start/end (edited on the waveform; shown read-only for now) -->
       <div class="ro-row" id="ro-row"></div>
     </div>
 
