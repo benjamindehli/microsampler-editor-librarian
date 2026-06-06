@@ -6,8 +6,6 @@ The hardware protocol was reverse-engineered from the original binary and
 verified against a real device — this app covers everything the original did,
 plus a few things it didn't.
 
-<img src="web-editor/assets/svg/DehliMusikkLogoInverse.svg" alt="Dehli Musikk" width="160">
-
 ## Features
 
 - **SAMPLES** — 36-slot bank overview, audition (honors start/end points),
@@ -105,8 +103,9 @@ and never disconnect the device mid-transfer.
 
 ---
 
-Made by Benjamin Dehli / Dehli Musikk. Not affiliated with Korg.
+<img src="web-editor/assets/svg/DehliMusikkLogoInverse.svg" alt="Dehli Musikk" width="160">
+
+Made by Benjamin Dehli / Dehli Musikk (not affiliated with Korg).
+Licensed under the [GNU GPL v3](LICENSE).
 
 microSAMPLER is a trademark of Korg Inc.
-
-Licensed under the [GNU GPL v3](LICENSE).
