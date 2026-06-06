@@ -70,6 +70,15 @@ st, _, data = req('GET', '/api/bank')
 s5 = json.loads(data)['slots'][5]
 assert s5['name'] == 'BEEPY' and s5['tempo_bpm'] == 99.5
 
+# --- rename (mock HTTP) ---------------------------------------------------------
+st, _, data = req('POST', '/api/sample/0/name',
+                  body=json.dumps({'name': 'NEWNAME', 'long_name': 'A New Name'}))
+assert st == 200 and json.loads(data)['name'] == 'NEWNAME'
+st, _, data = req('GET', '/api/bank')
+assert json.loads(data)['slots'][0]['name'] == 'NEWNAME'
+st, _, _ = req('POST', '/api/sample/0/name', body=json.dumps({'name': '  '}))
+assert st == 400                                   # empty name rejected
+
 # --- start/end points (mock HTTP) ---------------------------------------------
 st, _, data = req('POST', '/api/sample/0/points',
                   body=json.dumps({'start': 1000, 'end': 20000}))
@@ -207,6 +216,16 @@ assert real.ms.selected is None                    # no select session opened
 par2 = real.set_points(0, 9, 60)
 wp2 = bytes(real.ms.w_params[0])
 assert int.from_bytes(wp2[0x0c:0x10], 'little') == 9
+
+# --- rename over the real Device path (same fetch-patch-send blob write) -------
+res_rn = real.rename(0, 'NEWNAME', 'A New Long Name')
+assert res_rn['name'] == 'NEWNAME'
+wp3 = bytes(real.ms.w_params[0])
+assert wp3[0:8] == b'NEWNAME '                     # 8 chars, space-padded
+assert wp3[0x20:0x40].rstrip(b'\xff') == b'A New Long Name'
+assert int.from_bytes(wp3[0x0c:0x10], 'little') == 9   # points survive rename
+assert wp3[0x14:0x20] == wp2[0x14:0x20]            # other params untouched
+assert real.ms.selected is None                    # still no select session
 
 # a failing blob request propagates cleanly
 class ErrMS(FakeMS):
