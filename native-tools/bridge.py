@@ -288,12 +288,18 @@ class Device:
         # flags8 bit7 = empty/init slot flag (hardware-verified 2026-06-05)
         out = {'slot': i, 'empty': bool(par['flags8'] & 0x80) or par['u32_10'] == 0}
         if not out['empty']:
+            raw = par['raw']
+            # bipolar params are stored byte-centred at 0x40 in the blob (the
+            # live message uses signed 14-bit; the app slider works in signed
+            # model space, so send signed models here). Confirmed offsets:
+            # 0x17 level, 0x18 pan, 0x19 semitone, 0x1a tune, 0x1b velo int.
             out.update(
                 name=par['name'], long_name=par['long_name'],
                 start=par['u32_0c'], end=par['u32_10'],
-                level=par['b17'], pan=par['b18'],
-                semitone=par['semitone'], tune_byte=par['b1a'],
-                decay=par['b14'], release=par['b15'],
+                level=raw[0x17], pan=raw[0x18],
+                semitone=raw[0x19] - 0x40, tune=raw[0x1a],  # tune = wire 0..127
+                velo_int=raw[0x1b] - 0x40,
+                decay=raw[0x14], release=raw[0x15],
                 fx_sw=bool(par['flags8'] & 0x08),
             )
         return out
@@ -458,7 +464,7 @@ class MockDevice(Device):
                           'stereo': s['stereo'], 'frames': frames,
                           'seconds': frames / s['rate'], 'tempo_bpm': s['tempo'],
                           'start': 0, 'end': frames - 2, 'level': 101,
-                          'pan': 64, 'semitone': 0, 'tune_byte': 64,
+                          'pan': 64, 'semitone': i, 'tune': 64, 'velo_int': 0,
                           'decay': 127, 'release': 0, 'fx_sw': i == 0})
         return {'name': 'MOCKBANK', 'bpm': 120.0, 'slots': slots}
 

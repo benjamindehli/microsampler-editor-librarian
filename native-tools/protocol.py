@@ -573,6 +573,31 @@ def parameter_change(channel, obj, param, value):
 
 
 SAMPLE_OBJ_BASE = 16          # object id of sample slot 0
+EFFECT_OBJ = 80              # object id of the bank effect (0x50)
+
+# Complete live-edit param-id map. The id is the `param` field of a func-0x41
+# message; object = SAMPLE_OBJ_BASE + slot. ALL HARDWARE-CONFIRMED by panel-
+# knob capture (2026-06-06): loop/bpm-sync/reverse/decay/release plus the
+# level/pan/semitone/tune/velo cluster. NOTE: the editor binary's
+# SampleParameterIdConverter table @0x25c220 did NOT match the device's real
+# panel id scheme for that cluster — trust the device, not the converter.
+SAMPLE_PARAM = {
+    'sample_bpm': 0,    # tempo, 200..3000 = 20.0..300.0 BPM
+    'loop': 16, 'bpm_sync': 17, 'reverse': 18,
+    'start': 19, 'end': 20,
+    'decay': 21, 'release': 22,
+    'level': 24, 'pan': 25, 'fx_sw': 26,
+    'semitone': 27, 'tune': 28, 'velo_int': 29,
+}
+
+# Bank EFFECT addressing (EffectParameterIdConverter, object 0x50):
+#   param 1     = FX type select
+#   params 2..3 = the two assignable-knob targets
+#   params 16..47 = the 32 effect parameters (meaning depends on FX type)
+EFFECT_PARAM_FXTYPE = 1
+EFFECT_PARAM_KNOB = (2, 3)
+def effect_param(i):          # effect parameter index 0..31 -> live id
+    return 0x10 + max(0, min(31, i))
 
 
 def sample_header(channel, sample_no, data_size, rate_hz, stereo,
@@ -686,6 +711,17 @@ def _selftest():
     h = sample_header(0, 5, data_size=1000, rate_hz=48000, stereo=False)
     assert h[0] == 0xf0 and h[1] == 0x42 and h[3] == 0x7f and h[4] == 0x42
     assert h[5] == (5 | 0x40) and h[-1] == 0xf7
+    # full sample param map: the 6 hardware-confirmed ids are present and the
+    # converter-derived ids are internally consistent (distinct, in range)
+    assert SAMPLE_PARAM['loop'] == 16 and SAMPLE_PARAM['bpm_sync'] == 17
+    assert SAMPLE_PARAM['reverse'] == 18 and SAMPLE_PARAM['decay'] == 21
+    assert SAMPLE_PARAM['release'] == 22
+    assert SAMPLE_PARAM['tune'] == 28 and SAMPLE_PARAM['velo_int'] == 29
+    assert SAMPLE_PARAM['level'] == 24 and SAMPLE_PARAM['pan'] == 25
+    assert SAMPLE_PARAM['semitone'] == 27
+    assert len(set(SAMPLE_PARAM.values())) == len(SAMPLE_PARAM)
+    assert effect_param(0) == 16 and effect_param(31) == 47 and effect_param(99) == 47
+
     # parameter change: 3-value form, matches the hardware capture
     # (PLYSTER slot 12 -> obj 28, param 17 BPM SYNC, value 2)
     assert parameter_change(0, 28, 17, 2).hex() == \
