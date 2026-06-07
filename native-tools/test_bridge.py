@@ -178,7 +178,7 @@ st, ct, data = req('GET', '/app.html')
 assert st == 200 and ct == 'text/html' and b'microSAMPLER' in data
 st, _, _ = req('GET', '/../CLAUDE.md')             # path traversal blocked
 assert st == 404
-st, _, _ = req('GET', '/js/sampleApp.js')
+st, _, _ = req('GET', '/js/app.js')
 assert st == 200
 
 srv.shutdown()
