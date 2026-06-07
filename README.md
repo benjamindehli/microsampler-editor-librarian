@@ -10,47 +10,55 @@ This app covers everything the original did, plus a few things it didn't.
 
 ## Features
 
-- **SAMPLES**: 36-slot bank overview, audition (honors start/end points),
-  WAV download/upload (auto-resample to 48/24/12/6 kHz), live editing of all
-  sample parameters, draggable START/END markers on the waveform, renaming,
-  device memory meters
-- **EFFECT**: All 22 effect types with their full parameter sets, the two
-  assignable FX knobs (panel knob movements tracked live), conditional
-  parameter graying/swapping exactly like the hardware
-- **PATTERNS**: Receive all 16 patterns, mini piano-roll preview, export as
-  Standard MIDI Files, import edited SMFs back to the device (DAW round-trip
-  tested with Logic Pro)
-- **UTILITY**: Full bank backup/restore (RAM or persistent user banks)
-- **Live two-way sync**: panel edits on the device show up in the app instantly
+- **SAMPLES**:
+  - 36-slot bank overview
+  - Audition (honors start/end points)
+  - WAV download/upload (auto-resample to 48/24/12/6 kHz)
+  - Live editing of all sample parameters
+  - Draggable START/END markers on the waveform
+  - Renaming banks and samples
+  - Device memory meters
+- **EFFECT**:
+  - All 22 effect types with their full parameter sets
+  - The two assignable FX knobs (panel knob movements tracked live)
+  - Conditional parameter graying/swapping exactly like the hardware
+- **PATTERNS**:
+  - Receive all 16 patterns
+  - Mini piano-roll preview
+  - Import and Export MIDI files
+- **UTILITY**:
+  - Full bank backup/restore (RAM or persistent user banks)
+- **Live two-way sync**:
+  - Panel edits on the device show up in the app instantly
 
 ## Requirements
 
-- macOS (tested) — Linux should work, Windows untested
-- Python 3.8+ with [pyusb](https://github.com/pyusb/pyusb) (BSD):
-  `pip3 install pyusb`
+- macOS (tested), Linux (should work) or Windows (untested)
+- Python 3.8+ with [pyusb](https://github.com/pyusb/pyusb) (BSD): `pip3 install pyusb`
 - [libusb](https://libusb.info/) (LGPL): `brew install libusb`
 - Chrome/Chromium recommended (any modern should work)
-- A Korg microSAMPLER on USB
+- A Korg microSAMPLER connected with USB
 
 ## Run
 
-**macOS:** double-click **`microSAMPLER Editor Librarian.command`** — it starts the
-bridge (asks for your password; root is required to claim the USB interface
-from CoreMIDI) and opens the editor window automatically.
+**macOS:** double-click **`microSAMPLER Editor Librarian.command`**.
+It starts the bridge (asks for your password; root is required to claim the USB interface from CoreMIDI) and opens the editor window automatically.
 
-**Manual / other OS:**
+### Manual / other OS
 
 ```bash
-sudo python3 native-tools/bridge.py     # then open http://localhost:8765
+sudo python3 native-tools/bridge.py
 ```
 
-**UI development without hardware:**
+Then open http://localhost:8765
+
+### UI development without hardware
 
 ```bash
 python3 native-tools/bridge.py --mock
 ```
 
-Bank backups land in `native-tools/backups/` (gitignored — they're your
+Bank backups land in `native-tools/backups/` (gitignored, they're your
 data). Note that sample/parameter transfers target the device's **current
 bank (RAM)**; save on the device or restore to a user bank to persist.
 
