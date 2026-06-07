@@ -306,6 +306,16 @@ assert rs.op['done'] and rs.op['ok'], rs.op['lines']
 assert rs.ms.w_bank == 4 and rs.ms.left_dump == 1
 assert bytes(rs.ms.w_samples[0][1]) == samples[0][1]      # PCM round-trips
 
+# restore dir name is untrusted HTTP input — traversal must be rejected
+for evil in ('..', '.', '...', '../x', 'a/b', '/etc', 'x\x00y', ''):
+    try:
+        B.backup_dir(evil)
+        raise AssertionError('accepted evil backup name: %r' % evil)
+    except RuntimeError as e:
+        assert 'invalid backup name' in str(e)
+assert B.backup_dir('20260604-120000').startswith(
+    os.path.realpath(B.BACKUP_ROOT))            # normal labels still resolve
+
 # busy guard: second op while one runs must 409 at the device layer
 try:
     bk.op['done'] = False
