@@ -45,7 +45,9 @@
   width: 5px; height: 5px; border-radius: 50%;
   background: #2c2c33;
 }
-.pad.used .pad-led { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+/* used-but-not-loaded: dim dot; loaded (audio cached): bright glowing dot */
+.pad.used .pad-led { background: var(--amber-dk); }
+.pad.loaded .pad-led { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
 .pad.used .pad-name { color: var(--amber-hi); text-shadow: 0 0 6px rgba(255,138,30,.3); }
 .pad.sel {
   background: linear-gradient(180deg, #2a1a08, #1b1106);

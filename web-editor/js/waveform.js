@@ -1,10 +1,11 @@
 // Waveform screen: lazy WAV load, peak rendering, start/end marker dragging,
 // browser-side audition.
-import { $, api, wavFormat } from './util.js';
+import { $ } from './util.js';
 import { state, slotData } from './state.js';
 import { tick } from './ticker.js';
 import { renderPoints, renderChips, renderMetaFmt } from './slot.js';
 import { renderMeter } from './meter.js';
+import { loadSampleAudio } from './sampleLoad.js';
 
 export async function loadWave(i) {
   const s = slotData(i);
@@ -16,20 +17,7 @@ export async function loadWave(i) {
 
   status.hidden = false; status.textContent = 'READING…';
   try {
-    let buf = state.buffers.get(i);
-    if (!buf) {
-      const wav = await (await api(`/api/sample/${i}.wav`)).arrayBuffer();
-      const fmt = wavFormat(wav.slice(0, 44));
-      state.audio = state.audio || new AudioContext();
-      buf = await state.audio.decodeAudioData(wav);
-      state.buffers.set(i, buf);
-      if (fmt) {                                 // backfill format from the WAV
-        s.rate_hz = fmt.rate;
-        s.stereo = fmt.channels === 2;
-        s.frames = Math.round(buf.duration * fmt.rate);
-        s.seconds = buf.duration;
-      }
-    }
+    const buf = await loadSampleAudio(i);        // fetch+decode+cache+format
     if (state.sel !== i) return;                 // user moved on meanwhile
     status.hidden = true;
     renderChips(s);

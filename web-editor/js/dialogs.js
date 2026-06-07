@@ -8,6 +8,7 @@ import { showSlot } from './slot.js';
 import { refreshBank } from './app.js';
 import { MEM_SMPL_TOTAL, memBlk, slotDevBytes, sampleMemUsage, fmtMem }
   from './meter.js';
+import { forgetSample } from './sampleLoad.js';
 
 // ────────────────────────────────────────────────────────────── upload ──
 export function openUpload(file) {
@@ -100,7 +101,7 @@ $('#ud-ok').onclick = async e => {
     await api(`/api/sample/${state.sel}?name=${name}&tempo=${tempo}`,
       { method: 'POST', body: await f.arrayBuffer() });
     tick(`⇧ loaded "${$('#ud-name').value}" → S${state.sel + 1}`);
-    state.buffers.delete(state.sel);
+    forgetSample(state.sel);                     // its content changed
     $('#upload-dialog').close();
     await refreshBank();
     await showSlot(state.sel);

@@ -1,5 +1,6 @@
 // UTILITY view: backup list, restore dialog, background-op console.
 import { $, esc, apiJson } from './util.js';
+import { state } from './state.js';
 import { tick } from './ticker.js';
 import { refreshBank } from './app.js';
 
@@ -84,7 +85,10 @@ export function onOpEvent(evt) {
             { err: !evt.ok });
     setOpRunning(false);
     loadBackups().catch(() => { });
-    if (evt.name === 'restore' && evt.ok) refreshBank().catch(() => { });
+    if (evt.name === 'restore' && evt.ok) {
+      state.buffers.clear(); state.formats.clear();   // bank contents replaced
+      refreshBank().catch(() => { });
+    }
     tick(`${evt.ok ? '✓' : '✗'} ${evt.name} ${evt.ok ? 'complete' : 'failed'}`);
   }
 }

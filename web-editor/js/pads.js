@@ -20,12 +20,19 @@ export function renderPads() {
     if (!s.empty) used++;
     const b = document.createElement('button');
     b.dataset.slot = s.slot;
-    b.className = 'pad ' + (s.empty ? 'empty' : 'used') + (state.sel === s.slot ? ' sel' : '');
+    // "loaded" = decoded audio cached → instant audition/waveform, exact meter
+    const loaded = !s.empty && state.buffers.has(s.slot);
+    b.className = 'pad ' + (s.empty ? 'empty' : 'used') +
+      (state.sel === s.slot ? ' sel' : '') + (loaded ? ' loaded' : '');
     b.innerHTML = `<span class="pad-num">${String(s.slot + 1).padStart(2, '0')} · ${noteName(s.slot)}</span>
                    <span class="pad-name">${s.empty ? '· · · ·' : esc(s.name)}</span>
                    <span class="pad-led"></span>` +
       (s.empty ? '' : '<span class="pad-play" title="Play on the device (hold)">▶</span>');
-    b.onclick = () => { state.sel = s.slot; renderPads(); showSlot(s.slot); };
+    b.onclick = () => {
+      state.sel = s.slot;
+      renderPads();
+      showSlot(s.slot).then(renderPads).catch(() => { });   // light dot once loaded
+    };
     grid.append(b);
   });
   $('#count-used').textContent = used;

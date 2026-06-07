@@ -7,6 +7,7 @@ import { tick } from './ticker.js';
 import { renderPads } from './pads.js';
 import { renderMeter } from './meter.js';
 import { showSlot } from './slot.js';
+import { reapplyFormats } from './sampleLoad.js';
 import { fxFromBank, renderFx } from './effect.js';
 import { loadBackups } from './utility.js';
 import { subscribeEvents } from './events.js';
@@ -49,7 +50,13 @@ export async function refreshBank() {
   const btn = $('#refresh-btn');
   btn.setAttribute('aria-busy', 'true');
   try {
+    const prevName = state.bank && state.bank.name;
     state.bank = await apiJson('/api/bank');
+    // a different bank (switched on the device) invalidates cached audio;
+    // same bank keeps it — re-stamp persisted formats so the meter stays
+    // exact and load state survives a focus re-sync.
+    if (state.bank.name !== prevName) { state.buffers.clear(); state.formats.clear(); }
+    reapplyFormats();
     $('#bank-name').textContent = (state.bank.name || '--------').padEnd(8);
     $('#bank-bpm').textContent = state.bank.bpm.toFixed(1);
     renderPads();

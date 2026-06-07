@@ -6,10 +6,12 @@
 // 0x800-block-rounded size). Sample sizes are exact once a slot's WAV has
 // been seen (frames+channels known); otherwise estimated from the END point
 // assuming stereo, flagged "≈" with a MEASURE button to fetch the rest.
-import { $, api, wavFormat } from './util.js';
+import { $ } from './util.js';
 import { state } from './state.js';
 import { tick } from './ticker.js';
 import { renderChips } from './slot.js';
+import { loadSampleAudio } from './sampleLoad.js';
+import { renderPads } from './pads.js';
 
 export const MEM_SMPL_TOTAL = 0xEA0000;
 export const MEM_PTRN_TOTAL = 0x60000;
@@ -59,26 +61,22 @@ function setMeter(which, used, total, est) {
 export const fmtMem = b => b >= 1 << 20 ? (b / (1 << 20)).toFixed(1) + 'MB'
   : `${Math.round(b / 1024)}KB`;
 
+// LOAD ALL: download + decode every not-yet-loaded sample. Makes the meter
+// exact AND caches the audio so subsequent pad clicks/auditions are instant.
 $('#mem-measure').onclick = async () => {
   const btn = $('#mem-measure');
   btn.disabled = true;
   try {
     for (const s of state.bank.slots) {
-      if (s.empty || (s.frames && s.stereo != null)) continue;
-      btn.textContent = `READING ${String(s.slot + 1).padStart(2, '0')}…`;
-      const wav = await (await api(`/api/sample/${s.slot}.wav`)).arrayBuffer();
-      const fmt = wavFormat(wav.slice(0, 44));
-      if (fmt) {
-        s.rate_hz = fmt.rate;
-        s.stereo = fmt.channels === 2;
-        s.frames = Math.floor((wav.byteLength - 44) / (fmt.channels * 2));
-        s.seconds = s.frames / fmt.rate;
-      }
+      if (s.empty || state.buffers.has(s.slot)) continue;   // skip loaded
+      btn.textContent = `LOADING ${String(s.slot + 1).padStart(2, '0')}…`;
+      await loadSampleAudio(s.slot);
       renderMeter();
+      renderPads();                              // light the loaded indicator
       if (state.sel === s.slot) renderChips(s);
     }
-    tick('▦ memory measured');
-  } catch (e) { tick(`⚠ measure failed: ${e.message}`); }
-  btn.textContent = 'MEASURE';
+    tick('▦ all samples loaded');
+  } catch (e) { tick(`⚠ load failed: ${e.message}`); }
+  btn.textContent = 'LOAD ALL';
   btn.disabled = false;
 };

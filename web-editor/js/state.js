@@ -2,7 +2,8 @@
 export const state = {
   bank: null,            // /api/bank payload
   sel: null,             // selected slot index
-  buffers: new Map(),    // slot -> AudioBuffer
+  buffers: new Map(),    // slot -> AudioBuffer (decoded; "loaded")
+  formats: new Map(),    // slot -> {rate_hz,stereo,frames,seconds} (persists)
   audio: null,           // AudioContext
   playing: null,         // current source node
   online: false,
