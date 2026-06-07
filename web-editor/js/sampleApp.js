@@ -128,7 +128,8 @@ function renderPads() {
     b.className = 'pad ' + (s.empty ? 'empty' : 'used') + (state.sel === s.slot ? ' sel' : '');
     b.innerHTML = `<span class="pad-num">${String(s.slot + 1).padStart(2, '0')} · ${noteName(s.slot)}</span>
                    <span class="pad-name">${s.empty ? '· · · ·' : esc(s.name)}</span>
-                   <span class="pad-led"></span>`;
+                   <span class="pad-led"></span>` +
+      (s.empty ? '' : '<span class="pad-play" title="Play on the device (hold)">▶</span>');
     b.onclick = () => { state.sel = s.slot; renderPads(); showSlot(s.slot); };
     grid.append(b);
   });
@@ -189,22 +190,31 @@ async function showSlot(i, { keepWave = false } = {}) {
 const MEM_SMPL_TOTAL = 0xEA0000;
 const MEM_PTRN_TOTAL = 0x60000;
 const MEM_BLK = 0x8000;
+const memBlk = b => Math.ceil(b / MEM_BLK) * MEM_BLK;
+
+// device bytes a slot occupies: exact once frames+channels are known,
+// estimated from the END point (assume stereo) otherwise
+function slotDevBytes(s) {
+  if (s.empty) return { bytes: 0, est: false };
+  if (s.frames && s.stereo != null)
+    return { bytes: memBlk(s.frames * (s.stereo ? 2 : 1) * 2), est: false };
+  return { bytes: memBlk((s.end + 2) * 2 * 2), est: true };
+}
+
+function sampleMemUsage() {
+  let used = 0, est = false;
+  for (const s of state.bank.slots) {
+    const u = slotDevBytes(s);
+    used += u.bytes;
+    est = est || u.est;
+  }
+  return { used, est };
+}
 
 function renderMeter() {
   if (!state.bank) return;
   $('#mem-block').hidden = false;
-  let used = 0, est = false;
-  for (const s of state.bank.slots) {
-    if (s.empty) continue;
-    let bytes;
-    if (s.frames && s.stereo != null) {
-      bytes = s.frames * (s.stereo ? 2 : 1) * 2;
-    } else {
-      bytes = (s.end + 2) * 2 * 2;               // channels unknown → stereo
-      est = true;
-    }
-    used += Math.ceil(bytes / MEM_BLK) * MEM_BLK;
-  }
+  const { used, est } = sampleMemUsage();
   const ptrn = (state.bank.seq_lengths || [])
     .reduce((a, b) => a + b * 0x200, 0);
   setMeter('smpl', used, MEM_SMPL_TOTAL, est);
@@ -630,8 +640,64 @@ function syncNameFromFile() {
   const f = $('#ud-file').files[0];
   if (f) $('#ud-name').value = f.name.replace(/\.\w+$/, '')
     .replace(/[^\x20-\x7e]/g, '').toUpperCase().slice(0, 8);
+  uploadPreflight();
 }
 $('#ud-file').onchange = syncNameFromFile;
+
+// minimal RIFF/WAVE chunk walk over the file head (proper fmt/data chunks —
+// 44-byte assumptions break on files with LIST/INFO chunks)
+function riffFormat(dv) {
+  try {
+    if (dv.getUint32(0) !== 0x52494646 || dv.getUint32(8) !== 0x57415645)
+      return null;                               // "RIFF" … "WAVE"
+    let off = 12, ch = 0, rate = 0, bits = 0, dataBytes = 0;
+    while (off + 8 <= dv.byteLength) {
+      const id = dv.getUint32(off), size = dv.getUint32(off + 4, true);
+      if (id === 0x666d7420) {                   // "fmt "
+        ch = dv.getUint16(off + 10, true);
+        rate = dv.getUint32(off + 12, true);
+        bits = dv.getUint16(off + 22, true);
+      }
+      if (id === 0x64617461) { dataBytes = size; break; }   // "data"
+      off += 8 + size + (size & 1);
+    }
+    if (!ch || !rate || !bits) return null;
+    return { channels: ch, rate, bytesPerFrame: ch * (bits >> 3), dataBytes };
+  } catch { return null; }
+}
+
+// pre-flight: will this WAV fit the device's sample pool? Mirrors the
+// device accounting (resample to nearest device rate, 16-bit, 32 KB blocks)
+// and what replacing the target slot frees up.
+async function uploadPreflight() {
+  const el = $('#ud-mem');
+  const ok = $('#ud-ok');
+  el.hidden = true;
+  el.classList.remove('over');
+  ok.disabled = false;
+  const f = $('#ud-file').files[0];
+  if (!f || state.sel == null || !state.bank) return;
+  const dv = new DataView(await f.slice(0, 64 * 1024).arrayBuffer());
+  const fmt = riffFormat(dv);
+  if (!fmt) return;                              // bridge will reject it anyway
+  const frames = Math.floor(fmt.dataBytes / fmt.bytesPerFrame);
+  const target = [48000, 24000, 12000, 6000].reduce((a, r) =>
+    Math.abs(r - fmt.rate) < Math.abs(a - fmt.rate) ? r : a);
+  const need = memBlk(Math.floor(frames * target / fmt.rate) * fmt.channels * 2);
+  const { used, est } = sampleMemUsage();
+  const freed = slotDevBytes(slotData(state.sel)).bytes;
+  const free = MEM_SMPL_TOTAL - used + freed;
+  el.hidden = false;
+  const pre = est ? '≈' : '';
+  if (need > free) {
+    el.classList.add('over');
+    el.textContent = `✕ WON'T FIT — needs ${fmtMem(need)}, ${pre}${fmtMem(Math.max(0, free))} free` +
+      (est ? ' (estimate — MEASURE on the SAMPLES page for exact)' : '');
+    ok.disabled = !est;                          // hard-block only when exact
+  } else {
+    el.textContent = `SMPL MEM after load: ${pre}${fmtMem(used - freed + need)}/${fmtMem(MEM_SMPL_TOTAL)}`;
+  }
+}
 $('#upload-btn').onclick = () => openUpload(null);
 
 $('#ud-ok').onclick = async e => {
@@ -695,6 +761,48 @@ $('#rn-ok').onclick = async e => {
     $('#rn-ok').removeAttribute('aria-busy');
   }
 };
+
+// play pads THROUGH THE DEVICE: hold the ▶ corner of a pad → MIDI note
+// on/off via the bridge (note 48+slot on the global channel — the same
+// sample-mode numbering patterns use). The device plays the sample with
+// its real envelope/FX, unlike the browser-side audition.
+{
+  const grid = $('#pad-grid');
+  let down = null;                       // slot currently sounding
+  const noteOff = () => {
+    if (down == null) return;
+    const slot = down;
+    down = null;
+    api('/api/note', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slot, on: false }),
+    }).catch(() => { });
+  };
+  grid.addEventListener('pointerdown', e => {
+    const play = e.target.closest('.pad-play');
+    if (!play) return;
+    e.preventDefault();
+    e.stopPropagation();                 // don't select the pad
+    const slot = +play.closest('.pad').dataset.slot;
+    down = slot;
+    play.closest('.pad').classList.add('sounding');
+    api('/api/note', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slot, on: true, velocity: 100 }),
+    }).catch(err => tick(`⚠ note failed: ${err.message}`));
+  });
+  for (const ev of ['pointerup', 'pointercancel']) {
+    window.addEventListener(ev, () => {
+      grid.querySelectorAll('.pad.sounding').forEach(p =>
+        p.classList.remove('sounding'));
+      noteOff();
+    });
+  }
+  // a click on ▶ must not bubble into the pad's select handler
+  grid.addEventListener('click', e => {
+    if (e.target.closest('.pad-play')) e.stopPropagation();
+  }, true);
+}
 
 // drag & drop a WAV straight onto a pad — selects that slot and opens the
 // upload dialog pre-filled with the file (works for used AND empty pads)

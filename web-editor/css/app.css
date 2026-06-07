@@ -685,3 +685,26 @@ body {
   outline: 1px solid var(--amber);
   box-shadow: 0 0 14px rgba(255,138,30,.45), inset 0 0 10px rgba(255,138,30,.12);
 }
+
+/* pad ▶ play zone (plays the sample on the DEVICE while held) */
+.pad-play {
+  position: absolute; top: 2px; right: 3px;
+  font-size: .62rem; line-height: 1;
+  color: var(--ink-dim); padding: .2rem .3rem;
+  opacity: 0; transition: opacity .12s, color .12s;
+  cursor: pointer; user-select: none;
+}
+.pad:hover .pad-play { opacity: 1; }
+.pad-play:hover { color: var(--amber-hi); }
+.pad.sounding {
+  border-color: var(--amber);
+  box-shadow: 0 0 14px rgba(255,138,30,.5), 0 2px 0 #000;
+}
+.pad.sounding .pad-play { opacity: 1; color: var(--amber); }
+
+/* upload pre-flight memory line */
+.ud-mem {
+  font-family: "Share Tech Mono", monospace; font-size: .68rem;
+  color: var(--ink-dim); letter-spacing: .04em;
+}
+.ud-mem.over { color: var(--err); text-shadow: 0 0 8px rgba(255,79,61,.4); }
