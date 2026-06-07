@@ -325,8 +325,11 @@ class Device:
 
     @staticmethod
     def _slot_json(i, par):
-        # flags8 bit7 = empty/init slot flag (hardware-verified 2026-06-05)
-        out = {'slot': i, 'empty': bool(par['flags8'] & 0x80) or par['u32_10'] == 0}
+        # empty/init slots have END == 0 (name 'INITSMPL', hardware-dumped
+        # 2026-06-08). NOT flags8 bit7 — that is LOOP, which merely defaults
+        # ON for initialized slots (the old bit7 test hid looping samples!).
+        out = {'slot': i,
+               'empty': par['u32_10'] in (0, 0xFFFFFFFF)}
         if not out['empty']:
             raw = par['raw']
             # bipolar params are stored byte-centred at 0x40 in the blob (the
@@ -340,7 +343,8 @@ class Device:
                 semitone=raw[0x19] - 0x40, tune=raw[0x1a],  # tune = wire 0..127
                 velo_int=raw[0x1b] - 0x40,
                 decay=raw[0x14], release=raw[0x15],
-                fx_sw=bool(par['flags8'] & 0x08),
+                loop=par['loop'], reverse=par['reverse'],
+                bpm_sync=par['bpm_sync'], fx_sw=par['fx_sw'],
             )
         return out
 
@@ -399,6 +403,18 @@ class Device:
                                 what='param write ACK (func 0x44)')
         return {'slot': slot, 'name': name[:8].strip(),
                 'long_name': (long_name or name)[:32]}
+
+    def sample_params(self, slot):
+        """Diagnostic: fetch a sample's raw 64-byte param blob (standalone
+        func 0x14, session-safe). Use THIS instead of `msusb.py params` for
+        repeated dumps — one-shot CLI sessions wedge the device's TX FIFO
+        (nothing drains the clock stream after exit); the bridge's reader
+        keeps draining."""
+        with self.lock:
+            self._inquire()
+            par = DL.fetch_params(self.ms, self.channel, slot)
+        return {'slot': slot, 'name': par['name'],
+                'raw': par['raw'].hex(), 'flags8': par['flags8']}
 
     def set_points(self, slot, start, end):
         """Set START/END points. These are u32 frame counts — they don't fit a
@@ -560,7 +576,8 @@ class MockDevice(Device):
                           'seconds': frames / s['rate'], 'tempo_bpm': s['tempo'],
                           'start': start, 'end': end, 'level': 101,
                           'pan': 64, 'semitone': i, 'tune': 64, 'velo_int': 0,
-                          'decay': 127, 'release': 0, 'fx_sw': i == 0})
+                          'decay': 127, 'release': 0, 'fx_sw': i == 0,
+                          'loop': i == 1, 'reverse': False, 'bpm_sync': 0})
         return {'name': 'MOCKBANK', 'bpm': 120.0, 'slots': slots,
                 'effect': {'type': self._effect['type'],
                            'knobs': list(self._effect['knobs']),
@@ -606,6 +623,14 @@ class MockDevice(Device):
         s['name'] = name[:8].strip()
         return {'slot': slot, 'name': s['name'],
                 'long_name': (long_name or name)[:32]}
+
+    def sample_params(self, slot):
+        s = self._slots.get(slot)
+        blob = bytearray([0xff]) * 64 if not s else bytearray(64)
+        if s:
+            blob[0:8] = s['name'][:8].ljust(8).encode('latin1')
+        return {'slot': slot, 'name': s['name'] if s else '',
+                'raw': bytes(blob).hex(), 'flags8': blob[8]}
 
 
 def _pattern_json(q, blob):
@@ -714,6 +739,12 @@ class Handler(BaseHTTPRequestHandler):
                 if data is None:
                     return self._err('pattern is empty', 404)
                 return self._bytes(data, 'audio/midi')
+            m = re.match(r'^/api/sample/(\d+)/params$', path)
+            if m:
+                slot = int(m.group(1))
+                if not 0 <= slot <= 35:
+                    return self._err('slot 0..35', 400)
+                return self._json(DEVICE.sample_params(slot))
             m = re.match(r'^/api/sample/(\d+)\.wav$', path)
             if m:
                 slot = int(m.group(1))

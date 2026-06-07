@@ -20,11 +20,11 @@ export async function showSlot(i, { keepWave = false } = {}) {
 
   renderChips(s);
 
-  // controls — initialised from the bank blob (loop/reverse/bpm-sync state
-  // isn't in the blob, so those default off until a panel edit reports them)
-  setSwitch('#ctl-loop', '#val-loop', false);
-  setSwitch('#ctl-reverse', '#val-reverse', false);
-  setSeg(0);
+  // controls — fully initialised from the bank blob (flags8 decoded
+  // 2026-06-08: bit7=loop, bits5-6=bpm sync, bit4=reverse, bit3=fx sw)
+  setSwitch('#ctl-loop', '#val-loop', !s.empty && !!s.loop);
+  setSwitch('#ctl-reverse', '#val-reverse', !s.empty && !!s.reverse);
+  setSeg(s.empty ? 0 : (s.bpm_sync ?? 0));
   setFader('#ctl-decay', '#val-decay', s.empty ? 127 : s.decay);
   setFader('#ctl-release', '#val-release', s.empty ? 0 : s.release);
   setFader('#ctl-tune', '#val-tune', s.empty ? 64 : (s.tune ?? 64), tuneDisplay);

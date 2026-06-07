@@ -112,13 +112,24 @@ def parse_sample_header(msg: bytes):
 
 
 def parse_param_blob(blob: bytes):
-    """Decode a 64-byte PackedSampleParameter blob into fields."""
+    """Decode a 64-byte PackedSampleParameter blob into fields.
+
+    flags8 (byte 8) — HARDWARE-DECODED 2026-06-08 by single-bit knob session:
+    bit7=LOOP, bits5-6=BPM SYNC (0 off / 1 time stretch / 2 pitch change),
+    bit4=REVERSE, bit3=FX SW. NOTE: bit7 is NOT an empty flag — it merely
+    LOOKED like one because initialized/empty slots default LOOP ON
+    (name 'INITSMPL', END=0). Emptiness test = END == 0."""
     blob = bytes(blob[:64])
+    f = blob[8]
     return {
         'name': blob[0:8].decode('latin1').rstrip(),
         'long_name': blob[0x20:0x40].split(b'\xff')[0].split(b'\x00')[0]
                       .decode('utf-8', 'replace').rstrip(),
-        'flags8': blob[8],
+        'flags8': f,
+        'loop': bool(f & 0x80),
+        'bpm_sync': (f >> 5) & 3,
+        'reverse': bool(f & 0x10),
+        'fx_sw': bool(f & 0x08),
         'u32_0c': int.from_bytes(blob[0x0c:0x10], 'little'),   # start frame
         'u32_10': int.from_bytes(blob[0x10:0x14], 'little'),   # end frame
         'b14': blob[0x14], 'b15': blob[0x15], 'b17': blob[0x17], 'b18': blob[0x18],

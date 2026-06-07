@@ -445,6 +445,35 @@ def _selftest():
     return 0
 
 
+def cmd_params(slot):
+    """Fetch + hex-dump a sample's 64-byte param blob (standalone func 0x14 --
+    session-safe, hardware-proven). For correlating panel switch states with
+    blob bytes: change a switch on the panel, re-run, diff the lines."""
+    import download as DL
+    ms = MicroSampler()
+    ms.open()
+    try:
+        reply, _ = ms.device_inquiry(cables=(1,))
+        if not reply:
+            print('no inquiry reply -- device off or wedged?')
+            return 1
+        ch = reply[2] & 0x0f
+        par = DL.fetch_params(ms, ch, slot)
+        raw = par['raw']
+        print("slot %d  name '%s'" % (slot, par['name']))
+        for off in range(0, 64, 16):
+            print('  %02x: %s' % (off, raw[off:off + 16].hex(' ')))
+        f = raw[8]
+        print('  flags8=0x%02x  bits[7..0]=%s   (b3=FXSW b7=EMPTY; '
+              'b4/b5/b6 = loop/reverse/bpmsync candidates)'
+              % (f, format(f, '08b')))
+        print('  b09=%02x b0a=%02x b0b=%02x b16=%02x b1c..1f=%s'
+              % (raw[9], raw[0xa], raw[0xb], raw[0x16], raw[0x1c:0x20].hex(' ')))
+    finally:
+        ms.close()
+    return 0
+
+
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else 'inquiry'
     if cmd == 'inquiry':  return cmd_inquiry()
@@ -453,6 +482,7 @@ def main():
     if cmd == 'debug':    return cmd_debug()
     if cmd == 'play':     return cmd_play()
     if cmd == 'listen':   return cmd_listen()
+    if cmd == 'params':   return cmd_params(int(sys.argv[2]))
     if cmd == 'selftest': return _selftest()
     print(__doc__); print(f"\nunknown command: {cmd}"); return 2
 
