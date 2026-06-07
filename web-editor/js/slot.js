@@ -1,0 +1,80 @@
+// Slot editor header: name LCD, info chips, start/end readout, control init.
+import { $, esc, fmtSigned } from './util.js';
+import { slotData } from './state.js';
+import { setSwitch, setSeg, setFader, tuneDisplay, fmtLevel, fmtPan }
+  from './controls.js';
+import { noteName } from './pads.js';
+import { loadWave } from './waveform.js';
+
+export async function showSlot(i, { keepWave = false } = {}) {
+  const s = slotData(i);
+  $('#editor-empty').hidden = true;
+  $('#editor-body').hidden = false;
+  $('#sel-slot').textContent = noteName(i);
+  $('#sel-name').textContent = s.empty ? '--------' : s.name.padEnd(8);
+  $('#sel-long').textContent = s.empty ? 'EMPTY SLOT' : (s.long_name || '');
+  $('#download-btn').href = `/api/sample/${i}.wav`;
+  $('#download-btn').style.visibility = s.empty ? 'hidden' : 'visible';
+  $('#audition-btn').style.visibility = s.empty ? 'hidden' : 'visible';
+  $('#rename-btn').style.visibility = s.empty ? 'hidden' : 'visible';
+
+  renderChips(s);
+
+  // controls — initialised from the bank blob (loop/reverse/bpm-sync state
+  // isn't in the blob, so those default off until a panel edit reports them)
+  setSwitch('#ctl-loop', '#val-loop', false);
+  setSwitch('#ctl-reverse', '#val-reverse', false);
+  setSeg(0);
+  setFader('#ctl-decay', '#val-decay', s.empty ? 127 : s.decay);
+  setFader('#ctl-release', '#val-release', s.empty ? 0 : s.release);
+  setFader('#ctl-tune', '#val-tune', s.empty ? 64 : (s.tune ?? 64), tuneDisplay);
+  setFader('#ctl-level', '#val-level', s.empty ? 101 : s.level, fmtLevel);
+  setFader('#ctl-pan', '#val-pan', s.empty ? 64 : s.pan, fmtPan);
+  setFader('#ctl-semitone', '#val-semitone', s.empty ? 0 : (s.semitone ?? 0), fmtSigned);
+  setFader('#ctl-velo', '#val-velo', s.empty ? 0 : (s.velo_int ?? 0), fmtSigned);
+  setSwitch('#ctl-fx', '#val-fx', !s.empty && s.fx_sw);
+
+  // start/end points — editable by dragging the S/E flags on the waveform
+  renderPoints(s);
+  if (!s.empty) renderMetaFmt(s);
+  else $('#meta-fmt').textContent = '';
+
+  // waveform
+  if (!keepWave) await loadWave(i);
+}
+
+// Rate/length aren't in the bank blob — they arrive once the WAV is fetched
+// (reading headers per slot would strand the device's sample-select state).
+export function renderPoints(s) {
+  const ro = $('#ro-row');
+  ro.innerHTML = '';
+  if (s.empty) { $('#meta-points').textContent = ''; return; }
+  for (const [k, v] of [
+    ['START', s.start.toLocaleString()], ['END', s.end.toLocaleString()],
+  ]) ro.insertAdjacentHTML('beforeend',
+    `<span class="ro">${k} <b>${esc(v)}</b></span>`);
+  $('#meta-points').textContent =
+    `START ${s.start.toLocaleString()} · END ${s.end.toLocaleString()}`;
+}
+
+export function renderChips(s) {
+  const chips = $('#info-chips');
+  chips.innerHTML = '';
+  if (s.empty) return;
+  const pairs = [];
+  if (s.rate_hz) {
+    pairs.push(['RATE', `${s.rate_hz / 1000}k`], ['CH', s.stereo ? 'ST' : 'MONO'],
+               ['LEN', `${s.seconds >= 10 ? s.seconds.toFixed(1) : s.seconds.toFixed(2)}s`]);
+  } else {
+    pairs.push(['RATE', '—'], ['LEN', '—']);
+  }
+  if (s.tempo_bpm) pairs.push(['BPM', s.tempo_bpm.toFixed(1)]);
+  for (const [k, v] of pairs)
+    chips.insertAdjacentHTML('beforeend', `<span class="chip">${k} <b>${v}</b></span>`);
+}
+
+export function renderMetaFmt(s) {
+  $('#meta-fmt').textContent = s.frames
+    ? `${s.frames.toLocaleString()} FRAMES · 16-BIT ${s.stereo ? 'STEREO' : 'MONO'}`
+    : 'CLICK ▶ PLAY OR WAIT FOR THE WAVEFORM TO LOAD FORMAT DETAILS';
+}
