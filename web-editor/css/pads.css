@@ -64,16 +64,22 @@
   box-shadow: 0 0 14px rgba(255,138,30,.45), inset 0 0 10px rgba(255,138,30,.12);
 }
 
-/* pad ▶ play zone (plays the sample on the DEVICE while held) */
+/* pad ▶ play zone (plays the sample on the DEVICE while held) —
+   lower-right, clear of the status LED in the upper-right */
 .pad-play {
-  position: absolute; top: 2px; right: 3px;
-  font-size: .62rem; line-height: 1;
-  color: var(--ink-dim); padding: .2rem .3rem;
-  opacity: 0; transition: opacity .12s, color .12s;
+  position: absolute; bottom: 2px; right: 2px;
+  font-size: .95rem; line-height: 1;
+  color: var(--ink-dim); padding: .25rem .4rem;
+  border-radius: 3px;
+  opacity: .35; transition: opacity .12s, color .12s, background .12s;
   cursor: pointer; user-select: none;
 }
 .pad:hover .pad-play { opacity: 1; }
-.pad-play:hover { color: var(--amber-hi); }
+.pad-play:hover {
+  color: var(--amber-hi);
+  background: rgba(255,138,30,.12);
+  text-shadow: 0 0 8px rgba(255,138,30,.5);
+}
 .pad.sounding {
   border-color: var(--amber);
   box-shadow: 0 0 14px rgba(255,138,30,.5), 0 2px 0 #000;
