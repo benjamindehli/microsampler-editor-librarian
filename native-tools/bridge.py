@@ -281,6 +281,16 @@ class Device:
         with self.lock:
             self.ms.send_sysex(P.parameter_change(self.channel, obj, param, value))
 
+    def play_note(self, slot, on, velocity=100):
+        """Trigger a sample pad on the DEVICE via MIDI note. Sample-mode note
+        map (same numbering the pattern engine uses for sample-mode tracks):
+        note = 48 (C3) + slot, on the device's global channel, cable 1."""
+        note = 48 + max(0, min(35, int(slot)))
+        status = (0x90 if on else 0x80) | (self.channel & 0x0f)
+        with self.lock:
+            self.ms.send_short(status, note, max(1, min(127, int(velocity))),
+                               cable=self.cable)
+
     def bank_summary(self):
         """Bank blob only, then leave dump mode. NO per-slot header requests:
         func 0x16 opens a dump session that ONLY a data dump (0x1F) closes
@@ -437,6 +447,9 @@ class MockDevice(Device):
 
     def status(self):
         return {'connected': True, 'inquiry': self.inquiry, 'mock': True}
+
+    def play_note(self, slot, on, velocity=100):
+        self._last_note = (int(slot), bool(on), int(velocity))
 
     def send_param(self, obj, param, value):
         # keep the mock's effect state live so the page round-trips in UI dev
@@ -728,6 +741,15 @@ class Handler(BaseHTTPRequestHandler):
                 body = json.loads(self.rfile.read(n) or b'{}')
                 DEVICE.send_param(int(body['obj']), int(body['param']),
                                   int(body['value']))
+                return self._json({'ok': True})
+            if path == '/api/note':
+                n = int(self.headers.get('Content-Length', 0))
+                body = json.loads(self.rfile.read(n) or b'{}')
+                slot = int(body['slot'])
+                if not 0 <= slot <= 35:
+                    return self._err('slot 0..35', 400)
+                DEVICE.play_note(slot, bool(body.get('on', True)),
+                                 int(body.get('velocity', 100)))
                 return self._json({'ok': True})
             if path == '/api/backup':
                 return self._json(DEVICE.start_backup())
