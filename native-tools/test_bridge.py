@@ -197,7 +197,14 @@ assert out['name'] == 'TESTBANK'
 assert len(out['effect']['params']) == 32          # packed @0x950 -> JSON
 assert len(out['seq_lengths']) == 16               # pattern storage units
 used = [s for s in out['slots'] if not s['empty']]
-assert len(used) == 1 and used[0]['name'] == 'SMPA' and used[0]['end'] == 62
+# emptiness = END==0, NOT flags8 bit7 (bit7 is LOOP — a looping used sample
+# must NOT vanish as "empty"; regression for the 2026-06-08 discovery)
+assert len(used) == 2, [s['slot'] for s in used]
+assert used[0]['name'] == 'SMPA' and used[0]['end'] == 62
+assert used[0]['loop'] is False and used[0]['bpm_sync'] == 0
+assert used[1]['name'] == 'LOOPY' and used[1]['loop'] is True
+assert used[1]['bpm_sync'] == 1 and used[1]['fx_sw'] is True
+assert used[1]['reverse'] is False
 assert real.ms.left_dump == 1                  # committed leave-dump-mode
 assert real.ms.selected is None                # no select session left open
 wavbytes = real.download_wav(0)

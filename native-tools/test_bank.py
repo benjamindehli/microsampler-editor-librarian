@@ -133,10 +133,21 @@ class FakeMS:
 blob = bytearray([0xff] * P.BANK_BLOB_SIZE)
 blob[0:8] = b'TESTBANK'
 blob[8:10] = (905).to_bytes(2, 'little')              # 90.5 BPM
-blob[0x40:0x48] = b'SMPA    '                         # slot 0 name
-blob[0x48] = 0x00                                     # flags8: bit7 clear = used
+# realistic EMPTY/init param blobs (hardware-dumped 2026-06-08): name
+# INITSMPL, flags8 0x80 (init default = LOOP ON), START=END=0
+for q in range(36):
+    o = 0x40 + q * 0x40
+    blob[o:o + 8] = b'INITSMPL'
+    blob[o + 8] = 0x80
+    blob[o + 0x0c:o + 0x14] = bytes(8)                # start = end = 0
+blob[0x40:0x48] = b'SMPA    '                         # slot 0: used
+blob[0x48] = 0x00                                     # all flags off
 blob[0x4c:0x50] = (0).to_bytes(4, 'little')           # start
 blob[0x50:0x54] = (62).to_bytes(4, 'little')          # end (64-frame sample)
+blob[0x80:0x88] = b'LOOPY   '                         # slot 1: used + LOOP ON
+blob[0x88] = 0x80 | 0x20 | 0x08    # loop + bpm sync stretch + fx sw
+blob[0x8c:0x90] = (0).to_bytes(4, 'little')
+blob[0x90:0x94] = (99).to_bytes(4, 'little')          # end > 0 = used
 blob[0x940] = 4                                       # pattern 0 has data
 
 pcm = b''.join(struct.pack('>h', (i * 31) % 4000 - 2000) for i in range(64))
