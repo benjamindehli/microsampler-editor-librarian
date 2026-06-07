@@ -193,6 +193,27 @@ B.DEVICE._scan_cc(bytes([0xf8, 0x90, 0x3c, 0x40, 0xb0, 12, 99, 0xf8]))
 t2.join(timeout=5)
 assert got_cc.get('evt') == {'type': 'cc', 'ch': 0, 'cc': 12, 'value': 99}, got_cc
 
+# --- patterns progress events over SSE -------------------------------------------
+prog = []
+def listen_prog():
+    c = http.client.HTTPConnection('127.0.0.1', PORT, timeout=10)
+    c.request('GET', '/api/events')
+    r = c.getresponse()
+    while len(prog) < 17:
+        line = r.fp.readline().decode()
+        if line.startswith('data: '):
+            evt = json.loads(line[6:])
+            if evt.get('type') == 'progress' and evt.get('op') == 'patterns':
+                prog.append(evt)
+tp = threading.Thread(target=listen_prog, daemon=True)
+tp.start()
+time.sleep(0.3)
+req('GET', '/api/patterns')
+tp.join(timeout=5)
+assert prog[0]['done'] == 0 and prog[0]['total'] == 16, prog[:1]
+assert prog[-1]['done'] == 16, prog[-1]
+assert [e['done'] for e in prog] == list(range(17)), [e['done'] for e in prog]
+
 # --- static serving ----------------------------------------------------------------
 st, ct, data = req('GET', '/app.html')
 assert st == 200 and ct == 'text/html' and b'microSAMPLER' in data
