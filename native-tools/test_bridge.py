@@ -120,6 +120,16 @@ st, _, data = req('POST', '/api/pattern/5/init')
 ini = json.loads(data)
 assert ini['note_count'] == 0 and ini['name'] == 'INITPTRN' and ini['sample'] == 0
 
+# --- bank settings, batched (mock HTTP) -------------------------------------------
+st, _, data = req('POST', '/api/bank/settings',
+                  body=json.dumps({'name': 'MYBANK', 'bpm': 98.5}))
+assert st == 200 and json.loads(data) == {'name': 'MYBANK', 'bpm': 98.5}
+st, _, data = req('GET', '/api/bank')
+bk2 = json.loads(data)
+assert bk2['name'] == 'MYBANK' and bk2['bpm'] == 98.5
+st, _, _ = req('POST', '/api/bank/settings', body=json.dumps({'name': ''}))
+assert st == 400
+
 # --- play note (mock HTTP) -------------------------------------------------------
 st, _, data = req('POST', '/api/note', body=json.dumps({'slot': 5, 'on': True}))
 assert st == 200 and json.loads(data)['ok'] is True
@@ -215,6 +225,19 @@ assert real.ms.selected is None                # PCM dump closed the session
 # a second bank summary must work back-to-back (no stranded state)
 out2 = real.bank_summary()
 assert out2['name'] == 'TESTBANK'
+
+# --- bank settings over the real Device path: 9 messages, ONE lock grab --------
+real.ms.sysexes = []
+_orig_send = real.ms.send_sysex
+real.ms.send_sysex = lambda m, cable=None: real.ms.sysexes.append(bytes(m))
+real.set_bank_settings('AB', 90.5)
+real.ms.send_sysex = _orig_send
+assert len(real.ms.sysexes) == 9
+import protocol as PP
+assert real.ms.sysexes[0] == PP.parameter_change(0, 0, 0, ord('A'))
+assert real.ms.sysexes[1] == PP.parameter_change(0, 0, 1, ord('B'))
+assert real.ms.sysexes[2] == PP.parameter_change(0, 0, 2, ord(' '))
+assert real.ms.sysexes[8] == PP.parameter_change(0, 0, 16, 905)
 
 # --- play note over the real Device path (USB-MIDI short message) --------------
 real.ms.shorts = []
