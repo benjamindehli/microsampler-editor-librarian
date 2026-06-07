@@ -281,6 +281,20 @@ class Device:
         with self.lock:
             self.ms.send_sysex(P.parameter_change(self.channel, obj, param, value))
 
+    def set_bank_settings(self, name, bpm):
+        """Bank name + BPM in ONE lock acquisition (object 0: name chars as
+        params 0..7, BPM*10 as param 16 — from EditBankParameterAction).
+        Batched because 9 separate /api/param round-trips each contend with
+        the background reader's lock cycle — user-visibly sluggish."""
+        padded = name[:8].ljust(8)
+        with self.lock:
+            for i, c in enumerate(padded):
+                self.ms.send_sysex(P.parameter_change(self.channel, 0, i,
+                                                      ord(c) & 0x7f))
+            self.ms.send_sysex(P.parameter_change(self.channel, 0, 16,
+                                                  int(round(bpm * 10))))
+        return {'name': padded.rstrip(), 'bpm': round(bpm, 1)}
+
     def play_note(self, slot, on, velocity=100):
         """Trigger a sample pad on the DEVICE via MIDI note. Sample-mode note
         map (same numbering the pattern engine uses for sample-mode tracks):
@@ -454,6 +468,8 @@ class MockDevice(Device):
         self._effect = {'type': 2, 'knobs': [2, 3],
                         'params': [100, 2, 63, 20, 64, 0, 30, 1, 20, 2,
                                    0, 0, 0, 0] + [0] * 18}
+        self._bank_name = 'MOCKBANK'
+        self._bank_bpm = 120.0
 
     def open(self):
         pass
@@ -467,7 +483,21 @@ class MockDevice(Device):
     def play_note(self, slot, on, velocity=100):
         self._last_note = (int(slot), bool(on), int(velocity))
 
+    def set_bank_settings(self, name, bpm):
+        self._bank_name = name[:8].strip()
+        self._bank_bpm = round(bpm, 1)
+        return {'name': self._bank_name, 'bpm': self._bank_bpm}
+
     def send_param(self, obj, param, value):
+        # bank object 0: name chars (params 0..7) + BPM*10 (param 16)
+        if obj == 0:
+            if param == 16:
+                self._bank_bpm = value / 10.0
+            elif 0 <= param <= 7:
+                n = list(self._bank_name.ljust(8))
+                n[param] = chr(value & 0x7f)
+                self._bank_name = ''.join(n).rstrip()
+            return
         # keep the mock's effect state live so the page round-trips in UI dev
         if obj == 80:
             e = self._effect
@@ -578,7 +608,8 @@ class MockDevice(Device):
                           'pan': 64, 'semitone': i, 'tune': 64, 'velo_int': 0,
                           'decay': 127, 'release': 0, 'fx_sw': i == 0,
                           'loop': i == 1, 'reverse': False, 'bpm_sync': 0})
-        return {'name': 'MOCKBANK', 'bpm': 120.0, 'slots': slots,
+        return {'name': self._bank_name, 'bpm': self._bank_bpm,
+                'slots': slots,
                 'effect': {'type': self._effect['type'],
                            'knobs': list(self._effect['knobs']),
                            'params': list(self._effect['params'])},
@@ -773,6 +804,16 @@ class Handler(BaseHTTPRequestHandler):
                 DEVICE.send_param(int(body['obj']), int(body['param']),
                                   int(body['value']))
                 return self._json({'ok': True})
+            if path == '/api/bank/settings':
+                n = int(self.headers.get('Content-Length', 0))
+                body = json.loads(self.rfile.read(n) or b'{}')
+                name = str(body.get('name', '')).strip()[:8]
+                if not name or not all(0x20 <= ord(c) <= 0x7e for c in name):
+                    return self._err('name: 1..8 printable ASCII chars', 400)
+                bpm = float(body.get('bpm', 120))
+                if not 20 <= bpm <= 300:
+                    return self._err('bpm 20..300', 400)
+                return self._json(DEVICE.set_bank_settings(name, bpm))
             if path == '/api/note':
                 n = int(self.headers.get('Content-Length', 0))
                 body = json.loads(self.rfile.read(n) or b'{}')
