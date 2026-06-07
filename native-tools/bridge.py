@@ -215,9 +215,15 @@ class Device:
             self._inquire()
             out = []
             for q in range(16):
+                # progress over SSE — the GET blocks until all 16 are read,
+                # but the event stream (separate thread) delivers these live
+                self._emit({'type': 'progress', 'op': 'patterns',
+                            'done': q, 'total': 16})
                 blob = fetch_sequence(self.ms, self.channel, q)
                 self.pattern_cache[q] = blob
                 out.append(_pattern_json(q, blob))
+            self._emit({'type': 'progress', 'op': 'patterns',
+                        'done': 16, 'total': 16})
         return {'patterns': out}
 
     def pattern_mid(self, q):
@@ -541,7 +547,11 @@ class MockDevice(Device):
 
     def patterns_summary(self):
         self._mock_patterns()
-        time.sleep(.4)
+        for q in range(16):                       # emit progress like real HW
+            self._emit({'type': 'progress', 'op': 'patterns',
+                        'done': q, 'total': 16})
+            time.sleep(.03)
+        self._emit({'type': 'progress', 'op': 'patterns', 'done': 16, 'total': 16})
         return {'patterns': [_pattern_json(q, self.pattern_cache[q])
                              for q in range(16)]}
 
