@@ -595,8 +595,9 @@ EFFECT_OBJ = 80              # object id of the bank effect (0x50)
 # START/END/TEMPO are NOT live params: the converter refuses kinds 7..9, and
 # u32 frame counts can't fit a 14-bit value anyway — set them by patching the
 # 64-byte param blob (fetch func 0x14, modify, send func 0x44).
+# (no live id for sample tempo/ORIG BPM — it is display-only on the panel
+# and settable only at upload time via the 8-byte header, u16 BPM*10)
 SAMPLE_PARAM = {
-    'sample_bpm': 0,    # tempo, 200..3000 = 20.0..300.0 BPM
     'loop': 16, 'bpm_sync': 17, 'reverse': 18,
     'decay': 21, 'release': 22,
     'level': 24, 'pan': 25, 'fx_sw': 26,
