@@ -77,4 +77,21 @@ document.querySelectorAll('.view-btn').forEach(b =>
 
 $('#refresh-btn').onclick = () => refreshBank().catch(e => tick('⚠ ' + e.message));
 
+// Auto re-sync from the device when returning to the window. The microSAMPLER
+// only transmits panel param-edits while on its SAMPLE-EDIT page, so toggles
+// made elsewhere on the hardware leave the GUI snapshot stale; re-reading the
+// authoritative bank blob on focus-return fixes that transparently. Guarded:
+// online only, skip while any device op holds the lock (#refresh-btn busy),
+// debounced to 2 s so a quick click-in doesn't double-read.
+let lastSync = Date.now();
+function maybeResync() {
+  if (document.visibilityState !== 'visible' || !state.online) return;
+  if ($('#refresh-btn').hasAttribute('aria-busy')) return;   // device busy
+  if (Date.now() - lastSync < 2000) return;
+  lastSync = Date.now();
+  refreshBank().catch(() => { });
+}
+window.addEventListener('focus', maybeResync);
+document.addEventListener('visibilitychange', maybeResync);
+
 boot();
