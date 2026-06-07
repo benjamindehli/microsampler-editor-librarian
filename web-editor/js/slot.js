@@ -1,6 +1,6 @@
 // Slot editor header: name LCD, info chips, start/end readout, control init.
-import { $, esc, fmtSigned, apiJson } from './util.js';
-import { state, slotData } from './state.js';
+import { $, esc, fmtSigned } from './util.js';
+import { slotData } from './state.js';
 import { setSwitch, setSeg, setFader, tuneDisplay, fmtLevel, fmtPan }
   from './controls.js';
 import { noteName } from './pads.js';
@@ -39,28 +39,8 @@ export async function showSlot(i, { keepWave = false } = {}) {
   if (!s.empty) renderMetaFmt(s);
   else $('#meta-fmt').textContent = '';
 
-  // the switches above came from the bank SNAPSHOT, which can drift from the
-  // device (a panel edit missed while reconnecting, etc.). Confirm the three
-  // boolean switches + bpm-sync against the device's live param blob — async
-  // so pad-switching stays instant; self-heals a moment later.
-  if (!s.empty) confirmSwitches(i);
-
   // waveform
   if (!keepWave) await loadWave(i);
-}
-
-async function confirmSwitches(i) {
-  let p;
-  try { p = await apiJson(`/api/sample/${i}/params`); }
-  catch { return; }                              // device busy/offline — keep snapshot
-  if (state.sel !== i || p.empty) return;        // user moved on
-  const s = slotData(i);
-  s.loop = p.loop; s.reverse = p.reverse;
-  s.bpm_sync = p.bpm_sync; s.fx_sw = p.fx_sw;
-  setSwitch('#ctl-loop', '#val-loop', p.loop);
-  setSwitch('#ctl-reverse', '#val-reverse', p.reverse);
-  setSwitch('#ctl-fx', '#val-fx', p.fx_sw);
-  setSeg(p.bpm_sync);
 }
 
 // Rate/length aren't in the bank blob — they arrive once the WAV is fetched
