@@ -130,6 +130,16 @@ assert bk2['name'] == 'MYBANK' and bk2['bpm'] == 98.5
 st, _, _ = req('POST', '/api/bank/settings', body=json.dumps({'name': ''}))
 assert st == 400
 
+# --- sample params (authoritative switch state for self-heal) --------------------
+st, _, data = req('GET', '/api/sample/1/params')
+pp = json.loads(data)
+assert pp['empty'] is False and pp['loop'] is True and pp['fx_sw'] is False
+assert pp['reverse'] is False and pp['bpm_sync'] == 0
+st, _, data = req('GET', '/api/sample/0/params')
+assert json.loads(data)['fx_sw'] is True
+st, _, data = req('GET', '/api/sample/35/params')
+assert json.loads(data)['empty'] is True
+
 # --- play note (mock HTTP) -------------------------------------------------------
 st, _, data = req('POST', '/api/note', body=json.dumps({'slot': 5, 'on': True}))
 assert st == 200 and json.loads(data)['ok'] is True
