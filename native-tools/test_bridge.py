@@ -120,6 +120,13 @@ st, _, data = req('POST', '/api/pattern/5/init')
 ini = json.loads(data)
 assert ini['note_count'] == 0 and ini['name'] == 'INITPTRN' and ini['sample'] == 0
 
+# --- play note (mock HTTP) -------------------------------------------------------
+st, _, data = req('POST', '/api/note', body=json.dumps({'slot': 5, 'on': True}))
+assert st == 200 and json.loads(data)['ok'] is True
+assert B.DEVICE._last_note == (5, True, 100)
+st, _, _ = req('POST', '/api/note', body=json.dumps({'slot': 99}))
+assert st == 400
+
 # --- live param edit --------------------------------------------------------------
 st, _, data = req('POST', '/api/param', body=json.dumps(
     {'obj': 16, 'param': 16, 'value': 1}), headers={'Content-Type': 'application/json'})
@@ -201,6 +208,15 @@ assert real.ms.selected is None                # PCM dump closed the session
 # a second bank summary must work back-to-back (no stranded state)
 out2 = real.bank_summary()
 assert out2['name'] == 'TESTBANK'
+
+# --- play note over the real Device path (USB-MIDI short message) --------------
+real.ms.shorts = []
+real.ms.send_short = lambda st_, d1, d2, cable=0: real.ms.shorts.append(
+    (st_, d1, d2, cable))
+real.play_note(7, True, velocity=100)
+real.play_note(7, False)
+assert real.ms.shorts == [(0x90, 48 + 7, 100, 1),   # note on, C3+slot, cable 1
+                          (0x80, 48 + 7, 100, 1)]   # note off
 
 # --- start/end points over the real Device path (param-blob write) -------------
 # set_points must fetch the CURRENT blob (0x14), patch ONLY the two u32s,
