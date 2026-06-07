@@ -1,0 +1,110 @@
+/* design tokens + shared primitives (LCD, buttons) */
+
+/* ════════════════════════════════════════════════════════════════════════
+   microSAMPLER Editor — sample edit page
+   Aesthetic: matte powder-coat hardware panel · amber phosphor LCD ·
+   silkscreen labels. Fonts: Chakra Petch (silkscreen) + Share Tech Mono (LCD).
+   ════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --steel-0: #0b0b0d;          /* page background            */
+  --steel-1: #121214;          /* panel                      */
+  --steel-2: #18181c;          /* raised panel               */
+  --steel-3: #202026;          /* control face               */
+  --line:    #2b2b33;          /* panel seams                */
+  --line-hi: #3a3a44;
+  --ink:     #b9b2a6;          /* silkscreen text            */
+  --ink-dim: #6d685f;
+  --amber:   #ff8a1e;          /* Korg backlight             */
+  --amber-hi:#ffc063;
+  --amber-dk:#8a4500;
+  --phos-bg: #160d02;          /* LCD glass background       */
+  --ok:      #79e06b;
+  --err:     #ff4f3d;
+  --r: 6px;
+  font-size: 15px;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 500px at 50% -200px, #1a1a20 0%, transparent 60%),
+    var(--steel-0);
+  color: var(--ink);
+  font-family: "Chakra Petch", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  display: flex; flex-direction: column;
+  min-height: 100vh;
+}
+
+/* film grain over everything, very faint */
+.grain {
+  position: fixed; inset: 0; pointer-events: none; z-index: 90; opacity: .05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E");
+}
+
+/* entrance: machine powering on, sections rise in sequence */
+.reveal { animation: rise .55s cubic-bezier(.2,.8,.25,1) both; animation-delay: var(--d, 0s); }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+
+/* ── silkscreen + LCD primitives ─────────────────────────────────────── */
+.lcd {
+  background:
+    linear-gradient(180deg, rgba(255,138,30,.06), transparent 40%),
+    var(--phos-bg);
+  border: 1px solid #000;
+  border-radius: 4px;
+  box-shadow:
+    inset 0 2px 8px rgba(0,0,0,.9),
+    inset 0 0 24px rgba(255,138,30,.05),
+    0 1px 0 var(--line-hi);
+  padding: .45rem .9rem;
+  display: flex; align-items: baseline; gap: .65rem;
+}
+.lcd-label { font-size: .58rem; letter-spacing: .18em; color: var(--amber-dk); }
+.lcd-text {
+  font-family: "Share Tech Mono", monospace;
+  color: var(--amber);
+  text-shadow: 0 0 8px rgba(255,138,30,.55);
+  letter-spacing: .08em;
+}
+.lcd-text.big { font-size: 1.7rem; line-height: 1; }
+.lcd-slot {
+  font-family: "Share Tech Mono", monospace;
+  color: var(--amber-hi); font-size: .85rem;
+  border: 1px solid var(--amber-dk); border-radius: 3px;
+  padding: .1rem .4rem; align-self: center;
+}
+.lcd-sub { font-size: .7rem; color: #b06a1e; letter-spacing: .1em; align-self: center; }
+
+/* hardware push-button */
+.hw-btn {
+  appearance: none; border: 0; background: none; padding: 0; cursor: pointer;
+  text-decoration: none; display: inline-block;
+}
+.hw-btn-cap {
+  display: inline-block;
+  font: 600 .68rem/1 "Chakra Petch", sans-serif;
+  letter-spacing: .14em; color: var(--ink);
+  background: linear-gradient(180deg, var(--steel-3), #141417);
+  border: 1px solid var(--line);
+  border-top-color: var(--line-hi);
+  border-radius: 4px;
+  padding: .55rem .85rem;
+  box-shadow: 0 2px 0 #000, inset 0 1px 0 rgba(255,255,255,.05);
+  transition: transform .06s, box-shadow .06s, color .15s;
+}
+.hw-btn:hover .hw-btn-cap { color: var(--amber-hi); }
+.hw-btn:active .hw-btn-cap { transform: translateY(2px); box-shadow: 0 0 0 #000; }
+.hw-btn.accent .hw-btn-cap {
+  color: #1a0d00;
+  background: linear-gradient(180deg, var(--amber-hi), var(--amber) 60%, #d96f0e);
+  border-color: #a35408; text-shadow: 0 1px 0 rgba(255,255,255,.25);
+}
+.hw-btn[aria-busy="true"] .hw-btn-cap { opacity: .5; pointer-events: none; }
+

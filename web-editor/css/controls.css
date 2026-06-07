@@ -1,0 +1,130 @@
+/* GENERATED SPLIT of the former app.css — component stylesheet. */
+
+/* ── control strip ────────────────────────────────────────────────────── */
+/* groups wrap as whole units — controls inside a group never line-break */
+.strip {
+  margin-top: 1.1rem;
+  display: flex; flex-wrap: wrap; gap: .6rem;
+}
+.ctl-group { display: flex; gap: .6rem; min-width: 0; }
+.ctl-group .ctl { flex: 1 1 0; min-width: 0; }
+.ctl-group.g2 { flex: 2 1 252px; }
+.ctl-group.g3 { flex: 3 1 380px; }
+.ctl {
+  background: linear-gradient(180deg, var(--steel-2), #131316);
+  border: 1px solid var(--line); border-top-color: var(--line-hi);
+  border-radius: 5px;
+  padding: .65rem .7rem .7rem;
+  display: flex; flex-direction: column; align-items: center; gap: .55rem;
+  transition: box-shadow .4s;
+}
+.ctl.flash { box-shadow: 0 0 0 1px var(--amber), 0 0 22px rgba(255,138,30,.35); transition: none; }
+.ctl.locked { opacity: .38; pointer-events: none; filter: saturate(.3); }
+.ctl-label { font-size: .58rem; letter-spacing: .24em; color: var(--ink-dim); }
+.ctl-val {
+  font-family: "Share Tech Mono", monospace; font-size: .85rem;
+  color: var(--amber); text-shadow: 0 0 6px rgba(255,138,30,.4);
+}
+
+/* toggle switch (hardware slide) */
+.switch { appearance: none; background: none; border: 0; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: .45rem; }
+.switch-track {
+  display: block; width: 46px; height: 20px; border-radius: 10px;
+  background: #0d0d10; border: 1px solid #000;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,.9), 0 1px 0 var(--line-hi);
+  position: relative; transition: background .15s;
+}
+.switch-knob {
+  position: absolute; top: 1px; left: 1px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: linear-gradient(180deg, #4a4a52, #28282e);
+  box-shadow: 0 1px 2px #000;
+  transition: left .12s cubic-bezier(.3,1.4,.6,1), background .15s;
+}
+.switch[aria-checked="true"] .switch-track { background: #2b1503; }
+.switch[aria-checked="true"] .switch-knob {
+  left: 27px;
+  background: linear-gradient(180deg, var(--amber-hi), var(--amber));
+  box-shadow: 0 0 10px rgba(255,138,30,.7);
+}
+.switch-val {
+  font-family: "Share Tech Mono", monospace; font-size: .8rem; color: var(--ink-dim);
+}
+.switch[aria-checked="true"] .switch-val { color: var(--amber); text-shadow: 0 0 6px rgba(255,138,30,.4); }
+
+/* segmented switch */
+.ctl-wide { grid-column: span 2; }
+.seg {
+  display: flex; border: 1px solid var(--line); border-radius: 4px;
+  overflow: hidden; max-width: 100%;
+}
+.seg button {
+  appearance: none; border: 0; cursor: pointer;
+  font: 600 .58rem/1 "Chakra Petch"; letter-spacing: .06em;
+  color: var(--ink-dim); background: #101013;
+  padding: .5rem .45rem;
+  flex: 0 1 auto; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: clip;
+  border-right: 1px solid var(--line);
+  transition: color .15s, background .15s;
+}
+.seg button:last-child { border-right: 0; }
+.seg button:hover { color: var(--ink); }
+.seg button.on {
+  color: #1a0d00;
+  background: linear-gradient(180deg, var(--amber-hi), var(--amber));
+  text-shadow: 0 1px 0 rgba(255,255,255,.25);
+}
+
+/* fader */
+.fader-ctl { padding-inline: .9rem; }
+.fader {
+  appearance: none; -webkit-appearance: none;
+  width: 100%; height: 22px; background: none; cursor: pointer;
+}
+.fader::-webkit-slider-runnable-track {
+  height: 6px; border-radius: 3px;
+  background: #0c0c0f;
+  box-shadow: inset 0 1px 4px rgba(0,0,0,.9), 0 1px 0 var(--line-hi);
+}
+.fader::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 22px; margin-top: -8px;
+  border-radius: 3px;
+  background:
+    linear-gradient(90deg, transparent 45%, var(--amber) 45%, var(--amber) 55%, transparent 55%),
+    linear-gradient(180deg, #4d4d57, #232328);
+  border: 1px solid #000;
+  box-shadow: 0 2px 4px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.12);
+}
+.fader.center::-webkit-slider-runnable-track {
+  background:
+    linear-gradient(90deg, transparent calc(50% - 1px), var(--amber-dk) calc(50% - 1px), var(--amber-dk) calc(50% + 1px), transparent calc(50% + 1px)),
+    #0c0c0f;
+}
+
+/* read-only info row */
+.ro-row {
+  margin-top: .8rem; display: flex; gap: .45rem; flex-wrap: wrap;
+}
+.ro {
+  font-family: "Share Tech Mono", monospace; font-size: .64rem;
+  color: var(--ink-dim); letter-spacing: .06em;
+  border: 1px dashed var(--line); border-radius: 3px;
+  padding: .32rem .5rem;
+}
+.ro b { color: var(--ink); font-weight: 400; }
+.ro .lock { color: #4c4c55; }
+
+/* drop veil */
+.drop-veil {
+  position: absolute; inset: 0; z-index: 5;
+  display: grid; place-items: center;
+  background: rgba(20, 10, 0, .82);
+  border: 2px dashed var(--amber);
+  border-radius: var(--r);
+  font-size: .9rem; letter-spacing: .3em; color: var(--amber-hi);
+  text-shadow: 0 0 12px rgba(255,138,30,.6);
+}
+

@@ -1,0 +1,120 @@
+/* GENERATED SPLIT of the former app.css — component stylesheet. */
+
+/* ── top rail ─────────────────────────────────────────────────────────── */
+.rail {
+  display: flex; align-items: center; gap: 1.4rem;
+  padding: .8rem 1.2rem;
+  background: linear-gradient(180deg, #1c1c21, var(--steel-1));
+  border-bottom: 1px solid #000;
+  box-shadow: 0 1px 0 var(--line-hi) inset, 0 6px 18px rgba(0,0,0,.5);
+}
+.org-logo {
+  height: 38px; width: auto; display: block;
+  margin-right: 1.1rem; padding-right: 1.1rem;
+  border-right: 1px solid var(--line);
+  box-sizing: content-box;
+  opacity: .92;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.6));
+}
+.brand { line-height: 1; user-select: none; }
+.brand-micro  { font-weight: 400; font-size: 1.25rem; color: var(--ink); letter-spacing: .02em; }
+.brand-sampler{ font-weight: 700; font-size: 1.25rem; color: #fff; letter-spacing: .04em; }
+.brand-sub {
+  display: block; margin-top: .18rem;
+  font-size: .55rem; letter-spacing: .34em; color: var(--ink-dim);
+}
+.bank-lcd { margin-inline: auto; }
+.rail-right { display: flex; align-items: center; gap: 1rem; }
+
+.mock-badge {
+  font: 700 .6rem/1 "Chakra Petch"; letter-spacing: .2em; color: #0c0c0e;
+  background: repeating-linear-gradient(45deg, #ffd23d 0 8px, #e6b015 8px 16px);
+  padding: .35rem .5rem; border-radius: 3px;
+}
+.led-block { display: flex; flex-direction: column; align-items: center; gap: .25rem; }
+.led {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #3a3a3a; box-shadow: inset 0 1px 2px #000;
+  transition: background .3s, box-shadow .3s;
+}
+.led.ok  { background: var(--ok);  box-shadow: 0 0 10px var(--ok),  inset 0 0 3px rgba(255,255,255,.6); }
+.led.err { background: var(--err); box-shadow: 0 0 10px var(--err), inset 0 0 3px rgba(255,255,255,.6); }
+.led-caption { font-size: .52rem; letter-spacing: .22em; color: var(--ink-dim); }
+
+/* ── deck layout ─────────────────────────────────────────────────────── */
+.deck {
+  flex: 1;
+  display: grid; grid-template-columns: 330px 1fr; gap: 1.1rem;
+  padding: 1.1rem 1.2rem;
+  align-items: start;
+}
+@media (max-width: 980px) { .deck { grid-template-columns: 1fr; } }
+
+.panel-title {
+  font-size: .62rem; letter-spacing: .28em; color: var(--ink-dim);
+  margin-bottom: .7rem;
+}
+.panel-title em { font-style: normal; color: var(--amber-dk); }
+
+
+/* ── ticker ───────────────────────────────────────────────────────────── */
+.ticker {
+  display: flex; align-items: center; gap: .8rem;
+  background: #0e0e11;
+  border-top: 1px solid #000;
+  box-shadow: 0 1px 0 var(--line-hi) inset;
+  padding: .5rem 1.2rem;
+}
+.ticker-led { width: 7px; height: 7px; border-radius: 50%; background: #333; flex: none; }
+.ticker-led.blip { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+.ticker-log {
+  flex: 1; font-family: "Share Tech Mono", monospace;
+  font-size: .68rem; color: var(--ink-dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ticker-log b { color: var(--amber); font-weight: 400; }
+.ticker-note { font-size: .54rem; letter-spacing: .12em; color: #4d4840; }
+
+
+/* ── offline curtain ─────────────────────────────────────────────────── */
+.offline {
+  position: fixed; inset: 0; z-index: 80;
+  display: grid; place-items: center;
+  background: rgba(8,8,10,.92); backdrop-filter: blur(3px);
+}
+.offline-card {
+  text-align: center; padding: 2.2rem 2.6rem;
+  background: var(--steel-1); border: 1px solid var(--line-hi); border-radius: var(--r);
+  box-shadow: 0 30px 90px rgba(0,0,0,.9);
+}
+.offline-led {
+  width: 14px; height: 14px; border-radius: 50%; margin: 0 auto 1rem;
+  background: var(--err); box-shadow: 0 0 16px var(--err);
+  animation: blink 1.4s steps(2) infinite;
+}
+.offline-card h2 { margin: 0 0 .6rem; letter-spacing: .3em; font-size: 1rem; color: #fff; }
+.offline-card p { font-size: .75rem; color: var(--ink-dim); letter-spacing: .08em; }
+.offline-card code {
+  display: block; margin: .9rem 0;
+  font-family: "Share Tech Mono", monospace;
+  color: var(--amber); background: var(--phos-bg);
+  border: 1px solid #000; border-radius: 4px;
+  padding: .7rem 1rem;
+  text-shadow: 0 0 8px rgba(255,138,30,.5);
+}
+.dim { opacity: .65; }
+
+/* ── view nav ─────────────────────────────────────────────────────────── */
+.views { display: flex; gap: 4px; margin-left: 1.6rem; }
+.view-btn {
+  appearance: none; cursor: pointer;
+  font: 600 .66rem/1 "Chakra Petch", sans-serif; letter-spacing: .18em;
+  color: var(--ink-dim); background: #101013;
+  border: 1px solid var(--line); border-bottom: 2px solid transparent;
+  border-radius: 4px 4px 0 0;
+  padding: .55rem .9rem;
+  transition: color .15s, border-color .15s;
+}
+.view-btn:hover { color: var(--ink); }
+.view-btn.on { color: var(--amber); border-bottom-color: var(--amber); }
+

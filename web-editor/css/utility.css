@@ -1,0 +1,48 @@
+/* GENERATED SPLIT of the former app.css — component stylesheet. */
+
+/* ── utility view ─────────────────────────────────────────────────────── */
+.utility-deck { grid-template-columns: 1fr; }
+.util-cols { display: grid; grid-template-columns: 1fr 1.2fr; gap: 2rem; }
+@media (max-width: 900px) { .util-cols { grid-template-columns: 1fr; } }
+.util-note {
+  font-size: .72rem; line-height: 1.55; color: var(--ink-dim);
+  letter-spacing: .04em; margin: .4rem 0 1rem;
+}
+.util-note code {
+  font-family: "Share Tech Mono", monospace; color: var(--amber-dk);
+}
+.util-note b { color: #ffb35c; }
+
+.backup-list { display: flex; flex-direction: column; gap: .5rem; }
+.backup-row {
+  display: flex; align-items: center; gap: .9rem;
+  background: linear-gradient(180deg, var(--steel-2), #131316);
+  border: 1px solid var(--line); border-top-color: var(--line-hi);
+  border-radius: 5px; padding: .6rem .8rem;
+}
+.backup-row .b-name {
+  font-family: "Share Tech Mono", monospace; color: var(--amber);
+  text-shadow: 0 0 6px rgba(255,138,30,.35);
+}
+.backup-row .b-meta { font-size: .62rem; color: var(--ink-dim); letter-spacing: .08em; }
+.backup-row .spacer { flex: 1; }
+.backup-empty { font-size: .7rem; color: var(--ink-dim); letter-spacing: .1em; }
+
+.op-console {
+  font-family: "Share Tech Mono", monospace; font-size: .72rem;
+  color: var(--amber); background: var(--phos-bg);
+  border: 1px solid #000; border-radius: 5px;
+  box-shadow: inset 0 4px 14px rgba(0,0,0,.9), 0 1px 0 var(--line-hi);
+  padding: .8rem 1rem; min-height: 7rem; max-height: 16rem;
+  overflow-y: auto; white-space: pre-wrap;
+  text-shadow: 0 0 6px rgba(255,138,30,.35);
+}
+.op-console.err { color: #ff7a66; text-shadow: 0 0 6px rgba(255,80,60,.4); }
+
+.hw-dialog select {
+  flex: 1; background: var(--phos-bg); color: var(--amber);
+  font-family: "Share Tech Mono", monospace; font-size: .8rem;
+  border: 1px solid #000; border-radius: 3px; padding: .45rem .5rem;
+}
+.spacer { flex: 1; }
+
