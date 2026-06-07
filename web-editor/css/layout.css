@@ -80,7 +80,7 @@
 .offline {
   position: fixed; inset: 0; z-index: 80;
   display: grid; place-items: center;
-  background: rgba(8,8,10,.92); backdrop-filter: blur(3px);
+  background: rgba(8,8,10,.96);   /* opaque dim, no blur — see dialogs.css note */
 }
 .offline-card {
   text-align: center; padding: 2.2rem 2.6rem;
@@ -118,3 +118,14 @@
 .view-btn:hover { color: var(--ink); }
 .view-btn.on { color: var(--amber); border-bottom-color: var(--amber); }
 
+
+/* bank LCD is clickable (bank name/BPM dialog) */
+.bank-lcd { cursor: pointer; }
+.lcd-edit {
+  font-size: .7rem; color: var(--amber-dk); align-self: center;
+  opacity: 0; transition: opacity .12s;
+}
+.bank-lcd:hover .lcd-edit { opacity: 1; }
+.bank-lcd:hover { box-shadow: inset 0 2px 8px rgba(0,0,0,.9),
+  inset 0 0 24px rgba(255,138,30,.05), 0 1px 0 var(--line-hi),
+  0 0 0 1px var(--amber-dk); }

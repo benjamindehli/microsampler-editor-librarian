@@ -151,6 +151,48 @@ $('#rn-ok').onclick = async e => {
   }
 };
 
+// ────────────────────────────────────────────── bank name / BPM dialog ──
+// Bank object = 0 (from EditBankParameterAction in the original binary):
+// params 0..7 = the 8 name chars (sent one per message, space-padded),
+// param 16 = BPM × 10. Targets the current bank (RAM), like all live edits.
+$('#bank-lcd').onclick = () => {
+  if (!state.bank) return;
+  $('#bd-name').value = state.bank.name || '';
+  $('#bd-bpm').value = state.bank.bpm.toFixed(1);
+  $('#bank-dialog').showModal();
+};
+$('#bank-lcd').onkeydown = e => {
+  if (e.key === 'Enter' || e.key === ' ') $('#bank-lcd').click();
+};
+
+$('#bd-ok').onclick = async e => {
+  e.preventDefault();
+  const name = $('#bd-name').value.trim().toUpperCase().slice(0, 8);
+  const bpm = Math.max(20, Math.min(300, +$('#bd-bpm').value || 120));
+  if (!name) return;
+  $('#bd-ok').setAttribute('aria-busy', 'true');
+  try {
+    // one batched request — the bridge sends all 9 messages (8 name chars +
+    // BPM) in a single device-lock acquisition; per-message /api/param
+    // round-trips were user-visibly sluggish
+    const res = await apiJson('/api/bank/settings', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, bpm }),
+    });
+    state.bank.name = res.name;
+    state.bank.bpm = res.bpm;
+    $('#bank-name').textContent = res.name.padEnd(8);
+    $('#bank-bpm').textContent = res.bpm.toFixed(1);
+    tick(`✎ bank "${res.name}" · ${res.bpm.toFixed(1)} BPM`);
+    $('#bank-dialog').close();
+  } catch (err) {
+    tick(`⚠ bank edit failed: ${err.message}`);
+    alert('Bank edit failed: ' + err.message);
+  } finally {
+    $('#bd-ok').removeAttribute('aria-busy');
+  }
+};
+
 // ─────────────────────────────────── drag & drop onto the editor panel ──
 const editor = $('.editor');
 editor.addEventListener('dragover', e => {

@@ -45,11 +45,13 @@
     <button class="view-btn" data-view="utility">UTILITY</button>
   </nav>
 
-  <div class="lcd bank-lcd" id="bank-lcd">
+  <div class="lcd bank-lcd" id="bank-lcd" title="Click to edit bank name / BPM"
+       role="button" tabindex="0">
     <span class="lcd-label">BANK</span>
     <span class="lcd-text" id="bank-name">--------</span>
     <span class="lcd-label">BPM</span>
     <span class="lcd-text" id="bank-bpm">---.-</span>
+    <span class="lcd-edit">✎</span>
   </div>
 
   <div class="rail-right">
@@ -346,6 +348,20 @@
 </footer>
 
 <!-- ── rename dialog ───────────────────────────────────────────────────── -->
+<dialog id="bank-dialog" class="hw-dialog">
+  <form method="dialog">
+    <h3>BANK SETTINGS</h3>
+    <p class="warn">Edits the device's current bank (RAM) — save on the
+      device to keep them.</p>
+    <label>NAME <input type="text" id="bd-name" maxlength="8" spellcheck="false"></label>
+    <label>BPM <input type="number" id="bd-bpm" min="20" max="300" step="0.1"></label>
+    <menu>
+      <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
+      <button value="ok" id="bd-ok" class="hw-btn accent"><span class="hw-btn-cap">APPLY</span></button>
+    </menu>
+  </form>
+</dialog>
+
 <dialog id="rename-dialog" class="hw-dialog">
   <form method="dialog">
     <h3>RENAME <span id="rn-slot">PAD 1</span></h3>

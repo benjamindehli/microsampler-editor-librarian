@@ -8,7 +8,10 @@
   padding: 1.3rem 1.4rem; min-width: 360px;
   font-family: "Chakra Petch", sans-serif;
 }
-.hw-dialog::backdrop { background: rgba(5,5,7,.75); backdrop-filter: blur(2px); }
+/* NB: no backdrop-filter:blur — a full-viewport blur re-runs every frame
+   over the continuously-animating waveform behind it, which froze input
+   while a dialog was open. The dark dim alone reads fine. */
+.hw-dialog::backdrop { background: rgba(5,5,7,.8); }
 .hw-dialog h3 { margin: 0 0 .8rem; font-size: .9rem; letter-spacing: .18em; color: #fff; }
 .hw-dialog h3 span { color: var(--amber); }
 .hw-dialog .warn { font-size: .68rem; color: #ffb35c; letter-spacing: .06em; }

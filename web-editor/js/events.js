@@ -1,5 +1,5 @@
 // SSE feed from the bridge: routes device events to the right component.
-import { fmtSigned } from './util.js';
+import { $, fmtSigned } from './util.js';
 import { state } from './state.js';
 import { tick } from './ticker.js';
 import { PARAM, BIPOLAR, dec14, tuneDisplay, reflect, cacheParam }
@@ -16,7 +16,18 @@ export function subscribeEvents() {
     if (evt.type !== 'parameter_change') return;
     const isFx = evt.obj === FX_OBJ;
     const who = evt.sample != null ? `S${evt.sample + 1}`
-      : isFx ? 'FX' : `obj${evt.obj}`;
+      : isFx ? 'FX' : evt.obj === 0 ? 'BANK' : `obj${evt.obj}`;
+    if (evt.obj === 0 && state.bank) {        // bank panel edits (obj 0)
+      if (evt.param === 16) {                 // BPM × 10
+        state.bank.bpm = evt.value / 10;
+        $('#bank-bpm').textContent = state.bank.bpm.toFixed(1);
+      } else if (evt.param < 8) {             // name chars
+        const n = (state.bank.name || '').padEnd(8).split('');
+        n[evt.param] = String.fromCharCode(evt.value);
+        state.bank.name = n.join('').trimEnd();
+        $('#bank-name').textContent = n.join('');
+      }
+    }
     const shown = isFx ? fmtSigned(dec14(evt.value))
       : BIPOLAR.has(evt.param) ? fmtSigned(dec14(evt.value))
       : evt.param === PARAM.TUNE ? tuneDisplay(evt.value)
