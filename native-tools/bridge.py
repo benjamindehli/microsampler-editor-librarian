@@ -428,7 +428,10 @@ class Device:
             self._inquire()
             par = DL.fetch_params(self.ms, self.channel, slot)
         return {'slot': slot, 'name': par['name'],
-                'raw': par['raw'].hex(), 'flags8': par['flags8']}
+                'raw': par['raw'].hex(), 'flags8': par['flags8'],
+                'empty': par['u32_10'] in (0, 0xFFFFFFFF),
+                'loop': par['loop'], 'reverse': par['reverse'],
+                'bpm_sync': par['bpm_sync'], 'fx_sw': par['fx_sw']}
 
     def set_points(self, slot, start, end):
         """Set START/END points. These are u32 frame counts — they don't fit a
@@ -661,7 +664,10 @@ class MockDevice(Device):
         if s:
             blob[0:8] = s['name'][:8].ljust(8).encode('latin1')
         return {'slot': slot, 'name': s['name'] if s else '',
-                'raw': bytes(blob).hex(), 'flags8': blob[8]}
+                'raw': bytes(blob).hex(), 'flags8': blob[8],
+                'empty': not s,
+                'loop': slot == 1, 'reverse': False,   # mirror bank_summary
+                'bpm_sync': 0, 'fx_sw': slot == 0}
 
 
 def _pattern_json(q, blob):
