@@ -679,3 +679,9 @@ body {
 }
 .mem-measure:hover { box-shadow: 0 0 0 1px var(--amber); }
 .mem-measure:disabled { opacity: .5; cursor: default; }
+
+/* pad drop target highlight (drag a WAV onto a pad) */
+.pad.drop-hint {
+  outline: 1px solid var(--amber);
+  box-shadow: 0 0 14px rgba(255,138,30,.45), inset 0 0 10px rgba(255,138,30,.12);
+}

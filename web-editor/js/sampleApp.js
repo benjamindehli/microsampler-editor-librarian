@@ -124,6 +124,7 @@ function renderPads() {
   state.bank.slots.forEach(s => {
     if (!s.empty) used++;
     const b = document.createElement('button');
+    b.dataset.slot = s.slot;
     b.className = 'pad ' + (s.empty ? 'empty' : 'used') + (state.sel === s.slot ? ' sel' : '');
     b.innerHTML = `<span class="pad-num">${String(s.slot + 1).padStart(2, '0')} · ${noteName(s.slot)}</span>
                    <span class="pad-name">${s.empty ? '· · · ·' : esc(s.name)}</span>
@@ -694,6 +695,40 @@ $('#rn-ok').onclick = async e => {
     $('#rn-ok').removeAttribute('aria-busy');
   }
 };
+
+// drag & drop a WAV straight onto a pad — selects that slot and opens the
+// upload dialog pre-filled with the file (works for used AND empty pads)
+{
+  const grid = $('#pad-grid');
+  const hint = pad => {
+    for (const p of grid.querySelectorAll('.pad.drop-hint'))
+      if (p !== pad) p.classList.remove('drop-hint');
+    if (pad) pad.classList.add('drop-hint');
+  };
+  grid.addEventListener('dragover', e => {
+    const pad = e.target.closest('.pad');
+    if (!pad) return;
+    e.preventDefault();
+    e.stopPropagation();                 // keep the editor's drop veil out
+    hint(pad);
+  });
+  grid.addEventListener('dragleave', e => {
+    if (!grid.contains(e.relatedTarget)) hint(null);
+  });
+  grid.addEventListener('drop', e => {
+    e.preventDefault();
+    hint(null);
+    const pad = e.target.closest('.pad');
+    if (!pad) return;
+    const f = [...e.dataTransfer.files].find(f => /\.wav$/i.test(f.name));
+    if (!f) return;
+    const slot = +pad.dataset.slot;
+    state.sel = slot;
+    renderPads();
+    showSlot(slot);                      // no await — dialog opens right away
+    openUpload(f);
+  });
+}
 
 // drag & drop onto the editor panel
 const editor = $('.editor');
