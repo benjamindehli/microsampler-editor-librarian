@@ -1,0 +1,127 @@
+// Sample parameter controls: live-edit ids, value encodings, the control
+// strip wiring, and panel-edit reflection.
+import { VALUE_TABLES } from './valueTables.js';
+import { $, api, fmtSigned } from './util.js';
+import { state } from './state.js';
+import { tick } from './ticker.js';
+
+// Live-edit param ids — HARDWARE-CONFIRMED 2026-06-06 by panel-knob capture
+// (the editor binary's converter table did NOT match the device's actual
+// panel id scheme for the level/pan/semitone/tune/velo cluster — the device
+// is authoritative). START/END are NOT live params (u32 frames > 14 bits);
+// they're set via the param blob — see the waveform marker dragging.
+export const PARAM = {
+  LOOP: 16, BPM_SYNC: 17, REVERSE: 18,
+  DECAY: 21, RELEASE: 22, LEVEL: 24, PAN: 25, FX_SW: 26,
+  SEMITONE: 27, TUNE: 28, VELO_INT: 29,
+};
+const AMP_LEVEL = VALUE_TABLES.AmpLevel || [];
+export const fmtPan = v => v === 64 ? 'CNT' : (v < 64 ? `L${64 - v}` : `R${v - 64}`);
+export const fmtLevel = v => AMP_LEVEL[v] || String(v);
+
+// Semitone/Velo Int travel as two's-complement 14-bit (signed model space on
+// the slider; only RECEIVE needs decoding — pack14 handles the send side).
+export const BIPOLAR = new Set([PARAM.SEMITONE, PARAM.VELO_INT]);
+export const dec14 = v => (v >= 8192 ? v - 16384 : v);
+
+// TUNE: 0..127 wire → −99..+99 cents, fully decoded from hardware (2026-06-06,
+// exact at 35 measured points). The fine region is two linear halves around a
+// centre detent — negative HW = wire−62, positive HW = wire−66, with wire
+// 62..66 all reading 0 — and the panel's coarse settings step by 5 out to ±99.
+export function tuneCents(w) {
+  if (w <= 2) return -99;
+  if (w < 12) return -50 - (12 - w) * 5;    // wire 3..11   → −95..−55
+  if (w < 62) return w - 62;                // wire 12..61  → −50..−1
+  if (w <= 66) return 0;                     // centre detent
+  if (w <= 116) return w - 66;              // wire 67..116 → +1..+50
+  if (w >= 126) return 99;
+  return 50 + (w - 116) * 5;                // wire 117..125 → +55..+95
+}
+export const tuneDisplay = wire => fmtSigned(tuneCents(wire));
+export const OBJ_BASE = 16;
+
+export async function sendParam(param, value) {
+  if (state.sel == null) return;
+  flash(param);
+  try {
+    await api('/api/param', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ obj: OBJ_BASE + state.sel, param, value }),
+    });
+    tick(`→ S${state.sel + 1} #${param} = ${value}`);
+  } catch (e) { tick(`⚠ send failed: ${e.message}`); }
+}
+
+export function flash(param) {
+  const el = document.querySelector(`[data-flash="${param}"]`);
+  if (!el) return;
+  el.classList.remove('flash');
+  void el.offsetWidth;                           // restart transition
+  el.classList.add('flash');
+  setTimeout(() => el.classList.remove('flash'), 600);
+}
+
+// toggle switches
+function wireSwitch(btnSel, valSel, param) {
+  const btn = $(btnSel);
+  btn.onclick = () => {
+    const on = btn.getAttribute('aria-checked') !== 'true';
+    setSwitch(btnSel, valSel, on);
+    sendParam(param, on ? 1 : 0);
+  };
+}
+export function setSwitch(btnSel, valSel, on) {
+  $(btnSel).setAttribute('aria-checked', String(on));
+  $(valSel).textContent = on ? 'ON' : 'OFF';
+}
+wireSwitch('#ctl-loop', '#val-loop', PARAM.LOOP);
+wireSwitch('#ctl-reverse', '#val-reverse', PARAM.REVERSE);
+
+// BPM Sync segmented switch (device rule: Pitch Change locks Tune)
+$('#ctl-sync').querySelectorAll('button').forEach(b => {
+  b.onclick = () => { setSeg(+b.dataset.v); sendParam(PARAM.BPM_SYNC, +b.dataset.v); };
+});
+export function setSeg(v) {
+  $('#ctl-sync').querySelectorAll('button').forEach(b =>
+    b.classList.toggle('on', +b.dataset.v === v));
+  // device rule: Pitch Change disables Tune AND Semitone
+  $('#tune-block').classList.toggle('locked', v === 2);
+  $('#semitone-block').classList.toggle('locked', v === 2);
+}
+
+// faders — `fmt` (optional) maps the 0..127 byte to a display string
+function wireFader(inSel, valSel, param, fmt) {
+  const input = $(inSel);
+  input.oninput = () => setFader(inSel, valSel, +input.value, fmt);
+  input.onchange = () => sendParam(param, +input.value);
+}
+export function setFader(inSel, valSel, v, fmt) {
+  $(inSel).value = v;
+  $(valSel).textContent = fmt ? fmt(v) : String(v);
+}
+wireFader('#ctl-decay', '#val-decay', PARAM.DECAY);
+wireFader('#ctl-release', '#val-release', PARAM.RELEASE);
+wireFader('#ctl-tune', '#val-tune', PARAM.TUNE, tuneDisplay);
+wireFader('#ctl-level', '#val-level', PARAM.LEVEL, fmtLevel);
+wireFader('#ctl-pan', '#val-pan', PARAM.PAN, fmtPan);
+wireFader('#ctl-semitone', '#val-semitone', PARAM.SEMITONE, fmtSigned);
+wireFader('#ctl-velo', '#val-velo', PARAM.VELO_INT, fmtSigned);
+wireSwitch('#ctl-fx', '#val-fx', PARAM.FX_SW);
+
+export function reflect(param, value) {
+  flash(param);
+  if (BIPOLAR.has(param)) value = dec14(value);   // two's-complement 14-bit
+  switch (param) {
+    case PARAM.LOOP: setSwitch('#ctl-loop', '#val-loop', !!value); break;
+    case PARAM.REVERSE: setSwitch('#ctl-reverse', '#val-reverse', !!value); break;
+    case PARAM.BPM_SYNC: setSeg(value); break;
+    case PARAM.DECAY: setFader('#ctl-decay', '#val-decay', value); break;
+    case PARAM.RELEASE: setFader('#ctl-release', '#val-release', value); break;
+    case PARAM.TUNE: setFader('#ctl-tune', '#val-tune', value, tuneDisplay); break;
+    case PARAM.SEMITONE: setFader('#ctl-semitone', '#val-semitone', value, fmtSigned); break;
+    case PARAM.LEVEL: setFader('#ctl-level', '#val-level', value, fmtLevel); break;
+    case PARAM.PAN: setFader('#ctl-pan', '#val-pan', value, fmtPan); break;
+    case PARAM.VELO_INT: setFader('#ctl-velo', '#val-velo', value, fmtSigned); break;
+    case PARAM.FX_SW: setSwitch('#ctl-fx', '#val-fx', !!value); break;
+  }
+}
