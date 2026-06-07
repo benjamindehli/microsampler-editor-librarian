@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  tests:
+    name: offline suite (python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 3.8 = the oldest supported interpreter (see README); only
+          # ubuntu-22.04 still carries it
+          - { python: "3.8", os: ubuntu-22.04 }
+          - { python: "3.12", os: ubuntu-latest }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      # the offline suite is dependency-free: pyusb/libusb are imported
+      # lazily and only needed when real hardware is opened
+      - name: protocol self-test
+        run: python protocol.py
+        working-directory: native-tools
+      - name: download flow (mock device)
+        run: python test_download.py
+        working-directory: native-tools
+      - name: upload flow (mock device)
+        run: python test_upload.py
+        working-directory: native-tools
+      - name: bank backup/restore (mock device)
+        run: python test_bank.py
+        working-directory: native-tools
+      - name: bridge HTTP/SSE round-trips (mock device)
+        run: python test_bridge.py
+        working-directory: native-tools
+
+  frontend:
+    name: frontend syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: JS syntax check
+        run: |
+          for f in web-editor/js/*.js; do
+            echo "checking $f"
+            node --check "$f"
+          done
+      - name: ES module imports resolve
+        run: node --input-type=module -e "
+          import('./web-editor/js/valueTables.js').then(m =>
+            console.log('valueTables:', Object.keys(m.VALUE_TABLES).length, 'tables'));
+          import('./web-editor/js/fxData.js').then(m =>
+            console.log('fxData:', m.FX_TYPES.length, 'fx types'));"

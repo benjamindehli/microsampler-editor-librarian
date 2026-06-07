@@ -1,5 +1,7 @@
 # microSAMPLER Editor / Librarian
 
+![CI](https://github.com/benjamindehli/microsampler-editor-librarian/actions/workflows/ci.yml/badge.svg)
+
 A modern editor/librarian for the **Korg microSAMPLER**, replacing Korg's
 original 32-bit application (PPC/i386) that no longer runs on macOS 10.15+.
 The hardware protocol was reverse-engineered from the original binary and
@@ -106,6 +108,7 @@ and never disconnect the device mid-transfer.
 <img src="web-editor/assets/svg/DehliMusikkLogoInverse.svg" alt="Dehli Musikk" width="160">
 
 Made by Benjamin Dehli / Dehli Musikk (not affiliated with Korg).
+
 Licensed under the [GNU GPL v3](LICENSE).
 
 microSAMPLER is a trademark of Korg Inc.
