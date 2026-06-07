@@ -36,3 +36,13 @@
 .mem-measure:hover { box-shadow: 0 0 0 1px var(--amber); }
 .mem-measure:disabled { opacity: .5; cursor: default; }
 
+
+/* LOAD ALL progress fill (--p set per sample) */
+.mem-measure.loading {
+  position: relative; color: var(--amber-hi); border-color: var(--amber-dk);
+  overflow: hidden;
+}
+.mem-measure.loading::before {
+  content: ''; position: absolute; inset: 0; width: var(--p, 0%);
+  background: rgba(255,138,30,.28); transition: width .15s ease; z-index: -1;
+}

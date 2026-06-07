@@ -6,12 +6,15 @@ import { PARAM, BIPOLAR, dec14, tuneDisplay, reflect, cacheParam }
   from './controls.js';
 import { FX_OBJ, fxReflect, onCC } from './effect.js';
 import { onOpEvent } from './utility.js';
+import { onPatternsProgress } from './patterns.js';
 
 export function subscribeEvents() {
   const es = new EventSource('/api/events');
   es.onmessage = e => {
     const evt = JSON.parse(e.data);
     if (evt.type === 'op' || evt.type === 'op_done') return onOpEvent(evt);
+    if (evt.type === 'progress')
+      return evt.op === 'patterns' && onPatternsProgress(evt.done, evt.total);
     if (evt.type === 'cc') return onCC(evt);
     if (evt.type !== 'parameter_change') return;
     const isFx = evt.obj === FX_OBJ;

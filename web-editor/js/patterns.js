@@ -3,11 +3,28 @@ import { $, esc, apiJson } from './util.js';
 import { state } from './state.js';
 import { tick } from './ticker.js';
 
+let loadingPatterns = false;
+
+// live progress from the bridge (one SSE event per pattern read)
+export function onPatternsProgress(done, total) {
+  if (!loadingPatterns) return;
+  const fill = $('#pat-progress-fill');
+  const txt = $('#pat-progress-txt');
+  if (!fill) return;
+  fill.style.width = `${Math.round(100 * done / total)}%`;
+  txt.textContent = done >= total
+    ? 'PARSING…' : `READING PATTERN ${done + 1} / ${total}`;
+}
+
 async function loadPatterns() {
   const btn = $('#patterns-refresh');
   btn.setAttribute('aria-busy', 'true');
+  loadingPatterns = true;
   $('#pattern-grid').innerHTML =
-    '<p class="backup-empty">READING 16 PATTERNS FROM THE DEVICE…</p>';
+    `<div class="pat-progress">
+       <div class="pat-progress-txt" id="pat-progress-txt">READING PATTERNS…</div>
+       <div class="pat-progress-bar"><div class="pat-progress-fill" id="pat-progress-fill"></div></div>
+     </div>`;
   try {
     const { patterns } = await apiJson('/api/patterns');
     renderPatterns(patterns);
@@ -17,6 +34,7 @@ async function loadPatterns() {
       `<p class="backup-empty">PATTERN READ FAILED — ${esc(e.message.toUpperCase())}</p>`;
     tick('⚠ patterns: ' + e.message);
   } finally {
+    loadingPatterns = false;
     btn.removeAttribute('aria-busy');
   }
 }

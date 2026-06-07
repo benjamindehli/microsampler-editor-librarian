@@ -63,20 +63,32 @@ export const fmtMem = b => b >= 1 << 20 ? (b / (1 << 20)).toFixed(1) + 'MB'
 
 // LOAD ALL: download + decode every not-yet-loaded sample. Makes the meter
 // exact AND caches the audio so subsequent pad clicks/auditions are instant.
+// Shows a determinate progress bar + count (n/total) on the button.
 $('#mem-measure').onclick = async () => {
   const btn = $('#mem-measure');
+  const todo = state.bank.slots.filter(s => !s.empty && !state.buffers.has(s.slot));
+  if (!todo.length) return;
   btn.disabled = true;
+  btn.classList.add('loading');
+  let done = 0;
+  const show = () => {
+    btn.style.setProperty('--p', `${Math.round(100 * done / todo.length)}%`);
+    btn.textContent = `LOADING ${done}/${todo.length}`;
+  };
+  show();
   try {
-    for (const s of state.bank.slots) {
-      if (s.empty || state.buffers.has(s.slot)) continue;   // skip loaded
-      btn.textContent = `LOADING ${String(s.slot + 1).padStart(2, '0')}…`;
+    for (const s of todo) {
       await loadSampleAudio(s.slot);
+      done++;
+      show();
       renderMeter();
       renderPads();                              // light the loaded indicator
       if (state.sel === s.slot) renderChips(s);
     }
-    tick('▦ all samples loaded');
+    tick(`▦ loaded ${done} sample${done === 1 ? '' : 's'}`);
   } catch (e) { tick(`⚠ load failed: ${e.message}`); }
+  btn.classList.remove('loading');
+  btn.style.removeProperty('--p');
   btn.textContent = 'LOAD ALL';
   btn.disabled = false;
 };
