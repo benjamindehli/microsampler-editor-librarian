@@ -2,7 +2,8 @@
 import { fmtSigned } from './util.js';
 import { state } from './state.js';
 import { tick } from './ticker.js';
-import { PARAM, BIPOLAR, dec14, tuneDisplay, reflect } from './controls.js';
+import { PARAM, BIPOLAR, dec14, tuneDisplay, reflect, cacheParam }
+  from './controls.js';
 import { FX_OBJ, fxReflect, onCC } from './effect.js';
 import { onOpEvent } from './utility.js';
 
@@ -21,6 +22,9 @@ export function subscribeEvents() {
       : evt.param === PARAM.TUNE ? tuneDisplay(evt.value)
       : evt.value;
     tick(`← ${who} #${evt.param} = ${shown}`);
+    if (evt.sample != null)                  // panel edits update the cache
+      cacheParam(evt.sample, evt.param,      // for EVERY slot, selected or not
+                 BIPOLAR.has(evt.param) ? dec14(evt.value) : evt.value);
     if (evt.sample === state.sel) reflect(evt.param, evt.value);
     if (isFx) fxReflect(evt.param, evt.value);
   };

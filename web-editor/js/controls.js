@@ -40,9 +40,31 @@ export function tuneCents(w) {
 export const tuneDisplay = wire => fmtSigned(tuneCents(wire));
 export const OBJ_BASE = 16;
 
+// keep the bank cache in sync with every edit — controls initialise from it
+// on pad selection, so without this, re-selecting a pad showed the state as
+// of the last RECEIVE. `v` is display/model space (signed for bipolar).
+export function cacheParam(slot, param, v) {
+  const s = state.bank && state.bank.slots[slot];
+  if (!s || s.empty) return;
+  switch (param) {
+    case PARAM.LOOP: s.loop = !!v; break;
+    case PARAM.BPM_SYNC: s.bpm_sync = v; break;
+    case PARAM.REVERSE: s.reverse = !!v; break;
+    case PARAM.DECAY: s.decay = v; break;
+    case PARAM.RELEASE: s.release = v; break;
+    case PARAM.LEVEL: s.level = v; break;
+    case PARAM.PAN: s.pan = v; break;
+    case PARAM.FX_SW: s.fx_sw = !!v; break;
+    case PARAM.SEMITONE: s.semitone = v; break;
+    case PARAM.TUNE: s.tune = v; break;
+    case PARAM.VELO_INT: s.velo_int = v; break;
+  }
+}
+
 export async function sendParam(param, value) {
   if (state.sel == null) return;
   flash(param);
+  cacheParam(state.sel, param, value);
   try {
     await api('/api/param', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
