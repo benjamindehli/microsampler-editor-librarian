@@ -603,10 +603,12 @@ class MockDevice(Device):
                 continue
             frames = len(s['pcm']) // 2
             start, end = s.get('points', (0, frames - 2))
+            # NB: like the real bank summary, do NOT include rate/stereo/
+            # frames/seconds — those aren't in the bank blob and only become
+            # known once a sample's WAV is loaded (so the meter starts
+            # estimated and LOAD ALL is offered, matching hardware).
             slots.append({'slot': i, 'empty': False, 'name': s['name'],
-                          'long_name': s['name'].title(), 'rate_hz': s['rate'],
-                          'stereo': s['stereo'], 'frames': frames,
-                          'seconds': frames / s['rate'], 'tempo_bpm': s['tempo'],
+                          'long_name': s['name'].title(), 'tempo_bpm': s['tempo'],
                           'start': start, 'end': end, 'level': 101,
                           'pan': 64, 'semitone': i, 'tune': 64, 'velo_int': 0,
                           'decay': 127, 'release': 0, 'fx_sw': i == 0,
