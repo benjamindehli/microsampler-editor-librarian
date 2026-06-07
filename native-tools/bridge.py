@@ -252,7 +252,7 @@ class Device:
 
     def start_restore(self, dirname, bank):
         import bank as BK
-        src = os.path.join(BACKUP_ROOT, os.path.basename(dirname))
+        src = backup_dir(dirname)
         if not os.path.isfile(os.path.join(src, 'manifest.json')):
             raise RuntimeError('unknown backup: %s' % dirname)
         self.start_op('restore',
@@ -516,7 +516,7 @@ class MockDevice(Device):
         return {'dir': label}
 
     def start_restore(self, dirname, bank):
-        src = os.path.join(BACKUP_ROOT, os.path.basename(dirname))
+        src = backup_dir(dirname)
         if not os.path.isfile(os.path.join(src, 'manifest.json')):
             raise RuntimeError('unknown backup: %s' % dirname)
 
@@ -609,6 +609,19 @@ def _pattern_json(q, blob):
         # compact note list for the mini preview: [tick, ch, note, vel, dur]
         'notes': [list(n) for n in p['notes'][:199]],
     }
+
+
+def backup_dir(dirname):
+    """Resolve a backup name (arrives in an HTTP body — untrusted) to a
+    directory STRICTLY inside BACKUP_ROOT. Allowlist the characters, reject
+    dot-names, and verify realpath containment (also defuses symlinks)."""
+    name = str(dirname)
+    if not re.match(r'^[A-Za-z0-9._-]+$', name) or name.strip('.') == '':
+        raise RuntimeError('invalid backup name: %r' % dirname)
+    src = os.path.realpath(os.path.join(BACKUP_ROOT, name))
+    if os.path.dirname(src) != os.path.realpath(BACKUP_ROOT):
+        raise RuntimeError('invalid backup name: %r' % dirname)
+    return src
 
 
 def list_backups():
@@ -805,8 +818,9 @@ class Handler(BaseHTTPRequestHandler):
     def _static(self, path):
         if path == '/':
             path = '/app.html'
-        full = os.path.normpath(os.path.join(WEB_ROOT, path.lstrip('/')))
-        if not full.startswith(WEB_ROOT) or not os.path.isfile(full):
+        full = os.path.realpath(os.path.join(WEB_ROOT, path.lstrip('/')))
+        root = os.path.realpath(WEB_ROOT)
+        if not full.startswith(root + os.sep) or not os.path.isfile(full):
             return self._err('not found', 404)
         with open(full, 'rb') as f:
             data = f.read()
