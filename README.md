@@ -5,23 +5,23 @@
 A modern editor/librarian for the **Korg microSAMPLER**, replacing Korg's
 original 32-bit application (PPC/i386) that no longer runs on macOS 10.15+.
 The hardware protocol was reverse-engineered from the original binary and
-verified against a real device — this app covers everything the original did,
-plus a few things it didn't.
+verified against a real device.
+This app covers everything the original did, plus a few things it didn't.
 
 ## Features
 
-- **SAMPLES** — 36-slot bank overview, audition (honors start/end points),
+- **SAMPLES**: 36-slot bank overview, audition (honors start/end points),
   WAV download/upload (auto-resample to 48/24/12/6 kHz), live editing of all
   sample parameters, draggable START/END markers on the waveform, renaming,
   device memory meters
-- **EFFECT** — all 22 effect types with their full parameter sets, the two
+- **EFFECT**: All 22 effect types with their full parameter sets, the two
   assignable FX knobs (panel knob movements tracked live), conditional
   parameter graying/swapping exactly like the hardware
-- **PATTERNS** — receive all 16 patterns, mini piano-roll preview, export as
+- **PATTERNS**: Receive all 16 patterns, mini piano-roll preview, export as
   Standard MIDI Files, import edited SMFs back to the device (DAW round-trip
   tested with Logic Pro)
-- **UTILITY** — full bank backup/restore (RAM or persistent user banks)
-- Live two-way sync: panel edits on the device show up in the app instantly
+- **UTILITY**: Full bank backup/restore (RAM or persistent user banks)
+- **Live two-way sync**: panel edits on the device show up in the app instantly
 
 ## Requirements
 
@@ -29,7 +29,7 @@ plus a few things it didn't.
 - Python 3.8+ with [pyusb](https://github.com/pyusb/pyusb) (BSD):
   `pip3 install pyusb`
 - [libusb](https://libusb.info/) (LGPL): `brew install libusb`
-- Chrome/Chromium recommended (any modern browser works)
+- Chrome/Chromium recommended (any modern should work)
 - A Korg microSAMPLER on USB
 
 ## Run
