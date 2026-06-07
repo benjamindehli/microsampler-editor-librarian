@@ -56,7 +56,7 @@ bank (RAM)**; save on the device or restore to a user bank to persist.
 
 ## Repository layout
 
-```
+```text
 microSAMPLER Editor Librarian.command   double-clickable launcher (macOS)
 web-editor/                   the browser app (served by the bridge)
 native-tools/                 Python bridge + CLI tools (libusb USB-MIDI):
