@@ -50,7 +50,8 @@ WEB_ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file_
 BACKUP_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backups')
 MIME = {'.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
         '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml',
-        '.wav': 'audio/wav', '.webp': 'image/webp', '.jpg': 'image/jpeg'}
+        '.wav': 'audio/wav', '.webp': 'image/webp', '.jpg': 'image/jpeg',
+        '.woff2': 'font/woff2', '.txt': 'text/plain'}
 
 
 # ---------------------------------------------------------------------------
