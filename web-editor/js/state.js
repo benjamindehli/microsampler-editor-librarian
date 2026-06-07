@@ -1,0 +1,12 @@
+// Single shared app state (mutated across components).
+export const state = {
+  bank: null,            // /api/bank payload
+  sel: null,             // selected slot index
+  buffers: new Map(),    // slot -> AudioBuffer
+  audio: null,           // AudioContext
+  playing: null,         // current source node
+  online: false,
+  fx: null,              // {type, knobs:[a,b], vals:[..32]} — effect view
+};
+
+export function slotData(i) { return state.bank.slots[i]; }
