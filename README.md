@@ -90,6 +90,24 @@ python3 protocol.py && python3 test_download.py && python3 test_upload.py \
   && python3 test_bank.py && python3 test_bridge.py
 ```
 
+The app needs **no build step** to develop or run — it's plain ES modules and
+per-component CSS served straight from `web-editor/`.
+
+## Build a release
+
+To produce a lean, minified `dist/` for publishing (JS bundled + minified,
+CSS merged + minified, HTML comments stripped, dev/RE/test files excluded):
+
+```bash
+npm install      # one dev-only dependency: esbuild (MIT)
+npm run build    # -> dist/
+sudo python3 dist/native-tools/bridge.py
+```
+
+`dist/` mirrors the run layout (`web-editor/` + `native-tools/` + launcher) and
+runs exactly like the source. esbuild is build-time only — the app ships no
+runtime npm dependencies.
+
 ## Disclaimer
 
 This is an **independent, unofficial project**. It is not affiliated with,
