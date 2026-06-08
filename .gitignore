@@ -242,3 +242,7 @@ microSAMPLER Editor.app/
 # Korg's original installer — needed only for the reverse-engineering tools
 # (tools/re/); do NOT commit it (copyrighted software, not ours to publish)
 microSAMPLER Editor.pkg/
+
+# build tooling (esbuild) + output — dev-only, never committed
+node_modules/
+dist/

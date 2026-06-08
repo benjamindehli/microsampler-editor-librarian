@@ -1,0 +1,13 @@
+{
+  "name": "microsampler-editor-librarian",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Build tooling for the microSAMPLER Editor / Librarian web app (the app itself has no runtime npm dependencies).",
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "build": "node tools/build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.21.5"
+  }
+}
