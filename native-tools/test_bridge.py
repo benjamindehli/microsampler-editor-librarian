@@ -393,6 +393,31 @@ for evil in ('..', '.', '...', '../x', 'a/b', '/etc', 'x\x00y', ''):
 assert B.backup_dir('20260604-120000').startswith(
     os.path.realpath(B.BACKUP_ROOT))            # normal labels still resolve
 
+# --- backup zip export + import round-trip (direct calls; server is down) --------
+import zipfile as _zf
+zdata = B.backup_zip(res['dir'])
+assert zdata[:2] == b'PK'
+names = _zf.ZipFile(io.BytesIO(zdata)).namelist()
+assert any(n.endswith('manifest.json') for n in names), names
+before = len(B.list_backups())
+newdir = B.import_backup_zip(zdata)
+assert newdir and newdir != res['dir']
+assert len(B.list_backups()) == before + 1
+# re-import again → distinct name (no clobber)
+newdir2 = B.import_backup_zip(zdata)
+assert newdir2 != newdir
+# non-backup zip rejected; traversal name guarded
+bad = io.BytesIO()
+with _zf.ZipFile(bad, 'w') as z: z.writestr('notes.txt', 'x')
+try:
+    B.import_backup_zip(bad.getvalue()); raise AssertionError('accepted non-backup')
+except RuntimeError as e:
+    assert 'no manifest' in str(e)
+try:
+    B.backup_zip('../etc'); raise AssertionError('accepted traversal')
+except RuntimeError as e:
+    assert 'invalid backup name' in str(e)
+
 # busy guard: second op while one runs must 409 at the device layer
 try:
     bk.op['done'] = False

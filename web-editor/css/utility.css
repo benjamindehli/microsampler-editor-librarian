@@ -46,3 +46,6 @@
 }
 .spacer { flex: 1; }
 
+
+/* backup zip import row */
+.backup-import { display: flex; align-items: center; gap: .7rem; margin-top: .8rem; }

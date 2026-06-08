@@ -19,14 +19,38 @@ export async function loadBackups() {
       `<span class="b-name">${esc(b.name)}</span>
        <span class="b-meta">${esc(b.dir)} · ${b.samples} SAMPLES · ${b.patterns} PATTERNS</span>
        <span class="spacer"></span>`;
+    const zip = document.createElement('a');
+    zip.className = 'hw-btn';
+    zip.href = `/api/backup/${encodeURIComponent(b.dir)}.zip`;
+    zip.download = `${b.dir}.zip`;
+    zip.innerHTML = '<span class="hw-btn-cap">⇩ ZIP</span>';
     const btn = document.createElement('button');
     btn.className = 'hw-btn';
     btn.innerHTML = '<span class="hw-btn-cap">RESTORE…</span>';
     btn.onclick = () => openRestore(b);
-    row.append(btn);
+    row.append(zip, btn);
     list.append(row);
   }
 }
+
+// import a backup .zip (shareable between machines / other owners)
+$('#import-btn').onclick = () => $('#import-file').click();
+$('#import-file').onchange = async ev => {
+  const f = ev.target.files[0];
+  ev.target.value = '';
+  if (!f) return;
+  opPrint(`importing ${f.name}…`, { reset: true });
+  try {
+    const r = await apiJson('/api/backup/import',
+      { method: 'POST', body: await f.arrayBuffer() });
+    opPrint(`✓ imported as "${r.dir}"`);
+    tick(`⇧ imported backup ${r.dir}`);
+    await loadBackups();
+  } catch (e) {
+    opPrint('ERROR: ' + e.message, { err: true });
+    tick('⚠ import failed: ' + e.message);
+  }
+};
 
 let opRunning = false;
 function setOpRunning(on) {

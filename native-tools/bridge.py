@@ -712,6 +712,51 @@ def backup_dir(dirname):
     return src
 
 
+def backup_zip(name):
+    """Zip a backup directory into memory for download. `name` is validated
+    by backup_dir() (untrusted HTTP input)."""
+    import zipfile
+    src = backup_dir(name)
+    if not os.path.isdir(src):
+        raise RuntimeError('unknown backup: %s' % name)
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as z:
+        for root, _dirs, files in os.walk(src):
+            for f in files:
+                full = os.path.join(root, f)
+                z.write(full, os.path.join(name, os.path.relpath(full, src)))
+    return buf.getvalue()
+
+
+def import_backup_zip(data):
+    """Unpack an uploaded backup .zip into a fresh BACKUP_ROOT/<name>.
+    Zip-slip safe (every member must stay inside the target) and validated
+    (must carry a manifest.json). Returns the new directory name."""
+    import zipfile
+    os.makedirs(BACKUP_ROOT, exist_ok=True)
+    with zipfile.ZipFile(io.BytesIO(data)) as z:
+        names = [n for n in z.namelist() if not n.endswith('/')]
+        if not any(n.endswith('manifest.json') for n in names):
+            raise RuntimeError('not a backup zip (no manifest.json)')
+        # derive a name: the zip's common top folder, else a timestamp
+        tops = {n.split('/', 1)[0] for n in names if '/' in n}
+        base = tops.pop() if len(tops) == 1 else 'import'
+        dest = backup_dir(base)
+        n = 1
+        while os.path.exists(dest):
+            dest = backup_dir('%s-%d' % (base, n)); n += 1
+        root = os.path.realpath(dest) + os.sep
+        for member in names:
+            out = os.path.realpath(os.path.join(dest, os.path.relpath(
+                member, base) if member.startswith(base + '/') else member))
+            if not out.startswith(root):
+                raise RuntimeError('unsafe path in zip: %r' % member)
+            os.makedirs(os.path.dirname(out), exist_ok=True)
+            with z.open(member) as fsrc, open(out, 'wb') as fdst:
+                fdst.write(fsrc.read())
+    return os.path.basename(dest)
+
+
 def list_backups():
     out = []
     if os.path.isdir(BACKUP_ROOT):
@@ -775,6 +820,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(DEVICE.bank_summary())
             if path == '/api/backups':
                 return self._json({'backups': list_backups()})
+            m = re.match(r'^/api/backup/(.+)\.zip$', path)
+            if m:
+                return self._bytes(backup_zip(m.group(1)), 'application/zip')
             if path == '/api/op':
                 return self._json(DEVICE.op_status())
             if path == '/api/patterns':
@@ -843,6 +891,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({'ok': True})
             if path == '/api/backup':
                 return self._json(DEVICE.start_backup())
+            if path == '/api/backup/import':
+                n = int(self.headers.get('Content-Length', 0))
+                name = import_backup_zip(self.rfile.read(n))
+                return self._json({'dir': name})
             if path == '/api/restore':
                 n = int(self.headers.get('Content-Length', 0))
                 body = json.loads(self.rfile.read(n) or b'{}')
