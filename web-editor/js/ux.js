@@ -6,25 +6,34 @@ import { undo, redo } from './controls.js';
 import { refreshBank } from './app.js';
 
 // ── accent theming (CSS custom props on :root, persisted) ────────────────
+// Only the three RGB triplets are overridden — every accent surface (glows,
+// borders, the phosphor backgrounds, the canvas waveform) derives from them,
+// so switching theme recolours the whole app.
 const THEMES = [
-  { name: 'AMBER', amber: '#ff8a1e', hi: '#ffc063', dk: '#8a4500' },
-  { name: 'GREEN', amber: '#36e07a', hi: '#9bffc4', dk: '#1c7a42' },
-  { name: 'CYAN', amber: '#33c6ff', hi: '#9fe6ff', dk: '#1a6a8a' },
-  { name: 'MAGENTA', amber: '#ff4fd0', hi: '#ffa7ec', dk: '#8a1e6e' },
+  { name: 'AMBER',   rgb: '255, 138, 30',  hi: '255, 192, 99',  dk: '138, 69, 0' },
+  { name: 'GREEN',   rgb: '54, 224, 122',  hi: '155, 255, 196', dk: '28, 122, 66' },
+  { name: 'CYAN',    rgb: '51, 198, 255',  hi: '159, 230, 255', dk: '26, 106, 138' },
+  { name: 'MAGENTA', rgb: '255, 79, 208',  hi: '255, 167, 236', dk: '138, 30, 110' },
+  { name: 'RED',     rgb: '255, 74, 61',   hi: '255, 150, 140', dk: '138, 28, 22' },
 ];
+const themeSelect = $('#theme-select');
+themeSelect.innerHTML = THEMES.map((t, i) => `<option value="${i}">${t.name}</option>`).join('');
+
 function applyTheme(i) {
-  const t = THEMES[((i % THEMES.length) + THEMES.length) % THEMES.length];
+  i = ((i % THEMES.length) + THEMES.length) % THEMES.length;
+  const t = THEMES[i];
   const r = document.documentElement.style;
-  r.setProperty('--amber', t.amber);
-  r.setProperty('--amber-hi', t.hi);
-  r.setProperty('--amber-dk', t.dk);
+  r.setProperty('--amber-rgb', t.rgb);
+  r.setProperty('--amber-hi-rgb', t.hi);
+  r.setProperty('--amber-dk-rgb', t.dk);
   try { localStorage.setItem('msmpl.theme', String(i)); } catch { /* ignore */ }
-  $('#theme-btn').title = `Accent: ${t.name}`;
+  themeSelect.value = String(i);
+  dispatchEvent(new Event('msmpl-theme'));   // recolour the canvas waveform
 }
 let themeIdx = (() => { try { return +localStorage.getItem('msmpl.theme') || 0; }
                        catch { return 0; } })();
 applyTheme(themeIdx);
-$('#theme-btn').onclick = () => applyTheme(++themeIdx);
+themeSelect.onchange = () => applyTheme(+themeSelect.value);
 
 // ── help overlay ─────────────────────────────────────────────────────────
 $('#help-btn').onclick = () => $('#help-dialog').showModal();

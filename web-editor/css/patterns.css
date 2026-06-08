@@ -20,7 +20,7 @@
 .pattern-card .p-head { display: flex; align-items: baseline; gap: .6rem; }
 .pattern-card .p-num {
   font-family: "Share Tech Mono", monospace; font-size: 1.05rem;
-  color: var(--amber); text-shadow: 0 0 7px rgba(255,138,30,.4);
+  color: var(--amber); text-shadow: 0 0 7px rgba(var(--amber-rgb),.4);
 }
 .pattern-card .p-name {
   font-family: "Share Tech Mono", monospace; font-size: .8rem; color: var(--ink);
@@ -42,7 +42,7 @@
   display: inline-block; width: 7px; height: 7px; border-radius: 50%;
   margin-right: .3rem; vertical-align: baseline;
 }
-.p-meta .dot.smp { background: var(--amber); box-shadow: 0 0 5px rgba(255,138,30,.6); }
+.p-meta .dot.smp { background: var(--amber); box-shadow: 0 0 5px rgba(var(--amber-rgb),.6); }
 .p-meta .dot.kbd { background: #ffe9c9; box-shadow: 0 0 5px rgba(255,233,201,.5); }
 
 
@@ -58,9 +58,9 @@
 }
 .pat-progress-bar {
   width: min(420px, 80%); height: 8px; border-radius: 4px;
-  background: #160b02; border: 1px solid rgba(255,138,30,.25); overflow: hidden;
+  background: var(--phos-bg); border: 1px solid rgba(var(--amber-rgb),.25); overflow: hidden;
 }
 .pat-progress-fill {
   height: 100%; width: 0; background: var(--amber);
-  box-shadow: 0 0 8px rgba(255,138,30,.5); transition: width .2s ease;
+  box-shadow: 0 0 8px rgba(var(--amber-rgb),.5); transition: width .2s ease;
 }

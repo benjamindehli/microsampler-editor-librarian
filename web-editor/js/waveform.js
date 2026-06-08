@@ -37,8 +37,14 @@ export function drawWave(buf, s) {
   const g = canvas.getContext('2d');
   const mid = H / 2;
 
+  // accent colours follow the active theme (read the CSS custom props live)
+  const cs = getComputedStyle(document.documentElement);
+  const rgb = cs.getPropertyValue('--amber-rgb').trim() || '255,138,30';
+  const hi = cs.getPropertyValue('--amber-hi-rgb').trim() || '255,192,99';
+  const A = a => `rgba(${rgb},${a})`;
+
   // faint grid
-  g.strokeStyle = 'rgba(255,138,30,.07)';
+  g.strokeStyle = A(.07);
   g.lineWidth = 1;
   for (let x = 0; x < W; x += W / 16) line(g, x, 0, x, H);
   line(g, 0, mid, W, mid);
@@ -54,9 +60,9 @@ export function drawWave(buf, s) {
   // pass 1: min/max bars (dense material reads as a filled band)
   const mids = new Float32Array(W);
   g.save();
-  g.shadowColor = 'rgba(255,138,30,.8)';
+  g.shadowColor = A(.8);
   g.shadowBlur = 6 * dpr;
-  g.fillStyle = '#ff8a1e';
+  g.fillStyle = `rgb(${rgb})`;
   for (let x = 0; x < W; x++) {
     let lo = 1, hi = -1, acc = 0, cnt = 0;
     const base = Math.floor((x / W) * n);
@@ -78,9 +84,9 @@ export function drawWave(buf, s) {
 
   // pass 2: connecting trace (tonal material reads as a waveform)
   g.save();
-  g.strokeStyle = 'rgba(255,192,99,.85)';
+  g.strokeStyle = `rgba(${hi},.85)`;
   g.lineWidth = dpr;
-  g.shadowColor = 'rgba(255,138,30,.6)';
+  g.shadowColor = A(.6);
   g.shadowBlur = 4 * dpr;
   g.beginPath();
   for (let x = 0; x < W; x++) {
@@ -93,9 +99,9 @@ export function drawWave(buf, s) {
   // start/end flags
   g.globalAlpha = 1;
   for (const [x, label] of [[startX, 'S'], [endX, 'E']]) {
-    g.strokeStyle = '#ffc063'; g.lineWidth = dpr;
+    g.strokeStyle = `rgb(${hi})`; g.lineWidth = dpr;
     line(g, x, 0, x, H);
-    g.fillStyle = '#ffc063';
+    g.fillStyle = `rgb(${hi})`;
     g.font = `${10 * dpr}px "Share Tech Mono", monospace`;
     g.fillText(label, x + 3 * dpr, 12 * dpr);
   }
@@ -190,8 +196,10 @@ $('#audition-btn').onclick = () => {
   state.playing = src;
 };
 
-// keep the waveform crisp on window resizes
-addEventListener('resize', () => {
+// keep the waveform crisp on window resizes — and recoloured on theme changes
+const redrawCurrent = () => {
   if (state.sel != null && state.buffers.has(state.sel))
     drawWave(state.buffers.get(state.sel), slotData(state.sel));
-});
+};
+addEventListener('resize', redrawCurrent);
+addEventListener('msmpl-theme', redrawCurrent);

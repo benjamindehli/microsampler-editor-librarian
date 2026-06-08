@@ -48,11 +48,13 @@
 /* used-but-not-loaded: dim dot; loaded (audio cached): bright glowing dot */
 .pad.used .pad-led { background: var(--amber-dk); }
 .pad.loaded .pad-led { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
-.pad.used .pad-name { color: var(--amber-hi); text-shadow: 0 0 6px rgba(255,138,30,.3); }
+.pad.used .pad-name { color: var(--amber-hi); text-shadow: 0 0 6px rgba(var(--amber-rgb),.3); }
 .pad.sel {
-  background: linear-gradient(180deg, #2a1a08, #1b1106);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, rgb(var(--amber-rgb)) 14%, var(--steel-0)),
+    color-mix(in srgb, rgb(var(--amber-rgb)) 8%, var(--steel-0)));
   border-color: var(--amber-dk);
-  box-shadow: 0 2px 0 #000, 0 0 0 1px var(--amber-dk), 0 0 18px rgba(255,138,30,.15);
+  box-shadow: 0 2px 0 #000, 0 0 0 1px var(--amber-dk), 0 0 18px rgba(var(--amber-rgb),.15);
 }
 .pads-hint {
   margin-top: .8rem; font-size: .58rem; letter-spacing: .16em; color: var(--ink-dim);
@@ -63,7 +65,7 @@
 /* pad drop target highlight (drag a WAV onto a pad) */
 .pad.drop-hint {
   outline: 1px solid var(--amber);
-  box-shadow: 0 0 14px rgba(255,138,30,.45), inset 0 0 10px rgba(255,138,30,.12);
+  box-shadow: 0 0 14px rgba(var(--amber-rgb),.45), inset 0 0 10px rgba(var(--amber-rgb),.12);
 }
 
 /* pad ▶ play zone (plays the sample on the DEVICE while held) —
@@ -79,12 +81,12 @@
 .pad:hover .pad-play { opacity: 1; }
 .pad-play:hover {
   color: var(--amber-hi);
-  background: rgba(255,138,30,.12);
-  text-shadow: 0 0 8px rgba(255,138,30,.5);
+  background: rgba(var(--amber-rgb),.12);
+  text-shadow: 0 0 8px rgba(var(--amber-rgb),.5);
 }
 .pad.sounding {
   border-color: var(--amber);
-  box-shadow: 0 0 14px rgba(255,138,30,.5), 0 2px 0 #000;
+  box-shadow: 0 0 14px rgba(var(--amber-rgb),.5), 0 2px 0 #000;
 }
 .pad.sounding .pad-play { opacity: 1; color: var(--amber); }
 

@@ -18,12 +18,12 @@
   display: flex; flex-direction: column; align-items: center; gap: .55rem;
   transition: box-shadow .4s;
 }
-.ctl.flash { box-shadow: 0 0 0 1px var(--amber), 0 0 22px rgba(255,138,30,.35); transition: none; }
+.ctl.flash { box-shadow: 0 0 0 1px var(--amber), 0 0 22px rgba(var(--amber-rgb),.35); transition: none; }
 .ctl.locked { opacity: .38; pointer-events: none; filter: saturate(.3); }
 .ctl-label { font-size: .58rem; letter-spacing: .24em; color: var(--ink-dim); }
 .ctl-val {
   font-family: "Share Tech Mono", monospace; font-size: .85rem;
-  color: var(--amber); text-shadow: 0 0 6px rgba(255,138,30,.4);
+  color: var(--amber); text-shadow: 0 0 6px rgba(var(--amber-rgb),.4);
 }
 
 /* toggle switch (hardware slide) */
@@ -42,16 +42,16 @@
   box-shadow: 0 1px 2px #000;
   transition: left .12s cubic-bezier(.3,1.4,.6,1), background .15s;
 }
-.switch[aria-checked="true"] .switch-track { background: #2b1503; }
+.switch[aria-checked="true"] .switch-track { background: color-mix(in srgb, rgb(var(--amber-rgb)) 16%, #000); }
 .switch[aria-checked="true"] .switch-knob {
   left: 27px;
   background: linear-gradient(180deg, var(--amber-hi), var(--amber));
-  box-shadow: 0 0 10px rgba(255,138,30,.7);
+  box-shadow: 0 0 10px rgba(var(--amber-rgb),.7);
 }
 .switch-val {
   font-family: "Share Tech Mono", monospace; font-size: .8rem; color: var(--ink-dim);
 }
-.switch[aria-checked="true"] .switch-val { color: var(--amber); text-shadow: 0 0 6px rgba(255,138,30,.4); }
+.switch[aria-checked="true"] .switch-val { color: var(--amber); text-shadow: 0 0 6px rgba(var(--amber-rgb),.4); }
 
 /* segmented switch */
 .ctl-wide { grid-column: span 2; }
@@ -121,10 +121,10 @@
 .drop-veil {
   position: absolute; inset: 0; z-index: 5;
   display: grid; place-items: center;
-  background: rgba(20, 10, 0, .82);
+  background: rgba(6, 6, 8, .84);
   border: 2px dashed var(--amber);
   border-radius: var(--r);
   font-size: .9rem; letter-spacing: .3em; color: var(--amber-hi);
-  text-shadow: 0 0 12px rgba(255,138,30,.6);
+  text-shadow: 0 0 12px rgba(var(--amber-rgb),.6);
 }
 

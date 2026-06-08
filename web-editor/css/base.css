@@ -15,10 +15,16 @@
   --line-hi: #3a3a44;
   --ink:     #b9b2a6;          /* silkscreen text            */
   --ink-dim: #6d685f;
-  --amber:   #ff8a1e;          /* Korg backlight             */
-  --amber-hi:#ffc063;
-  --amber-dk:#8a4500;
-  --phos-bg: #160d02;          /* LCD glass background       */
+  /* accent = one tunable colour (the theme switcher overrides these three RGB
+     triplets; everything else — glows, borders, the phosphor backgrounds, the
+     canvas waveform — derives from them so a theme change is total). */
+  --amber-rgb:    255, 138, 30;   /* Korg backlight             */
+  --amber-hi-rgb: 255, 192, 99;
+  --amber-dk-rgb: 138, 69, 0;
+  --amber:    rgb(var(--amber-rgb));
+  --amber-hi: rgb(var(--amber-hi-rgb));
+  --amber-dk: rgb(var(--amber-dk-rgb));
+  --phos-bg: color-mix(in srgb, rgb(var(--amber-rgb)) 9%, #000); /* LCD glass */
   --ok:      #79e06b;
   --err:     #ff4f3d;
   --r: 6px;
@@ -55,13 +61,13 @@ body {
 /* ── silkscreen + LCD primitives ─────────────────────────────────────── */
 .lcd {
   background:
-    linear-gradient(180deg, rgba(255,138,30,.06), transparent 40%),
+    linear-gradient(180deg, rgba(var(--amber-rgb),.06), transparent 40%),
     var(--phos-bg);
   border: 1px solid #000;
   border-radius: 4px;
   box-shadow:
     inset 0 2px 8px rgba(0,0,0,.9),
-    inset 0 0 24px rgba(255,138,30,.05),
+    inset 0 0 24px rgba(var(--amber-rgb),.05),
     0 1px 0 var(--line-hi);
   padding: .45rem .9rem;
   display: flex; align-items: baseline; gap: .65rem;
@@ -70,7 +76,7 @@ body {
 .lcd-text {
   font-family: "Share Tech Mono", monospace;
   color: var(--amber);
-  text-shadow: 0 0 8px rgba(255,138,30,.55);
+  text-shadow: 0 0 8px rgba(var(--amber-rgb),.55);
   letter-spacing: .08em;
 }
 .lcd-text.big { font-size: 1.7rem; line-height: 1; }
@@ -80,7 +86,7 @@ body {
   border: 1px solid var(--amber-dk); border-radius: 3px;
   padding: .1rem .4rem; align-self: center;
 }
-.lcd-sub { font-size: .7rem; color: #b06a1e; letter-spacing: .1em; align-self: center; }
+.lcd-sub { font-size: .7rem; color: var(--amber-dk); letter-spacing: .1em; align-self: center; }
 
 /* hardware push-button */
 .hw-btn {
@@ -103,8 +109,9 @@ body {
 .hw-btn:active .hw-btn-cap { transform: translateY(2px); box-shadow: 0 0 0 #000; }
 .hw-btn.accent .hw-btn-cap {
   color: #1a0d00;
-  background: linear-gradient(180deg, var(--amber-hi), var(--amber) 60%, #d96f0e);
-  border-color: #a35408; text-shadow: 0 1px 0 rgba(255,255,255,.25);
+  background: linear-gradient(180deg, var(--amber-hi), var(--amber) 60%,
+              color-mix(in srgb, rgb(var(--amber-rgb)) 82%, #000));
+  border-color: var(--amber-dk); text-shadow: 0 1px 0 rgba(255,255,255,.25);
 }
 .hw-btn[aria-busy="true"] .hw-btn-cap { opacity: .5; pointer-events: none; }
 

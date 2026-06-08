@@ -4,6 +4,10 @@ import { state } from './state.js';
 import { tick } from './ticker.js';
 
 let loadingPatterns = false;
+let lastPatterns = null;            // for recolouring the rolls on theme change
+
+// repaint the piano-roll cards when the accent theme changes
+addEventListener('msmpl-theme', () => { if (lastPatterns) renderPatterns(lastPatterns); });
 
 // live progress from the bridge (one SSE event per pattern read)
 export function onPatternsProgress(done, total) {
@@ -40,6 +44,7 @@ async function loadPatterns() {
 }
 
 function renderPatterns(patterns) {
+  lastPatterns = patterns;
   const grid = $('#pattern-grid');
   grid.innerHTML = '';
   for (const p of patterns) {
@@ -103,8 +108,12 @@ function drawRoll(canvas, p) {
   canvas.width = W; canvas.height = H;
   const g = canvas.getContext('2d');
   const total = Math.max(p.ticks, 1);
+  // sample-mode track follows the theme accent; keyboard-mode track keeps its
+  // distinct pale-cream so the two tracks stay tellable apart on any theme.
+  const rgb = getComputedStyle(document.documentElement)
+    .getPropertyValue('--amber-rgb').trim() || '255,138,30';
   // bar grid
-  g.strokeStyle = 'rgba(255,138,30,.14)';
+  g.strokeStyle = `rgba(${rgb},.14)`;
   g.lineWidth = 1;
   for (let b = 0; b <= p.bars; b++) {
     const x = (b * 384 / total) * W;
@@ -120,8 +129,8 @@ function drawRoll(canvas, p) {
     const w = Math.max((dur / total) * W, 2 * dpr);
     const y = H - ((note - lo) / span) * (H - 8 * dpr) - 6 * dpr;
     // sample-mode track = amber, keyboard-mode track = pale cream
-    g.fillStyle = ch ? '#ffe9c9' : '#ff8a1e';
-    g.shadowColor = ch ? 'rgba(255,233,201,.6)' : 'rgba(255,138,30,.7)';
+    g.fillStyle = ch ? '#ffe9c9' : `rgb(${rgb})`;
+    g.shadowColor = ch ? 'rgba(255,233,201,.6)' : `rgba(${rgb},.7)`;
     g.globalAlpha = .4 + (vel / 127) * .6;
     g.fillRect(x, y, w, 3 * dpr);
   }
