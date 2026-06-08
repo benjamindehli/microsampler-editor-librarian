@@ -50,8 +50,15 @@ const cssMin = (await transform(cssSrc, { loader: 'css', minify: true })).code;
 writeFileSync(d('web-editor/css/app.css'), cssMin);
 
 // ── HTML: strip comments + indentation, collapse the 11 links to one ─────
-let outHtml = html
-  .replace(/<!--[\s\S]*?-->/g, '')                       // drop comments
+// Strip comments to a fixpoint: one pass can re-expose a `<!--` delimiter
+// (e.g. `<!--<!---->`), so repeat until the string stops changing. A single
+// pass trips CodeQL's incomplete-multi-character-sanitization rule.
+const stripComments = (s) => {
+  let prev;
+  do { prev = s; s = s.replace(/<!--[\s\S]*?-->/g, ''); } while (s !== prev);
+  return s;
+};
+let outHtml = stripComments(html)
   .replace(/(<link rel="stylesheet" href="css\/[^"]+">\s*)+/,
            '<link rel="stylesheet" href="css/app.css">\n')
   .replace(/^[ \t]+/gm, '')                              // drop indentation
