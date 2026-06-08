@@ -129,3 +129,12 @@
 .bank-lcd:hover { box-shadow: inset 0 2px 8px rgba(0,0,0,.9),
   inset 0 0 24px rgba(255,138,30,.05), 0 1px 0 var(--line-hi),
   0 0 0 1px var(--amber-dk); }
+
+/* header icon buttons (theme, help) */
+.rail-icon {
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 1px solid var(--line-hi); background: var(--steel-3);
+  color: var(--ink); font: 600 .85rem/1 "Chakra Petch", sans-serif;
+  cursor: pointer; transition: color .15s, box-shadow .15s;
+}
+.rail-icon:hover { color: var(--amber-hi); box-shadow: 0 0 0 1px var(--amber-dk); }

@@ -13,6 +13,12 @@ export function noteName(slot) {                   // pads are C3..B5 (36 keys)
   return NOTE_NAMES[n % 12] + (Math.floor(n / 12) - 1);
 }
 
+export function selectSlot(i) {
+  state.sel = i;
+  renderPads();
+  showSlot(i).then(renderPads).catch(() => { });   // light the loaded dot
+}
+
 export function renderPads() {
   const grid = $('#pad-grid');
   grid.innerHTML = '';
@@ -29,11 +35,7 @@ export function renderPads() {
                    <span class="pad-name">${s.empty ? '· · · ·' : esc(s.name)}</span>
                    <span class="pad-led"></span>` +
       (s.empty ? '' : '<span class="pad-play" title="Play on the device (hold)">▶</span>');
-    b.onclick = () => {
-      state.sel = s.slot;
-      renderPads();
-      showSlot(s.slot).then(renderPads).catch(() => { });   // light dot once loaded
-    };
+    b.onclick = () => selectSlot(s.slot);
     if (!s.empty) {                              // used pads drag → copy/swap
       b.draggable = true;
       b.addEventListener('dragstart', e =>

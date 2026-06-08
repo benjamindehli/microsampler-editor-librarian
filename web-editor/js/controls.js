@@ -61,18 +61,65 @@ export function cacheParam(slot, param, v) {
   }
 }
 
-export async function sendParam(param, value) {
-  if (state.sel == null) return;
-  flash(param);
-  cacheParam(state.sel, param, value);
+// read a param's current MODEL value from the cache (inverse of cacheParam;
+// same space the control setters + the wire `value` use)
+function readModel(slot, param) {
+  const s = state.bank && state.bank.slots[slot];
+  if (!s || s.empty) return null;
+  switch (param) {
+    case PARAM.LOOP: return s.loop ? 1 : 0;
+    case PARAM.REVERSE: return s.reverse ? 1 : 0;
+    case PARAM.FX_SW: return s.fx_sw ? 1 : 0;
+    case PARAM.BPM_SYNC: return s.bpm_sync;
+    case PARAM.DECAY: return s.decay;
+    case PARAM.RELEASE: return s.release;
+    case PARAM.LEVEL: return s.level;
+    case PARAM.PAN: return s.pan;
+    case PARAM.TUNE: return s.tune;
+    case PARAM.SEMITONE: return s.semitone;
+    case PARAM.VELO_INT: return s.velo_int;
+  }
+  return null;
+}
+
+// send a param to a SPECIFIC slot (model-space value): cache it, mirror the
+// control if that slot is showing, POST it. Used by edits + undo/redo.
+async function sendParamTo(slot, param, value) {
+  cacheParam(slot, param, value);
+  if (slot === state.sel) { flash(param); setControl(param, value); }
   try {
     await api('/api/param', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ obj: OBJ_BASE + state.sel, param, value }),
+      body: JSON.stringify({ obj: OBJ_BASE + slot, param, value }),
     });
-    tick(`→ S${state.sel + 1} #${param} = ${value}`);
+    tick(`→ S${slot + 1} #${param} = ${value}`);
   } catch (e) { tick(`⚠ send failed: ${e.message}`); }
 }
+
+// ── undo / redo of sample param edits ────────────────────────────────────
+const undoStack = [], redoStack = [];
+export async function sendParam(param, value) {
+  if (state.sel == null) return;
+  const before = readModel(state.sel, param);
+  if (before !== value) {
+    undoStack.push({ slot: state.sel, param, before, after: value });
+    if (undoStack.length > 200) undoStack.shift();
+    redoStack.length = 0;
+  }
+  await sendParamTo(state.sel, param, value);
+}
+
+async function step(stack, other, key, label) {
+  const e = stack.pop();
+  if (!e) return;
+  other.push(e);
+  const { selectSlot } = await import('./pads.js');
+  if (e.slot !== state.sel) selectSlot(e.slot);
+  await sendParamTo(e.slot, e.param, e[key]);
+  tick(`${label} S${e.slot + 1} #${e.param}`);
+}
+export const undo = () => step(undoStack, redoStack, 'before', '↶ undo');
+export const redo = () => step(redoStack, undoStack, 'after', '↷ redo');
 
 export function flash(param) {
   const el = document.querySelector(`[data-flash="${param}"]`);
@@ -130,9 +177,8 @@ wireFader('#ctl-semitone', '#val-semitone', PARAM.SEMITONE, fmtSigned);
 wireFader('#ctl-velo', '#val-velo', PARAM.VELO_INT, fmtSigned);
 wireSwitch('#ctl-fx', '#val-fx', PARAM.FX_SW);
 
-export function reflect(param, value) {
-  flash(param);
-  if (BIPOLAR.has(param)) value = dec14(value);   // two's-complement 14-bit
+// set a control from a MODEL-space value (no dec14 — that's the wire form)
+export function setControl(param, value) {
   switch (param) {
     case PARAM.LOOP: setSwitch('#ctl-loop', '#val-loop', !!value); break;
     case PARAM.REVERSE: setSwitch('#ctl-reverse', '#val-reverse', !!value); break;
@@ -146,4 +192,9 @@ export function reflect(param, value) {
     case PARAM.VELO_INT: setFader('#ctl-velo', '#val-velo', value, fmtSigned); break;
     case PARAM.FX_SW: setSwitch('#ctl-fx', '#val-fx', !!value); break;
   }
+}
+
+export function reflect(param, value) {          // from a device (wire) event
+  flash(param);
+  setControl(param, BIPOLAR.has(param) ? dec14(value) : value);
 }

@@ -14,6 +14,8 @@ import { subscribeEvents } from './events.js';
 import './waveform.js';     // wires marker drag, audition, resize redraw
 import './dialogs.js';      // wires upload/rename dialogs + editor drop
 import './patterns.js';     // wires the patterns view
+import './slotops.js';      // wires copy/swap drop + clear button
+import './ux.js';           // keyboard shortcuts, theming, help overlay
 
 async function boot() {
   let st;
