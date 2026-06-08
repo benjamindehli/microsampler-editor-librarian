@@ -786,12 +786,16 @@ def _pattern_json(q, blob):
 def backup_dir(dirname):
     """Resolve a backup name (arrives in an HTTP body — untrusted) to a
     directory STRICTLY inside BACKUP_ROOT. Allowlist the characters, reject
-    dot-names, and verify realpath containment (also defuses symlinks)."""
+    dot-names, and verify realpath containment (also defuses symlinks). The
+    realpath + `startswith(root + os.sep)` prefix guard is the form static
+    analysis recognises as a path-traversal sanitizer."""
     name = str(dirname)
     if not re.match(r'^[A-Za-z0-9._-]+$', name) or name.strip('.') == '':
         raise RuntimeError('invalid backup name: %r' % dirname)
-    src = os.path.realpath(os.path.join(BACKUP_ROOT, name))
-    if os.path.dirname(src) != os.path.realpath(BACKUP_ROOT):
+    root = os.path.realpath(BACKUP_ROOT)
+    src = os.path.realpath(os.path.join(root, name))
+    # contained inside BACKUP_ROOT AND a direct child (no deeper nesting)
+    if not src.startswith(root + os.sep) or os.path.dirname(src) != root:
         raise RuntimeError('invalid backup name: %r' % dirname)
     return src
 
