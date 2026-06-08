@@ -45,3 +45,13 @@
   color: var(--ink-dim); letter-spacing: .04em;
 }
 .ud-mem.over { color: var(--err); text-shadow: 0 0 8px rgba(255,79,61,.4); }
+
+/* help overlay */
+.help-body { max-width: 42rem; font-size: .8rem; line-height: 1.5; color: var(--ink); }
+.help-body p { margin: .5rem 0; }
+.help-body b { color: var(--amber-hi); }
+.help-body kbd {
+  font-family: "Share Tech Mono", monospace; font-size: .72rem;
+  background: var(--phos-bg); color: var(--amber);
+  border: 1px solid var(--amber-dk); border-radius: 3px; padding: .05rem .3rem;
+}

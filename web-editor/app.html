@@ -375,6 +375,31 @@
   </form>
 </dialog>
 
+<dialog id="help-dialog" class="hw-dialog">
+  <form method="dialog">
+    <h3>microSAMPLER EDITOR — HELP</h3>
+    <div class="help-body">
+      <p><b>Pads</b> — click to edit. Bright LED = sample loaded (instant
+        audition); dim LED = used but not loaded yet. Hold <b>▶</b> (lower-right)
+        to play the sample <i>on the device</i>. Drag a pad onto another to
+        <b>copy / swap</b>; drop a <b>.wav</b> onto a pad to load it.</p>
+      <p><b>RECEIVE</b> re-reads the bank from the device — use it after editing
+        on the hardware (panel edits only reach the app while the device is on
+        its sample-edit page). The app also auto-receives when you refocus the
+        window.</p>
+      <p><b>RAM vs flash</b> — all edits/transfers target the device's CURRENT
+        bank (RAM); they're lost on power-off. Save on the device, or restore a
+        backup to a USER bank (UTILITY) to persist.</p>
+      <p><b>Memory meter</b> — “≈” means estimated; <b>LOAD ALL</b> loads every
+        sample so it becomes exact (and pads play instantly after).</p>
+      <p><b>Shortcuts</b> — <kbd>← → ↑ ↓</kbd> move pad · <kbd>Space</kbd>
+        audition · <kbd>R</kbd> receive · <kbd>⌘/Ctrl+Z</kbd> undo ·
+        <kbd>⌘/Ctrl+⇧Z</kbd> redo · <kbd>?</kbd> this help.</p>
+    </div>
+    <menu><button value="ok" class="hw-btn accent"><span class="hw-btn-cap">GOT IT</span></button></menu>
+  </form>
+</dialog>
+
 <dialog id="slotop-dialog" class="hw-dialog">
   <form method="dialog">
     <h3>SLOT <span id="so-title">?</span></h3>
