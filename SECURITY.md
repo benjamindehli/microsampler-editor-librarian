@@ -10,17 +10,18 @@ Security reports are welcome.
 
 ## Supported Versions
 
-This is a single-maintainer project developed on the `main` branch. Security
-fixes are applied to `main`; there are no separately maintained release
-branches, and older commits are not back-patched.
+This is a single-maintainer project. Security fixes are applied to the `main`
+branch and rolled into the next tagged release; there are no separately
+maintained release branches, and older releases are not back-patched.
 
-| Version            | Supported          |
-| ------------------ | ------------------ |
-| latest `main`      | :white_check_mark: |
-| older commits/tags | :x:                |
+| Version                  | Supported          |
+| ------------------------ | ------------------ |
+| latest release (v1.0.0)  | :white_check_mark: |
+| latest `main`            | :white_check_mark: |
+| older releases / commits | :x:                |
 
-Always run the most recent commit on `main` to be sure you have the latest
-fixes.
+Always run the [latest release](../../releases/latest) (or the most recent
+commit on `main`) to be sure you have the latest fixes.
 
 ## Reporting a Vulnerability
 
