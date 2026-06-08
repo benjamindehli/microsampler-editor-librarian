@@ -8,6 +8,8 @@ The hardware protocol was reverse-engineered from the original binary and
 verified against a real device.
 This app covers everything the original did, plus a few things it didn't.
 
+![microSAMPLER Editor / Librarian — sample editing, effects, patterns and utility views](web-editor/assets/demo.gif)
+
 ## Features
 
 - **SAMPLES**:
