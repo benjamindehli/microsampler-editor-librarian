@@ -140,6 +140,17 @@ assert json.loads(data)['fx_sw'] is True
 st, _, data = req('GET', '/api/sample/35/params')
 assert json.loads(data)['empty'] is True
 
+# --- effect preset apply (batched, mock HTTP) ------------------------------------
+params = list(range(32))
+st, _, data = req('POST', '/api/effect', body=json.dumps(
+    {'type': 7, 'knobs': [4, 6], 'params': params}))
+assert st == 200 and json.loads(data)['type'] == 7
+st, _, data = req('GET', '/api/bank')
+fx = json.loads(data)['effect']
+assert fx['type'] == 7 and fx['knobs'] == [4, 6] and fx['params'] == params
+st, _, _ = req('POST', '/api/effect', body=json.dumps({'type': 7, 'params': [1, 2]}))
+assert st == 400                                   # wrong-length guard
+
 # --- play note (mock HTTP) -------------------------------------------------------
 st, _, data = req('POST', '/api/note', body=json.dumps({'slot': 5, 'on': True}))
 assert st == 200 and json.loads(data)['ok'] is True

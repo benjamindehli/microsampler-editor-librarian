@@ -228,6 +228,50 @@ export function onCC(evt) {
   applyFxEnable();
 }
 
+// ── presets: save/load the whole effect (type + knobs + params) as JSON ──
+$('#fx-save').onclick = () => {
+  if (!state.fx) return;
+  const fx = fxDesc();
+  const preset = {
+    format: 'microsampler-fx', type: state.fx.type, name: fx.name,
+    knobs: [...state.fx.knobs], vals: [...state.fx.vals],
+  };
+  const blob = new Blob([JSON.stringify(preset, null, 2)],
+                        { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${fx.name.replace(/[^a-z0-9]+/gi, '-')}.fx.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  tick(`⇩ saved preset "${fx.name}"`);
+};
+
+$('#fx-load').onclick = () => $('#fx-file').click();
+$('#fx-file').onchange = async ev => {
+  const f = ev.target.files[0];
+  ev.target.value = '';
+  if (!f || !state.fx) return;
+  try {
+    const p = JSON.parse(await f.text());
+    if (p.format !== 'microsampler-fx' || !FX_TYPES[p.type])
+      throw new Error('not a microSAMPLER effect preset');
+    const vals = new Array(32).fill(0);
+    (p.vals || []).forEach((v, i) => { if (i < 32) vals[i] = v | 0; });
+    const knobs = [(p.knobs || [])[0] | 0, (p.knobs || [])[1] | 0];
+    state.fx = { type: p.type, knobs, vals };
+    // batch the whole thing in one request (avoids 35 sluggish round-trips)
+    await api('/api/effect', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: p.type, knobs, params: vals }),
+    });
+    renderFx();
+    tick(`⇧ loaded preset "${FX_TYPES[p.type].name}"`);
+  } catch (e) {
+    tick(`⚠ preset load failed: ${e.message}`);
+    alert('Preset load failed: ' + e.message);
+  }
+};
+
 export function fxReflect(param, value) {
   if (!state.fx) return;
   value = dec14(value);

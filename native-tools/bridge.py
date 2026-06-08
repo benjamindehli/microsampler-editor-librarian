@@ -301,6 +301,22 @@ class Device:
                                                   int(round(bpm * 10))))
         return {'name': padded.rstrip(), 'bpm': round(bpm, 1)}
 
+    def set_effect(self, fx_type, knobs, params):
+        """Apply a whole effect preset in ONE lock grab (object 80): FX type
+        (param 1) — the device re-inits its params on type change, so we then
+        send the 2 knob assigns (params 2-3) + every effect param (16+i) to
+        override. Batched for the same reason bank settings are (per-message
+        round-trips contend the reader lock = sluggish)."""
+        ch = self.channel
+        with self.lock:
+            self.ms.send_sysex(P.parameter_change(ch, 80, 1, int(fx_type)))
+            for k in (0, 1):
+                self.ms.send_sysex(P.parameter_change(ch, 80, 2 + k,
+                                                      int(knobs[k])))
+            for i, v in enumerate(params):
+                self.ms.send_sysex(P.parameter_change(ch, 80, 16 + i, int(v)))
+        return {'type': int(fx_type)}
+
     def play_note(self, slot, on, velocity=100):
         """Trigger a sample pad on the DEVICE via MIDI note. Sample-mode note
         map (same numbering the pattern engine uses for sample-mode tracks):
@@ -491,6 +507,11 @@ class MockDevice(Device):
 
     def play_note(self, slot, on, velocity=100):
         self._last_note = (int(slot), bool(on), int(velocity))
+
+    def set_effect(self, fx_type, knobs, params):
+        self._effect = {'type': int(fx_type), 'knobs': [int(k) for k in knobs],
+                        'params': [int(v) for v in params]}
+        return {'type': int(fx_type)}
 
     def set_bank_settings(self, name, bpm):
         self._bank_name = name[:8].strip()
@@ -880,6 +901,14 @@ class Handler(BaseHTTPRequestHandler):
                 if not 20 <= bpm <= 300:
                     return self._err('bpm 20..300', 400)
                 return self._json(DEVICE.set_bank_settings(name, bpm))
+            if path == '/api/effect':
+                n = int(self.headers.get('Content-Length', 0))
+                body = json.loads(self.rfile.read(n) or b'{}')
+                knobs = body.get('knobs', [0, 0])
+                params = body.get('params', [])
+                if len(params) != 32 or len(knobs) != 2:
+                    return self._err('need knobs[2] + params[32]', 400)
+                return self._json(DEVICE.set_effect(int(body['type']), knobs, params))
             if path == '/api/note':
                 n = int(self.headers.get('Content-Length', 0))
                 body = json.loads(self.rfile.read(n) or b'{}')

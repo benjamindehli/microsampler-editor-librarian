@@ -32,3 +32,7 @@
 .fx-param .fx-select { min-width: 0; width: 100%; }
 .fx-param .ctl-label { line-height: 1.25; }
 
+
+/* effect preset save/load */
+.fx-presets { display: flex; align-items: center; gap: .5rem; }
+.fx-presets .ctl-label { margin-right: .1rem; }
