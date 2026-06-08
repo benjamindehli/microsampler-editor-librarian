@@ -301,6 +301,49 @@ class Device:
                                                   int(round(bpm * 10))))
         return {'name': padded.rstrip(), 'bpm': round(bpm, 1)}
 
+    def receive_sample(self, slot):
+        """Read a whole sample (the proven download.py 3-phase flow:
+        header 0x16 → PCM 0x1F → params 0x14) into memory."""
+        with self.lock:
+            self._inquire()
+            hdr = DL.fetch_header(self.ms, self.channel, slot)
+            if hdr['data_size'] == 0:
+                return {'empty': True}
+            pcm = DL.fetch_pcm(self.ms, self.channel, hdr['data_size'],
+                               progress=False)
+            par = DL.fetch_params(self.ms, self.channel, slot)
+        return {'empty': False, 'pcm': pcm, 'rate': hdr['rate_hz'],
+                'stereo': hdr['stereo'], 'tempo': hdr['tempo_bpm'],
+                'blob': par['raw']}
+
+    def write_sample(self, slot, d):
+        """Write a sample read by receive_sample (proven upload.py flow:
+        header 0x42 → PCM → param blob 0x44). Empty = dataSize-0 header only
+        (the restore-empty path that clears a slot)."""
+        with self.lock:
+            self._inquire()
+            if d.get('empty'):
+                DL._drain(self.ms)
+                self.ms.send_sysex(P.sample_header(self.channel, slot, 0, 48000, False))
+                DL._wait_korg_reply(self.ms, P.UPLOAD_HDR_OK, P.UPLOAD_HDR_ERR,
+                                    timeout_ms=8000, what='clear header ACK')
+            else:
+                UL.upload(self.ms, self.channel, slot, d['pcm'], d['rate'],
+                          d['stereo'], 0, d['blob'], d['tempo'])
+        return {'slot': slot, 'empty': bool(d.get('empty'))}
+
+    def copy_sample(self, frm, to):
+        return self.write_sample(to, self.receive_sample(frm))
+
+    def swap_samples(self, a, b):
+        da, db = self.receive_sample(a), self.receive_sample(b)
+        self.write_sample(b, da)
+        self.write_sample(a, db)
+        return {'a': a, 'b': b}
+
+    def clear_sample(self, slot):
+        return self.write_sample(slot, {'empty': True})
+
     def set_effect(self, fx_type, knobs, params):
         """Apply a whole effect preset in ONE lock grab (object 80): FX type
         (param 1) — the device re-inits its params on type change, so we then
@@ -507,6 +550,26 @@ class MockDevice(Device):
 
     def play_note(self, slot, on, velocity=100):
         self._last_note = (int(slot), bool(on), int(velocity))
+
+    def copy_sample(self, frm, to):
+        import copy as _c
+        if frm in self._slots:
+            self._slots[to] = _c.deepcopy(self._slots[frm])
+        else:
+            self._slots.pop(to, None)
+        return {'slot': to, 'empty': frm not in self._slots}
+
+    def swap_samples(self, a, b):
+        sa, sb = self._slots.get(a), self._slots.get(b)
+        if sb is not None: self._slots[a] = sb
+        else: self._slots.pop(a, None)
+        if sa is not None: self._slots[b] = sa
+        else: self._slots.pop(b, None)
+        return {'a': a, 'b': b}
+
+    def clear_sample(self, slot):
+        self._slots.pop(slot, None)
+        return {'slot': slot, 'empty': True}
 
     def set_effect(self, fx_type, knobs, params):
         self._effect = {'type': int(fx_type), 'knobs': [int(k) for k in knobs],
@@ -901,6 +964,24 @@ class Handler(BaseHTTPRequestHandler):
                 if not 20 <= bpm <= 300:
                     return self._err('bpm 20..300', 400)
                 return self._json(DEVICE.set_bank_settings(name, bpm))
+            if path in ('/api/sample/copy', '/api/sample/swap'):
+                n = int(self.headers.get('Content-Length', 0))
+                body = json.loads(self.rfile.read(n) or b'{}')
+                if path.endswith('copy'):
+                    frm, to = int(body['from']), int(body['to'])
+                    if not (0 <= frm <= 35 and 0 <= to <= 35) or frm == to:
+                        return self._err('need distinct slots 0..35', 400)
+                    return self._json(DEVICE.copy_sample(frm, to))
+                a, bb = int(body['a']), int(body['b'])
+                if not (0 <= a <= 35 and 0 <= bb <= 35) or a == bb:
+                    return self._err('need distinct slots 0..35', 400)
+                return self._json(DEVICE.swap_samples(a, bb))
+            m = re.match(r'^/api/sample/(\d+)/clear$', path)
+            if m:
+                slot = int(m.group(1))
+                if not 0 <= slot <= 35:
+                    return self._err('slot 0..35', 400)
+                return self._json(DEVICE.clear_sample(slot))
             if path == '/api/effect':
                 n = int(self.headers.get('Content-Length', 0))
                 body = json.loads(self.rfile.read(n) or b'{}')

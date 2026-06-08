@@ -1,0 +1,61 @@
+// Slot operations: copy / swap (pad drag-and-drop) + clear (editor button).
+// All run device-side in the bridge (no audio round-trips through the browser).
+import { $, api, apiJson } from './util.js';
+import { state, slotData } from './state.js';
+import { tick } from './ticker.js';
+import { forgetSample } from './sampleLoad.js';
+import { refreshBank } from './app.js';
+import { noteName } from './pads.js';
+
+const padLabel = i => `PAD ${i + 1} (${noteName(i)})`;
+const nameOf = i => { const s = slotData(i); return s.empty ? 'empty' : s.name; };
+
+export function openSlotOp(from, to) {
+  const dlg = $('#slotop-dialog');
+  $('#so-title').textContent = `${padLabel(from)} → ${padLabel(to)}`;
+  $('#so-warn').textContent =
+    `COPY overwrites ${padLabel(to)} ("${nameOf(to)}") with "${nameOf(from)}". ` +
+    `SWAP exchanges the two. (Current bank / RAM.)`;
+  dlg.showModal();
+  $('#so-copy').onclick = e => { e.preventDefault(); dlg.close(); runOp('copy', from, to); };
+  $('#so-swap').onclick = e => { e.preventDefault(); dlg.close(); runOp('swap', from, to); };
+}
+
+async function runOp(kind, from, to) {
+  forgetSample(from); forgetSample(to);          // their audio changes
+  try {
+    if (kind === 'copy')
+      await apiJson('/api/sample/copy', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from, to }),
+      });
+    else
+      await apiJson('/api/sample/swap', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ a: from, b: to }),
+      });
+    tick(`${kind} S${from + 1}${kind === 'copy' ? '→' : '↔'}S${to + 1}`);
+    await refreshBank();
+  } catch (e) {
+    tick(`⚠ ${kind} failed: ${e.message}`);
+    alert(`${kind} failed: ${e.message}`);
+  }
+}
+
+// CLEAR the selected slot (empties it on the device — RAM)
+$('#clear-btn').onclick = async () => {
+  if (state.sel == null) return;
+  const s = slotData(state.sel);
+  if (s.empty) return;
+  if (!confirm(`Clear ${padLabel(state.sel)} ("${s.name}")?\n\n` +
+               `Empties the slot in the device's current bank (RAM).`)) return;
+  forgetSample(state.sel);
+  try {
+    await apiJson(`/api/sample/${state.sel}/clear`, { method: 'POST' });
+    tick(`🗑 cleared S${state.sel + 1}`);
+    await refreshBank();
+  } catch (e) {
+    tick(`⚠ clear failed: ${e.message}`);
+    alert('Clear failed: ' + e.message);
+  }
+};

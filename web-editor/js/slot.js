@@ -17,6 +17,7 @@ export async function showSlot(i, { keepWave = false } = {}) {
   $('#download-btn').style.visibility = s.empty ? 'hidden' : 'visible';
   $('#audition-btn').style.visibility = s.empty ? 'hidden' : 'visible';
   $('#rename-btn').style.visibility = s.empty ? 'hidden' : 'visible';
+  $('#clear-btn').style.visibility = s.empty ? 'hidden' : 'visible';
 
   renderChips(s);
 

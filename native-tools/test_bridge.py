@@ -140,6 +140,28 @@ assert json.loads(data)['fx_sw'] is True
 st, _, data = req('GET', '/api/sample/35/params')
 assert json.loads(data)['empty'] is True
 
+# --- slot copy / swap / clear (mock HTTP) ----------------------------------------
+def slot_names():
+    return {s['slot']: (None if s['empty'] else s['name'])
+            for s in json.loads(req('GET', '/api/bank')[2])['slots']}
+n0 = slot_names()                                 # whatever prior tests left
+src = next(i for i, v in n0.items() if v is not None)   # a used slot
+assert n0[14] is None and n0[15] is None          # pristine scratch slots
+# copy src → 14
+st, _, _ = req('POST', '/api/sample/copy', body=json.dumps({'from': src, 'to': 14}))
+assert st == 200
+n = slot_names(); assert n[14] == n0[src] and n[src] == n0[src]
+# swap 14 ↔ 15
+st, _, _ = req('POST', '/api/sample/swap', body=json.dumps({'a': 14, 'b': 15}))
+assert st == 200
+n = slot_names(); assert n[15] == n0[src] and n[14] is None
+# clear 15
+st, _, _ = req('POST', '/api/sample/15/clear')
+assert st == 200 and slot_names()[15] is None
+# guards: same-slot copy, OOB
+assert req('POST', '/api/sample/copy', body=json.dumps({'from': 2, 'to': 2}))[0] == 400
+assert req('POST', '/api/sample/99/clear')[0] == 400
+
 # --- effect preset apply (batched, mock HTTP) ------------------------------------
 params = list(range(32))
 st, _, data = req('POST', '/api/effect', body=json.dumps(

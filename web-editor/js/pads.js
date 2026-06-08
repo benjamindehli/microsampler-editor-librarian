@@ -4,6 +4,7 @@ import { state } from './state.js';
 import { tick } from './ticker.js';
 import { showSlot } from './slot.js';
 import { openUpload } from './dialogs.js';
+import { openSlotOp } from './slotops.js';
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
@@ -33,6 +34,11 @@ export function renderPads() {
       renderPads();
       showSlot(s.slot).then(renderPads).catch(() => { });   // light dot once loaded
     };
+    if (!s.empty) {                              // used pads drag → copy/swap
+      b.draggable = true;
+      b.addEventListener('dragstart', e =>
+        e.dataTransfer.setData('application/x-msmpl-slot', String(s.slot)));
+    }
     grid.append(b);
   });
   $('#count-used').textContent = used;
@@ -104,9 +110,13 @@ export function renderPads() {
     hint(null);
     const pad = e.target.closest('.pad');
     if (!pad) return;
+    const slot = +pad.dataset.slot;
+    // pad-to-pad drag → copy/swap dialog (internal drag, no files)
+    const from = e.dataTransfer.getData('application/x-msmpl-slot');
+    if (from !== '' && +from !== slot) return openSlotOp(+from, slot);
+    // file drop → upload to this pad
     const f = [...e.dataTransfer.files].find(f => /\.wav$/i.test(f.name));
     if (!f) return;
-    const slot = +pad.dataset.slot;
     state.sel = slot;
     renderPads();
     showSlot(slot);                      // no await — dialog opens right away

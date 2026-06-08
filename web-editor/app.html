@@ -243,6 +243,7 @@
         <div class="chips" id="info-chips"></div>
         <div class="name-actions">
           <button class="hw-btn" id="rename-btn" title="Rename sample"><span class="hw-btn-cap">✎ NAME</span></button>
+          <button class="hw-btn" id="clear-btn" title="Clear this slot"><span class="hw-btn-cap">🗑 CLEAR</span></button>
           <button class="hw-btn" id="audition-btn"><span class="hw-btn-cap">▶ PLAY</span></button>
           <a class="hw-btn" id="download-btn" download><span class="hw-btn-cap">⇩ WAV</span></a>
           <button class="hw-btn accent" id="upload-btn"><span class="hw-btn-cap">⇧ LOAD…</span></button>
@@ -370,6 +371,18 @@
     <menu>
       <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
       <button value="ok" id="bd-ok" class="hw-btn accent"><span class="hw-btn-cap">APPLY</span></button>
+    </menu>
+  </form>
+</dialog>
+
+<dialog id="slotop-dialog" class="hw-dialog">
+  <form method="dialog">
+    <h3>SLOT <span id="so-title">?</span></h3>
+    <p class="warn" id="so-warn"></p>
+    <menu>
+      <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
+      <button value="copy" id="so-copy" class="hw-btn"><span class="hw-btn-cap">COPY →</span></button>
+      <button value="swap" id="so-swap" class="hw-btn accent"><span class="hw-btn-cap">⇄ SWAP</span></button>
     </menu>
   </form>
 </dialog>
