@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+# least privilege: both jobs only check out the repo and run offline tests
+permissions:
+  contents: read
+
 jobs:
   tests:
     name: offline suite (python ${{ matrix.python }})
