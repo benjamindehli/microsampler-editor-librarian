@@ -71,6 +71,28 @@
     repeating-linear-gradient(180deg, rgba(255,255,255,.012) 0 1px, transparent 1px 3px),
     linear-gradient(165deg, rgba(255,255,255,.05), transparent 30%);
 }
+/* zoom controls overlaying the waveform (top-right) */
+.wave-zoom {
+  position: absolute; top: 8px; right: 8px; z-index: 3;
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 4px; border-radius: 6px;
+  background: rgba(8,8,10,.6); border: 1px solid var(--line-hi);
+}
+.wz-btn {
+  appearance: none; cursor: pointer;
+  min-width: 22px; height: 20px; padding: 0 6px;
+  border: 1px solid var(--line-hi); border-radius: 4px;
+  background: var(--steel-3); color: var(--ink);
+  font: 600 .68rem/1 "Chakra Petch", sans-serif; letter-spacing: .06em;
+  transition: color .12s, box-shadow .12s;
+}
+.wz-btn:hover:not(:disabled) { color: var(--amber-hi); box-shadow: 0 0 0 1px var(--amber-dk); }
+.wz-btn:disabled { opacity: .4; cursor: default; }
+.wz-level {
+  min-width: 36px; text-align: center;
+  font-family: "Share Tech Mono", monospace; font-size: .64rem;
+  color: var(--amber); letter-spacing: .04em;
+}
 .screen-meta {
   display: flex; justify-content: space-between;
   font-family: "Share Tech Mono", monospace;
