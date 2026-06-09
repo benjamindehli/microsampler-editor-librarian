@@ -1,6 +1,6 @@
 // Upload + rename dialogs, incl. the upload memory pre-flight, and the
 // editor-panel WAV drop target.
-import { $, api, apiJson } from './util.js';
+import { $, api, apiJson, jsonBody } from './util.js';
 import { state, slotData } from './state.js';
 import { tick } from './ticker.js';
 import { noteName, renderPads } from './pads.js';
@@ -193,10 +193,7 @@ $('#rn-ok').onclick = async e => {
   const long_name = $('#rn-long').value.trim().slice(0, 32);
   $('#rn-ok').setAttribute('aria-busy', 'true');
   try {
-    const res = await apiJson(`/api/sample/${state.sel}/name`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, long_name }),
-    });
+    const res = await apiJson(`/api/sample/${state.sel}/name`, jsonBody({ name, long_name }));
     const s = slotData(state.sel);
     s.name = res.name;
     s.long_name = res.long_name;
@@ -237,10 +234,7 @@ $('#bd-ok').onclick = async e => {
     // one batched request — the bridge sends all 9 messages (8 name chars +
     // BPM) in a single device-lock acquisition; per-message /api/param
     // round-trips were user-visibly sluggish
-    const res = await apiJson('/api/bank/settings', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, bpm }),
-    });
+    const res = await apiJson('/api/bank/settings', jsonBody({ name, bpm }));
     state.bank.name = res.name;
     state.bank.bpm = res.bpm;
     $('#bank-name').textContent = res.name.padEnd(8);

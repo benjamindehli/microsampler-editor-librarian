@@ -17,6 +17,13 @@ export async function api(path, opts) {
 }
 export const apiJson = async (path, opts) => (await api(path, opts)).json();
 
+// opts for a JSON POST — pass to api() (raw response) or apiJson() (parsed),
+// whichever the caller needs. Centralises the method + Content-Type + stringify.
+export const jsonBody = data => ({
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(data),
+});
+
 export function wavFormat(arrayBuf) {
   // minimal RIFF/WAVE fmt reader (LE): channels @22, rate @24
   const dv = new DataView(arrayBuf);

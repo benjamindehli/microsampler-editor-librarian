@@ -1,7 +1,7 @@
 // Sample parameter controls: live-edit ids, value encodings, the control
 // strip wiring, and panel-edit reflection.
 import { VALUE_TABLES } from './valueTables.js';
-import { $, api, fmtSigned } from './util.js';
+import { $, api, fmtSigned, jsonBody } from './util.js';
 import { state } from './state.js';
 import { tick } from './ticker.js';
 
@@ -88,10 +88,7 @@ async function sendParamTo(slot, param, value) {
   cacheParam(slot, param, value);
   if (slot === state.sel) { flash(param); setControl(param, value); }
   try {
-    await api('/api/param', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ obj: OBJ_BASE + slot, param, value }),
-    });
+    await api('/api/param', jsonBody({ obj: OBJ_BASE + slot, param, value }));
     tick(`→ S${slot + 1} #${param} = ${value}`);
   } catch (e) { tick(`⚠ send failed: ${e.message}`); }
 }

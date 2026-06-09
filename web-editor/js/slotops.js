@@ -1,6 +1,6 @@
 // Slot operations: copy / swap (pad drag-and-drop) + clear (editor button).
 // All run device-side in the bridge (no audio round-trips through the browser).
-import { $, api, apiJson } from './util.js';
+import { $, api, apiJson, jsonBody } from './util.js';
 import { state, slotData } from './state.js';
 import { tick } from './ticker.js';
 import { forgetSample } from './sampleLoad.js';
@@ -26,15 +26,9 @@ async function runOp(kind, from, to) {
   forgetSample(from); forgetSample(to);          // their audio changes
   try {
     if (kind === 'copy')
-      await apiJson('/api/sample/copy', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from, to }),
-      });
+      await apiJson('/api/sample/copy', jsonBody({ from, to }));
     else
-      await apiJson('/api/sample/swap', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ a: from, b: to }),
-      });
+      await apiJson('/api/sample/swap', jsonBody({ a: from, b: to }));
     tick(`${kind} S${from + 1}${kind === 'copy' ? '→' : '↔'}S${to + 1}`);
     await refreshBank();
   } catch (e) {

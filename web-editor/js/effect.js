@@ -4,7 +4,7 @@
 // the bank blob stores byte = display + descriptor center.
 import { VALUE_TABLES } from './valueTables.js';
 import { FX_TYPES, FX_TABLES_EXTRA } from './fxData.js';
-import { $, esc, api, fmtSigned } from './util.js';
+import { $, esc, api, fmtSigned, jsonBody } from './util.js';
 import { state } from './state.js';
 import { tick } from './ticker.js';
 import { dec14 } from './controls.js';
@@ -51,10 +51,7 @@ function fxDefaults(type) {
 
 async function sendFx(param, value) {
   try {
-    await api('/api/param', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ obj: FX_OBJ, param, value }),
-    });
+    await api('/api/param', jsonBody({ obj: FX_OBJ, param, value }));
     tick(`→ FX #${param} = ${value}`);
   } catch (e) { tick(`⚠ fx send failed: ${e.message}`); }
 }
@@ -260,10 +257,7 @@ $('#fx-file').onchange = async ev => {
     const knobs = [(p.knobs || [])[0] | 0, (p.knobs || [])[1] | 0];
     state.fx = { type: p.type, knobs, vals };
     // batch the whole thing in one request (avoids 35 sluggish round-trips)
-    await api('/api/effect', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: p.type, knobs, params: vals }),
-    });
+    await api('/api/effect', jsonBody({ type: p.type, knobs, params: vals }));
     renderFx();
     tick(`⇧ loaded preset "${FX_TYPES[p.type].name}"`);
   } catch (e) {
