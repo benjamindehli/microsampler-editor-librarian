@@ -95,6 +95,19 @@ python3 protocol.py && python3 test_download.py && python3 test_upload.py \
 
 The app needs **no build step** to develop or run — it's plain ES modules and per-component CSS served straight from `web-editor/`.
 
+### Linting
+
+Bug-focused linters (dev-only; not runtime dependencies) keep the no-build code
+honest — they catch undefined names, unused imports, etc. CI runs both.
+
+```bash
+# Python (native-tools/ + tools/) — needs ruff (pip install ruff)
+ruff check
+
+# JavaScript (web-editor/js/) — needs the dev deps (npm install)
+npm run lint:js
+```
+
 ## Build a release
 
 To produce a lean, minified `dist/` for publishing (JS bundled + minified, CSS merged + minified, HTML comments stripped, dev/RE/test files excluded):
