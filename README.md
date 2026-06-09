@@ -2,10 +2,8 @@
 
 ![CI](https://github.com/benjamindehli/microsampler-editor-librarian/actions/workflows/ci.yml/badge.svg)
 
-A modern editor/librarian for the **Korg microSAMPLER**, replacing Korg's
-original 32-bit application (PPC/i386) that no longer runs on macOS 10.15+.
-The hardware protocol was reverse-engineered from the original binary and
-verified against a real device.
+A modern editor/librarian for the **Korg microSAMPLER**, replacing Korg's original 32-bit application (PPC/i386) that no longer runs on macOS 10.15+.
+The hardware protocol was reverse-engineered from the original binary and verified against a real device.
 This app covers everything the original did, plus a few things it didn't.
 
 ![microSAMPLER Editor / Librarian — sample editing, effects, patterns and utility views](web-editor/assets/demo.gif)
@@ -62,9 +60,8 @@ Then open http://localhost:8765
 python3 native-tools/bridge.py --mock
 ```
 
-Bank backups land in `native-tools/backups/` (gitignored, they're your
-data). Note that sample/parameter transfers target the device's **current
-bank (RAM)**; save on the device or restore to a user bank to persist.
+Bank backups land in `native-tools/backups/` (gitignored, they're your data).
+Note that sample/parameter transfers target the device's **current bank (RAM)**; save on the device or restore to a user bank to persist.
 
 ## Repository layout
 
@@ -94,13 +91,11 @@ python3 protocol.py && python3 test_download.py && python3 test_upload.py \
   && python3 test_bank.py && python3 test_bridge.py
 ```
 
-The app needs **no build step** to develop or run — it's plain ES modules and
-per-component CSS served straight from `web-editor/`.
+The app needs **no build step** to develop or run — it's plain ES modules and per-component CSS served straight from `web-editor/`.
 
 ## Build a release
 
-To produce a lean, minified `dist/` for publishing (JS bundled + minified,
-CSS merged + minified, HTML comments stripped, dev/RE/test files excluded):
+To produce a lean, minified `dist/` for publishing (JS bundled + minified, CSS merged + minified, HTML comments stripped, dev/RE/test files excluded):
 
 ```bash
 npm install      # one dev-only dependency: esbuild (MIT)
@@ -108,30 +103,20 @@ npm run build    # -> dist/
 sudo python3 dist/native-tools/bridge.py
 ```
 
-`dist/` mirrors the run layout (`web-editor/` + `native-tools/` + launcher) and
-runs exactly like the source. esbuild is build-time only — the app ships no
-runtime npm dependencies.
+`dist/` mirrors the run layout (`web-editor/` + `native-tools/` + launcher) and runs exactly like the source.
+`esbuild` is build-time only — the app ships no runtime npm dependencies.
 
 ## Disclaimer
 
-This is an **independent, unofficial project**. It is not affiliated with,
-endorsed, sponsored, or supported by Korg Inc. *microSAMPLER* and *Korg* are
-trademarks of Korg Inc., used here only to identify the hardware this
-software interoperates with.
+This is an **independent, unofficial project**. It is not affiliated with, endorsed, sponsored, or supported by Korg Inc.
+*microSAMPLER* and *Korg* are trademarks of Korg Inc., used here only to identify the hardware this software interoperates with.
 
-This repository contains **no Korg software, firmware, or other Korg
-copyrighted material**. The communication protocol was independently
-reverse-engineered for the sole purpose of **interoperability** with
-hardware owned by the user (as permitted by, e.g., Directive 2009/24/EC
-art. 6 in the EU/EEA).
+This repository contains **no Korg software, firmware, or other Korg copyrighted material**.
+The communication protocol was independently reverse-engineered for the sole purpose of **interoperability** with hardware owned by the user (as permitted by, e.g., Directive 2009/24/EC art. 6 in the EU/EEA).
 
-**Use at your own risk.** This software is provided *“as is”*, without
-warranty of any kind, as set out in sections 15–16 of the
-[GNU GPL v3](LICENSE). The author accepts **no responsibility or liability**
-for any damage to your device, loss of samples, patterns or other data, or
-any other consequence of using this software. It writes to the device's
-memory — **back up your bank** (UTILITY → BACKUP) before bulk operations,
-and never disconnect the device mid-transfer.
+**Use at your own risk.** This software is provided *“as is”*, without warranty of any kind, as set out in sections 15–16 of the [GNU GPL v3](LICENSE).
+The author accepts **no responsibility or liability** for any damage to your device, loss of samples, patterns or other data, or any other consequence of using this software.
+It writes to the device's memory — **back up your bank** (UTILITY → BACKUP) before bulk operations, and never disconnect the device mid-transfer.
 
 ---
 
