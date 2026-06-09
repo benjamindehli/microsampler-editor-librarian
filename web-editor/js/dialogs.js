@@ -9,6 +9,20 @@ import { refreshBank } from './app.js';
 import { MEM_SMPL_TOTAL, memBlk, slotDevBytes, sampleMemUsage, fmtMem }
   from './meter.js';
 import { forgetSample } from './sampleLoad.js';
+import { decodeWavPcm, processBuffer, encodeWav, toolsActive } from './audioTools.js';
+
+// the selected file decoded to float channels (null if not a PCM WAV we can
+// process) and its raw bytes — both cached so OK doesn't re-read the file.
+let udDecoded = null, udBytes = null;
+const UD_TOOL_IDS = ['ud-channels', 'ud-normalize', 'ud-trim', 'ud-gain', 'ud-fadein', 'ud-fadeout'];
+const readToolOpts = () => ({
+  channels: $('#ud-channels').value,
+  normalize: $('#ud-normalize').checked,
+  trim: $('#ud-trim').checked,
+  gainDb: +$('#ud-gain').value || 0,
+  fadeInMs: +$('#ud-fadein').value || 0,
+  fadeOutMs: +$('#ud-fadeout').value || 0,
+});
 
 // ────────────────────────────────────────────────────────────── upload ──
 export function openUpload(file) {
@@ -21,17 +35,43 @@ export function openUpload(file) {
     dt.items.add(file);
     fileInput.files = dt.files;
   } else fileInput.value = '';
+  resetTools();
   syncNameFromFile();
   $('#ud-progress').hidden = true;
   dlg.showModal();
 }
-function syncNameFromFile() {
+function resetTools() {
+  $('#ud-channels').value = 'keep';
+  $('#ud-normalize').checked = false;
+  $('#ud-trim').checked = false;
+  $('#ud-gain').value = '0';
+  $('#ud-fadein').value = '0';
+  $('#ud-fadeout').value = '0';
+  udDecoded = null; udBytes = null;
+}
+function setToolsEnabled(on, haveFile) {
+  for (const id of UD_TOOL_IDS) $('#' + id).disabled = !on;
+  const note = $('#ud-tools-note');
+  note.hidden = on || !haveFile;
+  if (!note.hidden)
+    note.textContent = 'Tools unavailable for this file — it will upload unchanged.';
+}
+async function syncNameFromFile() {
   const f = $('#ud-file').files[0];
   if (f) $('#ud-name').value = f.name.replace(/\.\w+$/, '')
     .replace(/[^\x20-\x7e]/g, '').toUpperCase().slice(0, 8);
+  // decode the WAV up front so the tools + memory pre-flight reflect the result
+  udDecoded = null; udBytes = null;
+  setToolsEnabled(false, !!f);
+  if (f) {
+    try { udBytes = await f.arrayBuffer(); udDecoded = decodeWavPcm(udBytes); }
+    catch { udDecoded = null; }
+  }
+  setToolsEnabled(!!udDecoded, !!f);
   uploadPreflight();
 }
 $('#ud-file').onchange = syncNameFromFile;
+for (const id of UD_TOOL_IDS) $('#' + id).addEventListener('input', uploadPreflight);
 
 // minimal RIFF/WAVE chunk walk over the file head (proper fmt/data chunks —
 // 44-byte assumptions break on files with LIST/INFO chunks)
@@ -66,13 +106,24 @@ async function uploadPreflight() {
   ok.disabled = false;
   const f = $('#ud-file').files[0];
   if (!f || state.sel == null || !state.bank) return;
-  const dv = new DataView(await f.slice(0, 64 * 1024).arrayBuffer());
-  const fmt = riffFormat(dv);
-  if (!fmt) return;                              // bridge will reject it anyway
-  const frames = Math.floor(fmt.dataBytes / fmt.bytesPerFrame);
+  // derive frames/channels/rate from the PROCESSED audio when we can decode it
+  // (so trim + channel conversion are reflected); otherwise fall back to the
+  // RIFF header estimate.
+  let frames, channels, rate;
+  const opts = readToolOpts();
+  if (udDecoded) {
+    const r = (udDecoded && toolsActive(opts)) ? processBuffer(udDecoded, opts) : udDecoded;
+    channels = r.channels.length; frames = r.channels[0].length; rate = r.rate;
+  } else {
+    const dv = new DataView(await f.slice(0, 64 * 1024).arrayBuffer());
+    const fmt = riffFormat(dv);
+    if (!fmt) return;                            // bridge will reject it anyway
+    frames = Math.floor(fmt.dataBytes / fmt.bytesPerFrame);
+    channels = fmt.channels; rate = fmt.rate;
+  }
   const target = [48000, 24000, 12000, 6000].reduce((a, r) =>
-    Math.abs(r - fmt.rate) < Math.abs(a - fmt.rate) ? r : a);
-  const need = memBlk(Math.floor(frames * target / fmt.rate) * fmt.channels * 2);
+    Math.abs(r - rate) < Math.abs(a - rate) ? r : a);
+  const need = memBlk(Math.floor(frames * target / rate) * channels * 2);
   const { used, est } = sampleMemUsage();
   const freed = slotDevBytes(slotData(state.sel)).bytes;
   const free = MEM_SMPL_TOTAL - used + freed;
@@ -95,11 +146,21 @@ $('#ud-ok').onclick = async e => {
   if (!f) return;
   const name = encodeURIComponent($('#ud-name').value || 'SAMPLE');
   const tempo = +$('#ud-tempo').value || 120;
+  // apply the audio tools in-browser when any is active and we could decode the
+  // file; otherwise send the original bytes untouched (byte-identical upload).
+  const opts = readToolOpts();
+  let body;
+  if (udDecoded && toolsActive(opts)) {
+    const pr = processBuffer(udDecoded, opts);
+    body = encodeWav(pr.channels, pr.rate);
+  } else {
+    body = udBytes || await f.arrayBuffer();
+  }
   $('#ud-progress').hidden = false;
   $('#ud-ok').setAttribute('aria-busy', 'true');
   try {
     await api(`/api/sample/${state.sel}?name=${name}&tempo=${tempo}`,
-      { method: 'POST', body: await f.arrayBuffer() });
+      { method: 'POST', body });
     tick(`⇧ loaded "${$('#ud-name').value}" → S${state.sel + 1}`);
     forgetSample(state.sel);                     // its content changed
     $('#upload-dialog').close();
