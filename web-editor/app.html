@@ -446,6 +446,24 @@
     <label>FILE <input type="file" id="ud-file" accept=".wav,audio/wav"></label>
     <label>NAME <input type="text" id="ud-name" maxlength="8" spellcheck="false"></label>
     <label>TEMPO <input type="number" id="ud-tempo" min="20" max="300" step="0.1" value="120.0"></label>
+    <div class="ud-tools" id="ud-tools">
+      <div class="ud-tools-head">AUDIO TOOLS <span>processed in-browser before upload</span></div>
+      <label>CHANNELS
+        <select id="ud-channels">
+          <option value="keep">Keep source</option>
+          <option value="mono">Mono</option>
+          <option value="stereo">Stereo</option>
+        </select>
+      </label>
+      <label class="ud-check"><input type="checkbox" id="ud-normalize"> NORMALIZE peak to −0.1 dBFS</label>
+      <label class="ud-check"><input type="checkbox" id="ud-trim"> TRIM leading/trailing silence</label>
+      <label>GAIN <input type="number" id="ud-gain" min="-24" max="24" step="0.5" value="0"> dB</label>
+      <div class="ud-fades">
+        <label>FADE IN <input type="number" id="ud-fadein" min="0" max="5000" step="1" value="0"> ms</label>
+        <label>FADE OUT <input type="number" id="ud-fadeout" min="0" max="5000" step="1" value="0"> ms</label>
+      </div>
+      <div class="ud-tools-note" id="ud-tools-note" hidden></div>
+    </div>
     <div class="ud-mem" id="ud-mem" hidden></div>
     <div class="ud-progress" id="ud-progress" hidden><div></div></div>
     <menu>
