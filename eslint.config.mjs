@@ -38,11 +38,4 @@ export default [
       'comma-spacing': ['error', { before: false, after: true }],
     },
   },
-
-  {
-    // audioTools.js is dual-environment: a node-only self-test (guarded by
-    // `typeof process`) runs when invoked directly with node.
-    files: ['web-editor/js/audioTools.js'],
-    languageOptions: { globals: { process: 'readonly' } },
-  },
 ];

@@ -1,8 +1,8 @@
 // Browser-side audio tools for the upload dialog: decode a PCM WAV to float
 // channels, optionally convert channels / trim silence / normalize / gain /
 // fade, then re-encode a 16-bit PCM WAV the bridge accepts (it resamples to the
-// nearest device rate itself). Pure functions, no DOM — they unit-test in plain
-// node (see test below; run `node web-editor/js/audioTools.js`).
+// nearest device rate itself). Pure functions, no DOM — unit-tested in plain
+// node (test/audioTools.test.mjs; `npm test`).
 
 // Decode a PCM RIFF/WAVE → { channels: [Float32Array…], rate }. Handles the
 // same shapes the bridge does (native-tools/upload.py): 8/16/24/32-bit integer
@@ -169,63 +169,4 @@ export function encodeWav(channels, rate) {
     }
   }
   return buf;
-}
-
-// ── offline self-test (node) ──────────────────────────────────────────────
-// Runs only under node; the browser never hits this (no process global).
-if (typeof process !== 'undefined' && process.argv && process.argv[1] &&
-    process.argv[1].endsWith('audioTools.js')) {
-  const assert = (c, m) => { if (!c) { console.error('FAIL:', m); process.exit(1); } };
-  // build a 2-ch 1000-frame 48k WAV: ch0 a 0.5 ramp, ch1 silence+blip
-  const N = 1000, rate = 48000;
-  const a = new Float32Array(N), b = new Float32Array(N);
-  for (let i = 0; i < N; i++) { a[i] = (i / N) * 0.5; }
-  b[500] = 0.25;
-  const wav = encodeWav([a, b], rate);
-  const dec = decodeWavPcm(wav);
-  assert(dec && dec.channels.length === 2 && dec.channels[0].length === N, 'roundtrip shape');
-  assert(Math.abs(dec.channels[0][N - 1] - a[N - 1] * 32767 / 32768) < 1e-3, 'roundtrip value');
-
-  // normalize: peak 0.5 → ~ -0.1 dBFS (≈0.9886)
-  const nrm = processBuffer(dec, { channels: 'keep', normalize: true, gainDb: 0,
-    trim: false, fadeInMs: 0, fadeOutMs: 0 });
-  let peak = 0; for (const c of nrm.channels) for (const v of c) peak = Math.max(peak, Math.abs(v));
-  assert(Math.abs(peak - Math.pow(10, -0.1 / 20)) < 2e-3, 'normalize to -0.1 dBFS, got ' + peak);
-
-  // mono downmix halves the channel count
-  const mono = processBuffer(dec, { channels: 'mono', normalize: false, gainDb: 0,
-    trim: false, fadeInMs: 0, fadeOutMs: 0 });
-  assert(mono.channels.length === 1, 'mono downmix');
-
-  // gain -6 dB ≈ ×0.501
-  const g = processBuffer(dec, { channels: 'keep', normalize: false, gainDb: -6,
-    trim: false, fadeInMs: 0, fadeOutMs: 0 });
-  assert(Math.abs(g.channels[0][N - 1] / dec.channels[0][N - 1] - 0.5012) < 1e-3, 'gain -6dB');
-
-  // trim: silence outside [1000,5000], constant 0.4 inside → 4001 frames, with
-  // the default (relative-to-peak) threshold; cut edges de-clicked to zero and
-  // the interior left intact.
-  const M = 6000, body = new Float32Array(M);
-  for (let i = 1000; i <= 5000; i++) body[i] = 0.4;
-  const tr = processBuffer({ channels: [body], rate }, { channels: 'keep', normalize: false,
-    gainDb: 0, trim: true, fadeInMs: 0, fadeOutMs: 0 });
-  assert(tr.channels[0].length === 4001, 'trim 1000..5000 -> 4001 frames, got ' + tr.channels[0].length);
-  assert(tr.channels[0][0] === 0 && tr.channels[0][4000] === 0, 'trim de-clicks both edges to 0');
-  assert(Math.abs(tr.channels[0][2000] - 0.4) < 1e-6, 'trim keeps the interior intact');
-
-  // relative threshold: a −54 dBFS tail (below the old fixed −48) is preserved,
-  // because the threshold tracks the sample's peak (would be 1500 with −48 dB).
-  const q = new Float32Array(2000);
-  for (let i = 0; i < 1500; i++) q[i] = 0.5;          // loud body
-  for (let i = 1500; i < 1800; i++) q[i] = 0.002;     // ≈ −54 dBFS tail (kept)
-  const qt = processBuffer({ channels: [q], rate }, { channels: 'keep', normalize: false,
-    gainDb: 0, trim: true, fadeInMs: 0, fadeOutMs: 0 });
-  assert(qt.channels[0].length === 1800, 'relative trim keeps the quiet tail, got ' + qt.channels[0].length);
-
-  // fade in zeroes the first sample
-  const fd = processBuffer({ channels: [a.slice()], rate }, { channels: 'keep',
-    normalize: false, gainDb: 0, trim: false, fadeInMs: 1, fadeOutMs: 0 });
-  assert(fd.channels[0][0] === 0, 'fade-in zeroes first sample');
-
-  console.log('audioTools self-test: OK');
 }
