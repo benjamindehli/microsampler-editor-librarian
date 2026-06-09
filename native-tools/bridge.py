@@ -712,7 +712,9 @@ class MockDevice(Device):
                 'effect': {'type': self._effect['type'],
                            'knobs': list(self._effect['knobs']),
                            'params': list(self._effect['params'])},
-                'seq_lengths': [4] * 16}
+                # empty patterns store 0xFF (init fill) like the real device,
+                # so the meter must treat 0xFF as 0; here 4 recorded patterns.
+                'seq_lengths': [4, 4, 4, 4] + [0xFF] * 12}
 
     def download_wav(self, slot):
         s = self._slots.get(slot)
