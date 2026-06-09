@@ -1,0 +1,14 @@
+# Ruff — bug-focused linting for the Python tools. Dev/CI only; NOT a runtime
+# dependency (the app's only runtime deps remain pyusb + libusb). MIT licensed.
+#
+#   ruff check        # from the repo root
+#
+# Pinned to Python 3.8 — the oldest interpreter we support (see README) — so it
+# never suggests 3.9+ syntax. This is a bug catcher, not a style enforcer:
+# pyflakes (F: undefined names, unused imports/vars), syntax errors (E9), and
+# the high-signal flake8-bugbear (B) checks. Line-length / formatting nits are
+# intentionally left off to avoid churning the existing, deliberate style.
+target-version = "py38"
+
+[lint]
+select = ["F", "E9", "B"]

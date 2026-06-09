@@ -1,10 +1,10 @@
 // 36-slot pad grid: rendering, selection, device note-play, WAV drop.
-import { $, esc, api, jsonBody } from './util.js';
+import { openUpload } from './dialogs.js';
+import { showSlot } from './slot.js';
+import { openSlotOp } from './slotops.js';
 import { state } from './state.js';
 import { tick } from './ticker.js';
-import { showSlot } from './slot.js';
-import { openUpload } from './dialogs.js';
-import { openSlotOp } from './slotops.js';
+import { $, api, esc, jsonBody } from './util.js';
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 

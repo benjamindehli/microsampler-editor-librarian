@@ -1,9 +1,9 @@
 // Slot editor header: name LCD, info chips, start/end readout, control init.
-import { $, esc, fmtSigned } from './util.js';
-import { slotData } from './state.js';
-import { setSwitch, setSeg, setFader, tuneDisplay, fmtLevel, fmtPan }
+import { fmtLevel, fmtPan, setFader, setSeg, setSwitch, tuneDisplay }
   from './controls.js';
 import { noteName } from './pads.js';
+import { slotData } from './state.js';
+import { $, esc, fmtSigned } from './util.js';
 import { loadWave } from './waveform.js';
 
 export async function showSlot(i, { keepWave = false } = {}) {

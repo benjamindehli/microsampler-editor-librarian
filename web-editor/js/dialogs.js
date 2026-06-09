@@ -1,15 +1,15 @@
 // Upload + rename dialogs, incl. the upload memory pre-flight, and the
 // editor-panel WAV drop target.
-import { $, api, apiJson, jsonBody } from './util.js';
-import { state, slotData } from './state.js';
-import { tick } from './ticker.js';
-import { noteName, renderPads } from './pads.js';
-import { showSlot } from './slot.js';
 import { refreshBank } from './app.js';
-import { MEM_SMPL_TOTAL, memBlk, slotDevBytes, sampleMemUsage, fmtMem }
+import { decodeWavPcm, encodeWav, processBuffer, toolsActive } from './audioTools.js';
+import { fmtMem, MEM_SMPL_TOTAL, memBlk, sampleMemUsage, slotDevBytes }
   from './meter.js';
+import { noteName, renderPads } from './pads.js';
 import { forgetSample } from './sampleLoad.js';
-import { decodeWavPcm, processBuffer, encodeWav, toolsActive } from './audioTools.js';
+import { showSlot } from './slot.js';
+import { slotData, state } from './state.js';
+import { tick } from './ticker.js';
+import { $, api, apiJson, jsonBody } from './util.js';
 
 // the selected file decoded to float channels (null if not a PCM WAV we can
 // process) and its raw bytes — both cached so OK doesn't re-read the file.

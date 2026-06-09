@@ -1,9 +1,9 @@
 // UX polish: keyboard shortcuts, accent-colour theming, help overlay.
-import { $ } from './util.js';
-import { state, slotData } from './state.js';
-import { selectSlot } from './pads.js';
-import { undo, redo } from './controls.js';
 import { refreshBank } from './app.js';
+import { redo, undo } from './controls.js';
+import { selectSlot } from './pads.js';
+import { slotData, state } from './state.js';
+import { $ } from './util.js';
 
 // ── accent theming (CSS custom props on :root, persisted) ────────────────
 // Only the three RGB triplets are overridden — every accent surface (glows,

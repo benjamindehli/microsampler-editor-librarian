@@ -6,8 +6,8 @@
 // unlike the bank slot objects — PERSISTS across refreshBank(); reapplyFormats()
 // re-stamps it onto the fresh bank so a focus re-sync doesn't lose load state
 // or reset the meter (was bug: meter reverted + "MEASURE" reappeared on focus).
+import { slotData, state } from './state.js';
 import { api, wavFormat } from './util.js';
-import { state, slotData } from './state.js';
 
 export async function loadSampleAudio(i) {
   if (state.buffers.has(i)) return state.buffers.get(i);   // already loaded

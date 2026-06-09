@@ -1,21 +1,22 @@
 // microSAMPLER Editor / Librarian — entry module.
 // Talks to the local bridge (same origin). Live edits = POST /api/param with
 // the hardware-verified 3-value Parameter Change (obj = 16 + slot).
-import { $, apiJson } from './util.js';
-import { state } from './state.js';
-import { tick } from './ticker.js';
-import { renderPads } from './pads.js';
-import { renderMeter } from './meter.js';
-import { showSlot } from './slot.js';
-import { reapplyFormats } from './sampleLoad.js';
-import { fxFromBank, renderFx } from './effect.js';
-import { loadBackups } from './utility.js';
-import { subscribeEvents } from './events.js';
 import './waveform.js';     // wires marker drag, audition, resize redraw
 import './dialogs.js';      // wires upload/rename dialogs + editor drop
 import './patterns.js';     // wires the patterns view
 import './slotops.js';      // wires copy/swap drop + clear button
 import './ux.js';           // keyboard shortcuts, theming, help overlay
+
+import { fxFromBank, renderFx } from './effect.js';
+import { subscribeEvents } from './events.js';
+import { renderMeter } from './meter.js';
+import { renderPads } from './pads.js';
+import { reapplyFormats } from './sampleLoad.js';
+import { showSlot } from './slot.js';
+import { state } from './state.js';
+import { tick } from './ticker.js';
+import { $, apiJson } from './util.js';
+import { loadBackups } from './utility.js';
 
 async function boot() {
   let st;

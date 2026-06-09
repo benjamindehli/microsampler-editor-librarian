@@ -1,8 +1,8 @@
 // UTILITY view: backup list, restore dialog, background-op console.
-import { $, esc, apiJson, jsonBody } from './util.js';
+import { refreshBank } from './app.js';
 import { state } from './state.js';
 import { tick } from './ticker.js';
-import { refreshBank } from './app.js';
+import { $, apiJson, esc, jsonBody } from './util.js';
 
 export async function loadBackups() {
   const { backups } = await apiJson('/api/backups');

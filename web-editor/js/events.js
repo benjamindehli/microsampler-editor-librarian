@@ -1,12 +1,12 @@
 // SSE feed from the bridge: routes device events to the right component.
-import { $, fmtSigned } from './util.js';
-import { state } from './state.js';
-import { tick } from './ticker.js';
-import { PARAM, BIPOLAR, dec14, tuneDisplay, reflect, cacheParam }
+import { BIPOLAR, cacheParam, dec14, PARAM, reflect, tuneDisplay }
   from './controls.js';
 import { FX_OBJ, fxReflect, onCC } from './effect.js';
-import { onOpEvent } from './utility.js';
 import { onPatternsProgress } from './patterns.js';
+import { state } from './state.js';
+import { tick } from './ticker.js';
+import { $, fmtSigned } from './util.js';
+import { onOpEvent } from './utility.js';
 
 export function subscribeEvents() {
   const es = new EventSource('/api/events');
