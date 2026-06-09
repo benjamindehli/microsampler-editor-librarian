@@ -79,7 +79,7 @@ jobs:
           ruff check native-tools tools
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"   # ESLint 10 needs ^20.19 || ^22.13 || >=24
       - name: ESLint (js)
         run: |
           npm install
