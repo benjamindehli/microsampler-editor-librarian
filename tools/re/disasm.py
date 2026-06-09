@@ -84,7 +84,7 @@ def cstr(addr):
 
 def read_const(addr, n):
     """Read n bytes from whichever section contains vmaddr `addr`."""
-    for (sg, sn), (ad, of, sz) in secs.items():
+    for (_sg, _sn), (ad, of, sz) in secs.items():
         if ad <= addr < ad + sz:
             o = base + of + (addr - ad)
             return data[o:o + n]

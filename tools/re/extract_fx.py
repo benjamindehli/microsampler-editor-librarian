@@ -25,7 +25,6 @@ Usage:  /tmp/revenv/bin/python tools/re/extract_fx.py   (needs capstone venv +
 import json
 import os
 import re
-import struct
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -42,7 +41,7 @@ MEMSET, STRING_C1 = 0x3a0606, 0xa4614
 
 
 def cstr(addr):
-    for (seg, sec), (a, o, s) in D.secs.items():
+    for (_seg, sec), (a, o, s) in D.secs.items():
         if sec == '__cstring' and a <= addr < a + s:
             raw = D.data[D.base + o + (addr - a):D.base + o + (addr - a) + 96]
             return raw.split(b'\0')[0].decode('latin1')

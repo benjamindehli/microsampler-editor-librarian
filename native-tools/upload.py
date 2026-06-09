@@ -30,12 +30,12 @@ Usage:
   sudo python3 upload.py kick.wav 35 --params sample00.param.bin
   python3 upload.py kick.wav 35 --dry-run
 """
-import argparse, os, sys, time, wave
+import argparse, os, sys, wave
 from array import array
 
 from msusb import MicroSampler, _hex
 import protocol as P
-from download import (DownloadError, _drain, _wait_korg_reply,
+from download import (_drain, _wait_korg_reply,
                       fetch_header, fetch_pcm, fetch_params)
 
 RATES = (48000, 24000, 12000, 6000)

@@ -35,8 +35,8 @@ def main():
             pass
         # ODC fields: dev(6) ino(6) mode(6) uid(6) gid(6) nlink(6) rdev(6)
         # mtime(11) namesize(6) filesize(11)
-        dev = field(6); ino = field(6); mode = field(6); uid = field(6)
-        gid = field(6); nlink = field(6); rdev = field(6); mtime = field(11)
+        _dev = field(6); _ino = field(6); mode = field(6); _uid = field(6)
+        _gid = field(6); _nlink = field(6); _rdev = field(6); _mtime = field(11)
         namesize = field(6); filesize = field(11)
         name = data[pos:pos + namesize - 1].decode('utf-8', 'replace'); pos += namesize
         fdata = data[pos:pos + filesize]; pos += filesize

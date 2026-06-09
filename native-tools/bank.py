@@ -39,7 +39,7 @@ Usage (sudo: CoreMIDI owns the interface):
   sudo python3 bank.py restore bank_current   # directory -> current bank (RAM)
   sudo python3 bank.py restore mybackup -b 8  # directory -> user bank 8 (FLASH)
 """
-import argparse, array, json, os, sys, time, wave
+import argparse, array, json, os, sys, wave
 
 from msusb import MicroSampler, _hex
 import protocol as P
