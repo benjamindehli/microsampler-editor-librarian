@@ -64,3 +64,23 @@ jobs:
             console.log('fxData:', m.FX_TYPES.length, 'fx types'));"
       - name: audio-tools DSP self-test
         run: node web-editor/js/audioTools.js
+
+  lint:
+    name: lint (ruff + eslint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Ruff (python)
+        run: |
+          pip install 'ruff==0.15.*'
+          ruff check native-tools tools
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: ESLint (js)
+        run: |
+          npm install
+          npm run lint:js
