@@ -62,3 +62,5 @@ jobs:
             console.log('valueTables:', Object.keys(m.VALUE_TABLES).length, 'tables'));
           import('./web-editor/js/fxData.js').then(m =>
             console.log('fxData:', m.FX_TYPES.length, 'fx types'));"
+      - name: audio-tools DSP self-test
+        run: node web-editor/js/audioTools.js
