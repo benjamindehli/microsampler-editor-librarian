@@ -1,9 +1,9 @@
 // Sample parameter controls: live-edit ids, value encodings, the control
 // strip wiring, and panel-edit reflection.
-import { VALUE_TABLES } from './valueTables.js';
-import { $, api, fmtSigned, jsonBody } from './util.js';
 import { state } from './state.js';
 import { tick } from './ticker.js';
+import { $, api, fmtSigned, jsonBody } from './util.js';
+import { VALUE_TABLES } from './valueTables.js';
 
 // Live-edit param ids — HARDWARE-CONFIRMED 2026-06-06 by panel-knob capture
 // (the editor binary's converter table did NOT match the device's actual

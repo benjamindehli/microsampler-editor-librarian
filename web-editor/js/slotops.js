@@ -1,12 +1,12 @@
 // Slot operations: copy / swap (pad drag-and-drop) + clear (editor button).
 // All run device-side in the bridge (no audio round-trips through the browser).
-import { $, api, apiJson, jsonBody } from './util.js';
-import { state, slotData } from './state.js';
-import { tick } from './ticker.js';
-import { forgetSample } from './sampleLoad.js';
 import { refreshBank } from './app.js';
 import { noteName } from './pads.js';
+import { forgetSample } from './sampleLoad.js';
 import { showSlot } from './slot.js';
+import { slotData, state } from './state.js';
+import { tick } from './ticker.js';
+import { $, apiJson, jsonBody } from './util.js';
 
 const padLabel = i => `PAD ${i + 1} (${noteName(i)})`;
 const nameOf = i => { const s = slotData(i); return s.empty ? 'empty' : s.name; };

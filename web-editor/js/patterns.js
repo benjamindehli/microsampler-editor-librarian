@@ -1,7 +1,7 @@
 // PATTERNS view: receive, piano-roll cards, .mid export/import, init.
-import { $, esc, apiJson } from './util.js';
 import { state } from './state.js';
 import { tick } from './ticker.js';
+import { $, apiJson, esc } from './util.js';
 
 let loadingPatterns = false;
 let lastPatterns = null;            // for recolouring the rolls on theme change

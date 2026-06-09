@@ -6,12 +6,12 @@
 // 0x800-block-rounded size). Sample sizes are exact once a slot's WAV has
 // been seen (frames+channels known); otherwise estimated from the END point
 // assuming stereo, flagged "≈" with a MEASURE button to fetch the rest.
-import { $ } from './util.js';
+import { renderPads } from './pads.js';
+import { loadSampleAudio } from './sampleLoad.js';
+import { renderChips } from './slot.js';
 import { state } from './state.js';
 import { tick } from './ticker.js';
-import { renderChips } from './slot.js';
-import { loadSampleAudio } from './sampleLoad.js';
-import { renderPads } from './pads.js';
+import { $ } from './util.js';
 
 export const MEM_SMPL_TOTAL = 0xEA0000;
 export const MEM_PTRN_TOTAL = 0x60000;

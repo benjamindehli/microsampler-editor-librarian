@@ -2,12 +2,12 @@
 // the two assignable-knob targets, 16+i = effect param i. Wire VALUE =
 // display value (negatives travel as signed 14-bit, like sample params);
 // the bank blob stores byte = display + descriptor center.
-import { VALUE_TABLES } from './valueTables.js';
-import { FX_TYPES, FX_TABLES_EXTRA } from './fxData.js';
-import { $, esc, api, fmtSigned, jsonBody } from './util.js';
+import { dec14 } from './controls.js';
+import { FX_TABLES_EXTRA, FX_TYPES } from './fxData.js';
 import { state } from './state.js';
 import { tick } from './ticker.js';
-import { dec14 } from './controls.js';
+import { $, api, esc, fmtSigned, jsonBody } from './util.js';
+import { VALUE_TABLES } from './valueTables.js';
 
 export const FX_OBJ = 80;
 
