@@ -76,7 +76,7 @@ jobs:
       - name: Ruff (python)
         run: |
           pip install 'ruff==0.15.*'
-          ruff check native-tools tools
+          ruff check
       - uses: actions/setup-node@v4
         with:
           node-version: "22"   # ESLint 10 needs ^20.19 || ^22.13 || >=24
@@ -84,3 +84,20 @@ jobs:
         run: |
           npm install
           npm run lint:js
+
+  e2e:
+    name: e2e smoke (playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Playwright + Chromium
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+      # smoke.py boots the mock bridge itself, drives the app headless, and
+      # fails on any page/console error or broken core interaction
+      - name: Browser smoke (mock device)
+        run: python e2e/smoke.py
