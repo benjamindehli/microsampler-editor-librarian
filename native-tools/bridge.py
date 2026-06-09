@@ -342,7 +342,34 @@ class Device:
         return {'a': a, 'b': b}
 
     def clear_sample(self, slot):
-        return self.write_sample(slot, {'empty': True})
+        """Empty a slot in the current bank (RAM) using two VERBATIM proven
+        flows, each in its own inquired session (no novel intra-session
+        ordering):
+          1. 0-size header — frees the audio (the old clear; confirmed to free
+             the data on hardware).
+          2. the exact rename()/set_points() param-write — fetch the blob
+             (func 0x14), blank the name + zero START/END, write back (func
+             0x44). END==0 is the bank's emptiness marker (@0x10); the header
+             alone leaves END/name stale, so the bank kept reporting the slot
+             as a non-empty sample and the GUI showed the old name. The 0x44
+             only lands when a func 0x14 fetch precedes it in the SAME clean
+             session — which is why an earlier "header then 0x44" attempt
+             didn't reset the param. Step 2 runs last so END=0 is the final
+             state."""
+        # 1. free the audio data (own session)
+        self.write_sample(slot, {'empty': True})
+        # 2. reset the param blob (own session, identical to rename())
+        with self.lock:
+            self._inquire()
+            par = DL.fetch_params(self.ms, self.channel, slot)
+            blob = bytearray(par['raw'])
+            blob[0x00:0x08] = b'INITSMPL'                 # device init-slot name
+            blob[0x20:0x40] = b'\xff' * 0x20              # clear long name
+            blob[0x0c:0x14] = bytes(8)                    # START + END = 0
+            self.ms.send_sysex(P.sample_param_send(self.channel, slot, bytes(blob)))
+            DL._wait_korg_reply(self.ms, P.UPLOAD_DATA_OK, P.UPLOAD_DATA_ERR,
+                                what='clear param ACK (func 0x44)')
+        return {'slot': slot, 'empty': True}
 
     def set_effect(self, fx_type, knobs, params):
         """Apply a whole effect preset in ONE lock grab (object 80): FX type

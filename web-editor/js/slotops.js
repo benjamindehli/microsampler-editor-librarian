@@ -6,6 +6,7 @@ import { tick } from './ticker.js';
 import { forgetSample } from './sampleLoad.js';
 import { refreshBank } from './app.js';
 import { noteName } from './pads.js';
+import { showSlot } from './slot.js';
 
 const padLabel = i => `PAD ${i + 1} (${noteName(i)})`;
 const nameOf = i => { const s = slotData(i); return s.empty ? 'empty' : s.name; };
@@ -49,11 +50,15 @@ $('#clear-btn').onclick = async () => {
   if (s.empty) return;
   if (!confirm(`Clear ${padLabel(state.sel)} ("${s.name}")?\n\n` +
                `Empties the slot in the device's current bank (RAM).`)) return;
-  forgetSample(state.sel);
+  const sel = state.sel;
+  forgetSample(sel);
   try {
-    await apiJson(`/api/sample/${state.sel}/clear`, { method: 'POST' });
-    tick(`🗑 cleared S${state.sel + 1}`);
+    await apiJson(`/api/sample/${sel}/clear`, { method: 'POST' });
+    tick(`🗑 cleared S${sel + 1}`);
     await refreshBank();
+    // refreshBank redraws with keepWave (keeps the canvas); force a full
+    // reload so the now-empty slot's stale waveform is cleared too.
+    if (state.sel === sel) await showSlot(sel);
   } catch (e) {
     tick(`⚠ clear failed: ${e.message}`);
     alert('Clear failed: ' + e.message);
