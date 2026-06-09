@@ -18,6 +18,8 @@ This app covers everything the original did, plus a few things it didn't.
   - WAV download/upload (auto-resample to 48/24/12/6 kHz)
   - Live editing of all sample parameters
   - Draggable START/END markers on the waveform
+  - Zoomable / pannable waveform (scroll to zoom, drag to pan) for
+    sample-accurate trimming
   - Renaming banks and samples
   - Device memory meters
 - **EFFECT**:
