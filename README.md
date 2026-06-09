@@ -95,6 +95,14 @@ python3 protocol.py && python3 test_download.py && python3 test_upload.py \
 
 The app needs **no build step** to develop or run — it's plain ES modules and per-component CSS served straight from `web-editor/`.
 
+End-to-end browser smoke (boots the mock bridge, drives the app headless, fails
+on any page/console error or broken interaction):
+
+```bash
+pip install playwright && playwright install chromium
+python3 e2e/smoke.py        # reuses a bridge already on the port, else starts a mock one
+```
+
 ### Linting
 
 Bug-focused linters (dev-only; not runtime dependencies) keep the no-build code
