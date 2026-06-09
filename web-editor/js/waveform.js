@@ -1,6 +1,6 @@
 // Waveform screen: lazy WAV load, peak rendering, zoom/pan, start/end marker
 // dragging, browser-side audition.
-import { $, api } from './util.js';
+import { $, api, jsonBody } from './util.js';
 import { state, slotData } from './state.js';
 import { tick } from './ticker.js';
 import { renderPoints, renderChips, renderMetaFmt } from './slot.js';
@@ -259,10 +259,7 @@ wave.addEventListener('dblclick', () => { fitView(); redrawZoom(); });
     if (mode === 'pan') return;                   // panning sends nothing
     const i = state.sel, s = slotData(i);
     try {
-      await api(`/api/sample/${i}/points`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ start: s.start, end: s.end }),
-      });
+      await api(`/api/sample/${i}/points`, jsonBody({ start: s.start, end: s.end }));
       tick(`→ S${i + 1} points ${s.start.toLocaleString()}…${s.end.toLocaleString()}`);
     } catch (e) { tick(`⚠ points failed: ${e.message}`); }
   };

@@ -26,6 +26,7 @@ API (JSON unless noted):
   GET  /api/events            text/event-stream of incoming parameter changes
 """
 import argparse
+import copy
 import io
 import json
 import math
@@ -482,7 +483,7 @@ class Device:
 
     def upload_wav(self, slot, wav_bytes, name, tempo):
         chans, rate = UL.load_wav(io.BytesIO(wav_bytes))
-        target = min((48000, 24000, 12000, 6000), key=lambda r: abs(r - rate))
+        target = min(UL.RATES, key=lambda r: abs(r - rate))
         pcm, frames = UL.to_device_pcm(chans, rate, target)
         blob = P.build_param_blob(name, name, 0, frames)
         with self.lock:
@@ -579,9 +580,8 @@ class MockDevice(Device):
         self._last_note = (int(slot), bool(on), int(velocity))
 
     def copy_sample(self, frm, to):
-        import copy as _c
         if frm in self._slots:
-            self._slots[to] = _c.deepcopy(self._slots[frm])
+            self._slots[to] = copy.deepcopy(self._slots[frm])
         else:
             self._slots.pop(to, None)
         return {'slot': to, 'empty': frm not in self._slots}
@@ -757,7 +757,7 @@ class MockDevice(Device):
 
     def upload_wav(self, slot, wav_bytes, name, tempo):
         chans, rate = UL.load_wav(io.BytesIO(wav_bytes))
-        target = min((48000, 24000, 12000, 6000), key=lambda r: abs(r - rate))
+        target = min(UL.RATES, key=lambda r: abs(r - rate))
         pcm, frames = UL.to_device_pcm(chans, rate, target)
         # store as LE mono mixdown of channel 0 for simplicity
         le = bytearray(pcm)

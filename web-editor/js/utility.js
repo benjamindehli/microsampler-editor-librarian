@@ -1,5 +1,5 @@
 // UTILITY view: backup list, restore dialog, background-op console.
-import { $, esc, apiJson } from './util.js';
+import { $, esc, apiJson, jsonBody } from './util.js';
 import { state } from './state.js';
 import { tick } from './ticker.js';
 import { refreshBank } from './app.js';
@@ -91,10 +91,7 @@ function openRestore(b) {
     opPrint(`starting restore of ${b.dir}…`, { reset: true });
     setOpRunning(true);
     try {
-      await apiJson('/api/restore', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dir: b.dir, bank }),
-      });
+      await apiJson('/api/restore', jsonBody({ dir: b.dir, bank }));
     } catch (err2) {
       opPrint('ERROR: ' + err2.message, { err: true });
       setOpRunning(false);

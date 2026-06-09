@@ -1,5 +1,5 @@
 // 36-slot pad grid: rendering, selection, device note-play, WAV drop.
-import { $, esc, api } from './util.js';
+import { $, esc, api, jsonBody } from './util.js';
 import { state } from './state.js';
 import { tick } from './ticker.js';
 import { showSlot } from './slot.js';
@@ -57,10 +57,7 @@ export function renderPads() {
     if (down == null) return;
     const slot = down;
     down = null;
-    api('/api/note', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slot, on: false }),
-    }).catch(() => { });
+    api('/api/note', jsonBody({ slot, on: false })).catch(() => { });
   };
   grid.addEventListener('pointerdown', e => {
     const play = e.target.closest('.pad-play');
@@ -70,10 +67,8 @@ export function renderPads() {
     const slot = +play.closest('.pad').dataset.slot;
     down = slot;
     play.closest('.pad').classList.add('sounding');
-    api('/api/note', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slot, on: true, velocity: 100 }),
-    }).catch(err => tick(`⚠ note failed: ${err.message}`));
+    api('/api/note', jsonBody({ slot, on: true, velocity: 100 }))
+      .catch(err => tick(`⚠ note failed: ${err.message}`));
   });
   for (const ev of ['pointerup', 'pointercancel']) {
     window.addEventListener(ev, () => {
