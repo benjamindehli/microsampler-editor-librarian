@@ -1,0 +1,102 @@
+// Unit tests for the pure upload-audio DSP (web-editor/js/audioTools.js).
+// Built-in node:test — no deps. Run: node --test test/  (or: npm test)
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+import { decodeWavPcm, encodeWav, processBuffer, toolsActive }
+  from '../web-editor/js/audioTools.js';
+
+const RATE = 48000;
+const NOOP = { channels: 'keep', normalize: false, trim: false, gainDb: 0,
+               fadeInMs: 0, fadeOutMs: 0 };
+const peakOf = chans => Math.max(...chans.map(c => Math.max(...c.map(Math.abs))));
+
+test('encode → decode round-trips shape and values (16-bit)', () => {
+  const N = 1000;
+  const a = Float32Array.from({ length: N }, (_, i) => (i / N) * 0.5);
+  const b = new Float32Array(N); b[500] = 0.25;
+  const dec = decodeWavPcm(encodeWav([a, b], RATE));
+  assert.equal(dec.channels.length, 2);
+  assert.equal(dec.channels[0].length, N);
+  assert.equal(dec.rate, RATE);
+  // 16-bit quantisation: within ~1 LSB
+  assert.ok(Math.abs(dec.channels[0][N - 1] - a[N - 1]) < 1 / 32768 + 1e-6);
+  assert.ok(Math.abs(dec.channels[1][500] - 0.25) < 1 / 32768 + 1e-6);
+});
+
+test('decodeWavPcm rejects non-PCM / malformed input', () => {
+  assert.equal(decodeWavPcm(new ArrayBuffer(10)), null);              // too short
+  const wav = encodeWav([new Float32Array(8)], RATE);
+  const dv = new DataView(wav);
+  dv.setUint16(20, 3, true);                                          // format 3 = float
+  assert.equal(decodeWavPcm(wav), null);
+});
+
+test('normalize brings the peak to -0.1 dBFS', () => {
+  const src = { channels: [Float32Array.from({ length: 100 }, () => 0.5)], rate: RATE };
+  const out = processBuffer(src, { ...NOOP, normalize: true });
+  assert.ok(Math.abs(peakOf(out.channels) - Math.pow(10, -0.1 / 20)) < 2e-3);
+});
+
+test('gain -6 dB scales by ~0.501', () => {
+  const src = { channels: [Float32Array.from({ length: 50 }, () => 0.4)], rate: RATE };
+  const out = processBuffer(src, { ...NOOP, gainDb: -6 });
+  assert.ok(Math.abs(out.channels[0][10] / 0.4 - 0.5012) < 1e-3);
+});
+
+test('mono downmix averages two channels into one', () => {
+  const l = Float32Array.from({ length: 10 }, () => 0.8);
+  const r = Float32Array.from({ length: 10 }, () => 0.2);
+  const out = processBuffer({ channels: [l, r], rate: RATE }, { ...NOOP, channels: 'mono' });
+  assert.equal(out.channels.length, 1);
+  assert.ok(Math.abs(out.channels[0][0] - 0.5) < 1e-6);
+});
+
+test('stereo from mono duplicates the channel', () => {
+  const m = Float32Array.from({ length: 10 }, (_, i) => i / 10);
+  const out = processBuffer({ channels: [m], rate: RATE }, { ...NOOP, channels: 'stereo' });
+  assert.equal(out.channels.length, 2);
+  assert.deepEqual([...out.channels[0]], [...out.channels[1]]);
+});
+
+test('trim removes silence, de-clicks the cut edges, keeps the interior', () => {
+  const M = 6000, body = new Float32Array(M);
+  for (let i = 1000; i <= 5000; i++) body[i] = 0.4;
+  const out = processBuffer({ channels: [body], rate: RATE }, { ...NOOP, trim: true });
+  assert.equal(out.channels[0].length, 4001);
+  assert.equal(out.channels[0][0], 0);              // head de-click → 0
+  assert.equal(out.channels[0][4000], 0);           // tail de-click → 0
+  assert.ok(Math.abs(out.channels[0][2000] - 0.4) < 1e-6);  // interior intact
+});
+
+test('trim threshold is relative to peak (keeps a quiet -54 dBFS tail)', () => {
+  const q = new Float32Array(2000);
+  for (let i = 0; i < 1500; i++) q[i] = 0.5;        // loud body
+  for (let i = 1500; i < 1800; i++) q[i] = 0.002;   // ~ -54 dBFS (kept; a fixed
+  //                                                    -48 dB gate would cut it)
+  const out = processBuffer({ channels: [q], rate: RATE }, { ...NOOP, trim: true });
+  assert.equal(out.channels[0].length, 1800);
+});
+
+test('fade-in ramps from zero (raised cosine)', () => {
+  const a = Float32Array.from({ length: 1000 }, () => 0.5);
+  const out = processBuffer({ channels: [a], rate: RATE }, { ...NOOP, fadeInMs: 1 });
+  assert.equal(out.channels[0][0], 0);
+  assert.ok(out.channels[0][47] > 0 && out.channels[0][47] < 0.5);  // mid-ramp
+});
+
+test('toolsActive reflects whether any tool would change the audio', () => {
+  assert.equal(toolsActive(NOOP), false);
+  assert.equal(toolsActive({ ...NOOP, normalize: true }), true);
+  assert.equal(toolsActive({ ...NOOP, channels: 'mono' }), true);
+  assert.equal(toolsActive({ ...NOOP, gainDb: -3 }), true);
+  assert.equal(toolsActive({ ...NOOP, trim: true }), true);
+  assert.equal(toolsActive({ ...NOOP, fadeOutMs: 10 }), true);
+});
+
+test('processBuffer does not mutate its input', () => {
+  const src = { channels: [Float32Array.from({ length: 20 }, () => 0.5)], rate: RATE };
+  const before = [...src.channels[0]];
+  processBuffer(src, { ...NOOP, gainDb: 6, normalize: true });
+  assert.deepEqual([...src.channels[0]], before);
+});

@@ -93,6 +93,13 @@ python3 protocol.py && python3 test_download.py && python3 test_upload.py \
   && python3 test_bank.py && python3 test_bridge.py
 ```
 
+JavaScript unit tests for the pure modules (audio DSP + value encoders), via
+Node's built-in test runner (no deps):
+
+```bash
+npm test        # node --test test/*.test.mjs
+```
+
 The app needs **no build step** to develop or run — it's plain ES modules and per-component CSS served straight from `web-editor/`.
 
 End-to-end browser smoke (boots the mock bridge, drives the app headless, fails
