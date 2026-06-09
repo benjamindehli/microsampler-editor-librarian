@@ -71,6 +71,15 @@
     repeating-linear-gradient(180deg, rgba(255,255,255,.012) 0 1px, transparent 1px 3px),
     linear-gradient(165deg, rgba(255,255,255,.05), transparent 30%);
 }
+/* audition playhead — a thin glowing line that tracks browser playback,
+   moved via requestAnimationFrame (no canvas redraw) */
+.playhead {
+  position: absolute; top: 0; bottom: 0; width: 2px; left: 0; z-index: 2;
+  margin-left: -1px; pointer-events: none;
+  background: #fff;                                  /* bright core reads on any
+                                                        theme + over the wave */
+  box-shadow: 0 0 7px 1px rgba(var(--amber-rgb), .9);  /* themed glow */
+}
 /* zoom controls overlaying the waveform (top-right) */
 .wave-zoom {
   position: absolute; top: 8px; right: 8px; z-index: 3;

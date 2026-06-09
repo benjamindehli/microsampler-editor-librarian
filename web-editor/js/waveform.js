@@ -268,6 +268,30 @@ wave.addEventListener('dblclick', () => { fitView(); redrawZoom(); });
 }
 
 // ───────────────────────────────────────────────────────────── audition ──
+// playhead: a thin line over the canvas tracking the browser-audition position.
+// Driven by rAF off the AudioContext clock, mapped through the zoom window
+// (buffer-sample space), so no canvas redraw is needed.
+let playRAF = null;
+function stopPlayhead() {
+  if (playRAF) cancelAnimationFrame(playRAF);
+  playRAF = null;
+  $('#playhead').hidden = true;
+}
+function startPlayhead(buf, t0, t1) {
+  const ph = $('#playhead');
+  const startedAt = state.audio.currentTime;
+  const frame = () => {
+    if (!state.playing) return stopPlayhead();
+    const posSec = t0 + (state.audio.currentTime - startedAt);
+    if (posSec >= t1) return stopPlayhead();
+    const x = ((posSec * buf.sampleRate - view.v0) / view.vlen) * wave.clientWidth;
+    if (x < 0 || x > wave.clientWidth) ph.hidden = true;     // scrolled off (zoom)
+    else { ph.hidden = false; ph.style.left = x + 'px'; }
+    playRAF = requestAnimationFrame(frame);
+  };
+  playRAF = requestAnimationFrame(frame);
+}
+
 $('#audition-btn').onclick = () => {
   if (state.sel == null) return;
   const buf = state.buffers.get(state.sel);
@@ -276,7 +300,7 @@ $('#audition-btn').onclick = () => {
   const src = state.audio.createBufferSource();
   src.buffer = buf;
   src.connect(state.audio.destination);
-  src.onended = () => { state.playing = null; cap.textContent = '▶ PLAY'; };
+  src.onended = () => { state.playing = null; cap.textContent = '▶ PLAY'; stopPlayhead(); };
   const cap = $('#audition-btn .hw-btn-cap');
   cap.textContent = '■ STOP';
   // honor the START/END points like the hardware does. Points are DEVICE
@@ -287,6 +311,7 @@ $('#audition-btn').onclick = () => {
   const t1 = Math.min(buf.duration, ((s.end + 2) / total) * buf.duration);
   src.start(0, t0, Math.max(0.01, t1 - t0));
   state.playing = src;
+  startPlayhead(buf, t0, t1);
 };
 
 // keep the waveform crisp on window resizes — and recoloured on theme changes
