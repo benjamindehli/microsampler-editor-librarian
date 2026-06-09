@@ -38,7 +38,7 @@ assert bank['slots'][35]['empty'] is True
 e = bank['effect']
 assert e['type'] == 2 and e['knobs'] == [2, 3] and len(e['params']) == 32
 assert e['params'][0] == 100                       # Dry/Wet byte
-assert bank['seq_lengths'] == [4] * 16             # pattern storage units
+assert bank['seq_lengths'] == [4, 4, 4, 4] + [0xFF] * 12   # 0xFF = empty pattern
 
 # --- sample download -------------------------------------------------------------
 st, ct, data = req('GET', '/api/sample/0.wav')

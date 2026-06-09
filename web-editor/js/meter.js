@@ -41,8 +41,11 @@ export function renderMeter() {
   if (!state.bank) return;
   $('#mem-block').hidden = false;
   const { used, est } = sampleMemUsage();
+  // empty/unrecorded patterns store 0xFF in the seq-length byte (init fill),
+  // NOT a real 255-block length — treat it as 0 (else 16×255×0x200 ≈ 2 MB,
+  // which can't even fit the 384 KB pool).
   const ptrn = (state.bank.seq_lengths || [])
-    .reduce((a, b) => a + b * 0x200, 0);
+    .reduce((a, b) => a + (b === 0xFF ? 0 : b) * 0x200, 0);
   setMeter('smpl', used, MEM_SMPL_TOTAL, est);
   setMeter('ptrn', ptrn, MEM_PTRN_TOTAL, false);
   $('#mem-note').hidden = !est;
