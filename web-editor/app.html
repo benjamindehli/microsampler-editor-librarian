@@ -255,11 +255,17 @@
         </div>
       </div>
 
-      <!-- waveform screen -->
+      <!-- waveform screen — scroll to zoom, drag to pan, double-click to fit -->
       <div class="screen" id="screen">
         <canvas id="wave"></canvas>
         <div class="screen-status" id="wave-status">READING…</div>
         <div class="screen-glass"></div>
+        <div class="wave-zoom" id="wave-zoom" hidden>
+          <button class="wz-btn" id="wz-out" title="Zoom out">−</button>
+          <span class="wz-level" id="wz-level">1.0×</span>
+          <button class="wz-btn" id="wz-in" title="Zoom in">+</button>
+          <button class="wz-btn wz-fit" id="wz-fit" title="Fit whole sample (double-click waveform)">FIT</button>
+        </div>
       </div>
       <div class="screen-meta">
         <span id="meta-points">START 0 · END 0</span>
@@ -388,6 +394,9 @@
         audition); dim LED = used but not loaded yet. Hold <b>▶</b> (lower-right)
         to play the sample <i>on the device</i>. Drag a pad onto another to
         <b>copy / swap</b>; drop a <b>.wav</b> onto a pad to load it.</p>
+      <p><b>Waveform</b> — drag the <b>S</b>/<b>E</b> edges to set start/end.
+        <b>Scroll</b> to zoom, <b>drag</b> the body to pan, and
+        <b>double-click</b> (or <b>FIT</b>) to see the whole sample.</p>
       <p><b>RECEIVE</b> re-reads the bank from the device — use it after editing
         on the hardware (panel edits only reach the app while the device is on
         its sample-edit page). The app also auto-receives when you refocus the
