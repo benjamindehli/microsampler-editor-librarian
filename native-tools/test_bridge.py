@@ -281,9 +281,10 @@ assert used[1]['bpm_sync'] == 1 and used[1]['fx_sw'] is True
 assert used[1]['reverse'] is False
 assert real.ms.left_dump == 1                  # committed leave-dump-mode
 assert real.ms.selected is None                # no select session left open
-wavbytes = real.download_wav(0)
+wavbytes, wavtempo = real.download_wav(0)       # now returns (bytes, orig BPM)
 with wave.open(io.BytesIO(wavbytes)) as w:
     assert w.getnframes() == 64
+assert wavtempo is not None                     # orig BPM rides the header
 assert real.ms.selected is None                # PCM dump closed the session
 
 # a second bank summary must work back-to-back (no stranded state)

@@ -1,5 +1,6 @@
 // Waveform screen: lazy WAV load, peak rendering, zoom/pan, start/end marker
-// dragging, browser-side audition.
+// dragging, device audition + approximate playhead.
+import { tuneCents } from './controls.js';
 import { renderMeter } from './meter.js';
 import { loadSampleAudio } from './sampleLoad.js';
 import { renderChips, renderMetaFmt, renderPoints } from './slot.js';
@@ -288,12 +289,28 @@ export function stopAudition(sendNoteOff = true) {
   playing = false; playingSlot = null;
 }
 
+// playback-speed multiplier the device applies to a pad-played sample, so the
+// playhead sweeps at the right rate. BPM SYNC off → pitched by SEMITONE (±24)
+// + TUNE (±1 semitone, via cents); stretch/pitch-sync → time scales by the
+// bank BPM ÷ the sample's original BPM (orig BPM known only once the WAV has
+// loaded — falls back to 1 until then).
+function playbackSpeed(s) {
+  if ((s.bpm_sync || 0) === 0) {
+    const semis = (s.semitone || 0) + tuneCents(s.tune == null ? 64 : s.tune) / 100;
+    return 2 ** (semis / 12);
+  }
+  return (s.tempo_bpm && state.bank && state.bank.bpm)
+    ? state.bank.bpm / s.tempo_bpm : 1;
+}
+
 function startPlayhead(s) {
   const buf = state.buffers.get(playingSlot);
   if (!buf || !s.rate_hz || s.end <= s.start) return;   // unknown duration → no playhead
   const ph = $('#playhead');
   const total = s.frames || buf.length, n = buf.length;
-  const regionMs = ((s.end - s.start) / s.rate_hz) * 1000;
+  const speed = playbackSpeed(s) || 1;                  // faster pitch = shorter sweep
+  const regionMs = ((s.end - s.start) / s.rate_hz / speed) * 1000;
+  const rev = !!s.reverse;                              // REVERSE → sweep END→START
   let t0 = null;
   const frame = (ts) => {
     if (!playing) return;
@@ -303,7 +320,9 @@ function startPlayhead(s) {
       if (s.loop) { t0 = ts; elapsed = 0; }            // looping sample → repeat
       else return stopAudition();                      // one-shot finished
     }
-    const devFrame = s.start + (elapsed / regionMs) * (s.end - s.start);
+    const frac = regionMs > 0 ? elapsed / regionMs : 0;
+    const pos = rev ? 1 - frac : frac;
+    const devFrame = s.start + pos * (s.end - s.start);
     const x = (((devFrame / total) * n - view.v0) / view.vlen) * wave.clientWidth;
     if (x < 0 || x > wave.clientWidth) ph.hidden = true;   // scrolled off (zoom)
     else { ph.hidden = false; ph.style.left = x + 'px'; }

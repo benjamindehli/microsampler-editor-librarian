@@ -13,7 +13,11 @@ export async function loadSampleAudio(i) {
   if (state.buffers.has(i)) return state.buffers.get(i);   // already loaded
   const s = slotData(i);
   if (s.empty) return null;
-  const wav = await (await api(`/api/sample/${i}.wav`)).arrayBuffer();
+  const resp = await api(`/api/sample/${i}.wav`);
+  // sample's original BPM rides a response header (it's in the device sample
+  // header, not the bank blob) — used for the BPM chip + BPM-synced playhead
+  const tempo = parseFloat(resp.headers.get('X-Sample-Tempo'));
+  const wav = await resp.arrayBuffer();
   const byteLen = wav.byteLength;                 // read BEFORE decode —
   const fmt = wavFormat(wav.slice(0, 44));        // decodeAudioData may detach
   state.audio = state.audio || new AudioContext();
@@ -23,6 +27,7 @@ export async function loadSampleAudio(i) {
     const frames = Math.floor((byteLen - 44) / (fmt.channels * 2));
     const f = { rate_hz: fmt.rate, stereo: fmt.channels === 2,
                 frames, seconds: frames / fmt.rate };
+    if (tempo > 0) f.tempo_bpm = tempo;
     state.formats.set(i, f);
     Object.assign(s, f);
   }
