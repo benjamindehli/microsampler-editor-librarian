@@ -49,6 +49,10 @@ import upload as UL
 WEB_ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                          '..', 'web-editor'))
 BACKUP_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backups')
+# Folder of the user's own .wav files, browsable in the SAMPLES view and
+# droppable onto pads. Overridable with --library; defaults to native-tools/
+# library/ (gitignored — it's the user's audio, not part of the repo).
+LIBRARY_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'library')
 MIME = {'.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
         '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml',
         '.wav': 'audio/wav', '.webp': 'image/webp', '.jpg': 'image/jpeg',
@@ -1028,6 +1032,41 @@ def list_backups():
     return out
 
 
+def list_library():
+    """List .wav files under LIBRARY_ROOT (recursive), newest first. Capped so
+    a huge folder can't stall the UI. `rel` is the path used to fetch the file
+    back via library_file()."""
+    items = []
+    if os.path.isdir(LIBRARY_ROOT):
+        for root, _dirs, files in os.walk(LIBRARY_ROOT):
+            for f in files:
+                if f.lower().endswith('.wav'):
+                    full = os.path.join(root, f)
+                    try:
+                        st = os.stat(full)
+                    except OSError:
+                        continue
+                    items.append({'name': f,
+                                  'rel': os.path.relpath(full, LIBRARY_ROOT),
+                                  'size': st.st_size, 'mtime': st.st_mtime})
+            if len(items) >= 2000:
+                break
+    items.sort(key=lambda x: x['mtime'], reverse=True)
+    return {'dir': LIBRARY_ROOT, 'items': items[:2000]}
+
+
+def library_file(rel):
+    """Resolve a library-relative path (arrives URL-decoded from an HTTP path —
+    untrusted) to a .wav file STRICTLY inside LIBRARY_ROOT. realpath containment
+    defuses both `..` traversal and symlinks (same guard form as backup_dir)."""
+    root = os.path.realpath(LIBRARY_ROOT)
+    full = os.path.realpath(os.path.join(root, str(rel)))
+    if (not full.startswith(root + os.sep) or not full.lower().endswith('.wav')
+            or not os.path.isfile(full)):
+        raise RuntimeError('not a library file: %r' % rel)
+    return full
+
+
 # ---------------------------------------------------------------------------
 # HTTP layer
 # ---------------------------------------------------------------------------
@@ -1076,6 +1115,17 @@ class Handler(BaseHTTPRequestHandler):
             m = re.match(r'^/api/backup/(.+)\.zip$', path)
             if m:
                 return self._bytes(backup_zip(m.group(1)), 'application/zip')
+            if path == '/api/library':
+                return self._json(list_library())
+            m = re.match(r'^/api/library/(.+)$', path)
+            if m:
+                from urllib.parse import unquote
+                try:
+                    full = library_file(unquote(m.group(1)))
+                except Exception:
+                    return self._err('not found', 404)
+                with open(full, 'rb') as fh:
+                    return self._bytes(fh.read(), 'audio/wav')
             if path == '/api/op':
                 return self._json(DEVICE.op_status())
             if path == '/api/patterns':
@@ -1306,7 +1356,14 @@ def main():
                          'the /api/events stream stays silent)')
     ap.add_argument('--trace', action='store_true',
                     help='hexdump every USB read/write to stderr (diagnostic)')
+    ap.add_argument('--library', metavar='DIR',
+                    help='folder of .wav files to browse in the SAMPLES view '
+                         '(default: native-tools/library/)')
     args = ap.parse_args()
+
+    if args.library:
+        global LIBRARY_ROOT
+        LIBRARY_ROOT = os.path.abspath(os.path.expanduser(args.library))
 
     DEVICE = MockDevice() if args.mock else Device(reader=not args.no_reader,
                                                    trace=args.trace)

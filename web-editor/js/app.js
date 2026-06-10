@@ -9,6 +9,7 @@ import './ux.js';           // keyboard shortcuts, theming, help overlay
 
 import { fxFromBank, renderFx } from './effect.js';
 import { subscribeEvents } from './events.js';
+import { loadLibrary } from './library.js';
 import { renderMeter } from './meter.js';
 import { renderPads } from './pads.js';
 import { reapplyFormats } from './sampleLoad.js';
@@ -29,6 +30,7 @@ async function boot() {
   }
   setOnline(true, st);
   subscribeEvents();
+  loadLibrary().catch(() => { });                 // browse the user's WAV folder
   try {
     await refreshBank();
   } catch (e) {

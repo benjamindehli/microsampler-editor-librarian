@@ -245,6 +245,17 @@
         <button class="mem-measure" id="mem-measure" hidden>LOAD ALL</button>
       </div>
     </div>
+
+    <!-- local WAV library: browse a folder on the bridge machine and drag
+         (or click) a file onto a pad to upload it -->
+    <div class="library" id="library">
+      <div class="panel-title">LIBRARY
+        <button class="lib-refresh" id="lib-refresh" title="Rescan the library folder"
+                aria-label="Rescan library">⟳</button>
+      </div>
+      <div class="lib-list" id="lib-list"></div>
+      <div class="lib-hint" id="lib-hint"></div>
+    </div>
   </aside>
 
   <!-- sample editor -->
