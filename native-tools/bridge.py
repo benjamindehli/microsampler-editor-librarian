@@ -531,11 +531,14 @@ class Device:
         leave_dump_mode(self.ms, self.channel, commit=commit)
 
     def download_wav(self, slot):
+        """-> (wav_bytes, orig_tempo_bpm) or (None, None) when empty. The orig
+        BPM rides the header (not the bank blob) so the GUI can surface it (BPM
+        chip + playhead speed for BPM-synced samples)."""
         with self.lock:
             self._inquire()
             hdr = DL.fetch_header(self.ms, self.channel, slot)
             if hdr['data_size'] == 0:
-                return None
+                return None, None
             pcm = DL.fetch_pcm(self.ms, self.channel, hdr['data_size'],
                                progress=False)
         buf = io.BytesIO()
@@ -546,7 +549,7 @@ class Device:
             w.setsampwidth(2)
             w.setframerate(hdr['rate_hz'])
             w.writeframes(bytes(samples))
-        return buf.getvalue()
+        return buf.getvalue(), hdr['tempo_bpm']
 
     def upload_wav(self, slot, wav_bytes, name, tempo):
         chans, rate = UL.load_wav(io.BytesIO(wav_bytes))
@@ -821,14 +824,14 @@ class MockDevice(Device):
     def download_wav(self, slot):
         s = self._slots.get(slot)
         if not s:
-            return None
+            return None, None
         buf = io.BytesIO()
         with wave.open(buf, 'wb') as w:
             w.setnchannels(2 if s['stereo'] else 1)
             w.setsampwidth(2)
             w.setframerate(s['rate'])
             w.writeframes(s['pcm'])
-        return buf.getvalue()
+        return buf.getvalue(), s.get('tempo')
 
     def upload_wav(self, slot, wav_bytes, name, tempo):
         chans, rate = UL.load_wav(io.BytesIO(wav_bytes))
@@ -988,11 +991,13 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _bytes(self, data, ctype):
+    def _bytes(self, data, ctype, extra=None):
         self.send_response(200)
         self.send_header('Content-Type', ctype)
         self.send_header('Content-Length', str(len(data)))
         self.send_header('Access-Control-Allow-Origin', '*')
+        for k, v in (extra or {}).items():
+            self.send_header(k, str(v))
         self.end_headers()
         self.wfile.write(data)
 
@@ -1039,10 +1044,11 @@ class Handler(BaseHTTPRequestHandler):
                 slot = int(m.group(1))
                 if not 0 <= slot <= 35:
                     return self._err('slot 0..35', 400)
-                data = DEVICE.download_wav(slot)
+                data, tempo = DEVICE.download_wav(slot)
                 if data is None:
                     return self._err('slot is empty', 404)
-                return self._bytes(data, 'audio/wav')
+                extra = {'X-Sample-Tempo': tempo} if tempo else None
+                return self._bytes(data, 'audio/wav', extra)
             if path == '/api/events':
                 return self._sse()
             return self._static(path)
