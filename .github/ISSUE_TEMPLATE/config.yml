@@ -1,0 +1,10 @@
+# Issue template chooser config
+# https://docs.github.com/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Security vulnerability (private)
+    url: https://github.com/benjamindehli/microsampler-editor-librarian/security/advisories/new
+    about: Report security issues privately — please don't open a public issue (see SECURITY.md).
+  - name: 📖 Setup & troubleshooting
+    url: https://github.com/benjamindehli/microsampler-editor-librarian#readme
+    about: Running the bridge, requirements, and known gotchas are covered in the README.
