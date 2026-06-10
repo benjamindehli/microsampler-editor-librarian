@@ -37,7 +37,9 @@ This app covers everything the original did, plus a few things it didn't.
   - Remote sampling trigger (input select + [SAMPLING], experimental)
 - **Live two-way sync**:
   - Panel edits on the device show up in the app instantly
-- **Master volume** slider for the device output
+- **Master volume** slider for the device output, and a **panic** button
+  (all sound off / stop) for stuck notes
+- Remembers your last-open view across reloads
 
 ## Requirements
 

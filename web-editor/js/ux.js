@@ -3,8 +3,11 @@
 import { refreshBank } from './app.js';
 import { redo, undo } from './controls.js';
 import { selectSlot } from './pads.js';
+import { stopTransport } from './patterns.js';
 import { slotData, state } from './state.js';
+import { tick } from './ticker.js';
 import { $, api, jsonBody } from './util.js';
+import { stopAudition } from './waveform.js';
 
 // ── accent theming (CSS custom props on :root, persisted) ────────────────
 // Only the three RGB triplets are overridden — every accent surface (glows,
@@ -38,6 +41,14 @@ themeSelect.onchange = () => applyTheme(+themeSelect.value);
 
 // ── help overlay ─────────────────────────────────────────────────────────
 $('#help-btn').onclick = () => $('#help-dialog').showModal();
+
+// ── panic: all sound off + stop, and reset the local playing UI ──────────
+$('#panic-btn').onclick = () => {
+  stopAudition(false);                             // bridge silences it; just reset UI
+  stopTransport();
+  api('/api/panic', { method: 'POST' })
+    .then(() => tick('⏻ panic — all sound off')).catch(() => { });
+};
 
 // ── master volume (device output, Universal SysEx) ───────────────────────
 // Live while dragging but throttled (one SysEx each), with the final value

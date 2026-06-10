@@ -81,9 +81,15 @@ function showView(name) {
   $('#view-utility').hidden = name !== 'utility';
   if (name === 'utility') loadBackups().catch(() => { });
   if (name === 'effect') renderFx();
+  try { localStorage.setItem('msmpl.view', name); } catch { /* ignore */ }
 }
 document.querySelectorAll('.view-btn').forEach(b =>
   b.onclick = () => showView(b.dataset.view));
+// restore the last-open view across reloads (defaults to SAMPLES)
+try {
+  const v = localStorage.getItem('msmpl.view');
+  if (v && v !== 'samples' && $(`.view-btn[data-view="${v}"]`)) showView(v);
+} catch { /* ignore */ }
 
 $('#refresh-btn').onclick = () => refreshBank().catch(e => tick('⚠ ' + e.message));
 

@@ -476,6 +476,18 @@ class Device:
                                       v14 & 0x7F, (v14 >> 7) & 0x7F, 0xF7]))
         return {'value': v}
 
+    def panic(self):
+        """All-sound-off safety net for stuck notes / runaway playback: All
+        Sound Off (CC#120) + All Note Off (CC#123) on the global channel, MIDI
+        Stop, and our clock off. (Manual lists CC#120/123 for exactly this.)"""
+        self._stop_clock()
+        cc = 0xB0 | (self.channel & 0x0f)
+        with self.lock:
+            self.ms.send_short(cc, 0x78, 0, cable=self.cable)   # All Sound Off
+            self.ms.send_short(cc, 0x7B, 0, cable=self.cable)   # All Note Off
+            self.ms.send_short(0xFC, 0, 0, cable=self.cable)    # MIDI Stop
+        return {'ok': True}
+
     def _nrpn(self, lsb, data):
         """Send one NRPN on the global channel: MSB 0x20, given LSB, data (CC#06).
         The device's panel buttons/dials are addressed this way (manual p.46)."""
@@ -697,6 +709,9 @@ class MockDevice(Device):
 
     def set_input_source(self, resample):
         return {'resample': bool(resample)}
+
+    def panic(self):
+        return {'ok': True}
 
     def copy_sample(self, frm, to):
         if frm in self._slots:
@@ -1166,6 +1181,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(DEVICE.set_input_source(bool(body.get('resample'))))
             if path == '/api/transport/stop':
                 return self._json(DEVICE.stop_pattern())
+            if path == '/api/panic':
+                return self._json(DEVICE.panic())
             m = re.match(r'^/api/pattern/(\d+)/play$', path)
             if m:
                 q = int(m.group(1))

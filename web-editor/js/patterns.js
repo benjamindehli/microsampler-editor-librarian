@@ -155,7 +155,7 @@ function drawRoll(canvas, p) {
 // so only one pattern plays at a time.
 let playing = null;      // { pattern, cap } currently transport-playing, or null
 
-function stopTransport() {
+export function stopTransport() {
   if (!playing) return;
   const cap = playing.cap;
   playing = null;

@@ -138,6 +138,8 @@
   cursor: pointer; transition: color .15s, box-shadow .15s;
 }
 .rail-icon:hover { color: var(--amber-hi); box-shadow: 0 0 0 1px var(--amber-dk); }
+.rail-icon.panic { color: var(--err); }
+.rail-icon.panic:hover { color: #fff; box-shadow: 0 0 0 1px var(--err); }
 
 /* master-volume slider in the rail */
 .rail-vol { display: inline-flex; align-items: center; gap: .35rem; font-size: .8rem; }
