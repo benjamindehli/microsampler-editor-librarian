@@ -8,6 +8,17 @@
   box-shadow: inset 0 1px 0 var(--line-hi), 0 10px 30px rgba(0,0,0,.45);
   padding: .9rem;
 }
+/* pad filter box (right of the SAMPLE title) */
+.pads .panel-title { display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
+.pad-search {
+  font: inherit; font-size: .6rem; letter-spacing: .06em;
+  color: var(--amber); background: var(--phos-bg);
+  border: 1px solid var(--line); border-radius: 3px;
+  padding: .22rem .45rem; width: 8.5rem; max-width: 45%;
+}
+.pad-search:focus { outline: none; border-color: var(--amber-dk); }
+.pad-search::placeholder { color: var(--ink-dim); letter-spacing: .12em; }
+.pad.dimmed { opacity: .2; transition: opacity .12s; }
 .pad-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

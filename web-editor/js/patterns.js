@@ -1,7 +1,7 @@
 // PATTERNS view: receive, piano-roll cards, .mid export/import, init.
 import { state } from './state.js';
 import { tick } from './ticker.js';
-import { $, apiJson, esc, jsonBody } from './util.js';
+import { $, apiJson, confirmDialog, esc, jsonBody } from './util.js';
 
 let loadingPatterns = false;
 let lastPatterns = null;            // for recolouring the rolls on theme change
@@ -190,10 +190,10 @@ function importPatternSmf(q) {
   input.onchange = async () => {
     const f = input.files[0];
     if (!f) return;
-    if (!confirm(`Import "${f.name}" into PATTERN ${q + 1}?\n\n` +
-                 `OVERWRITES that pattern in the device's current bank (RAM). ` +
-                 `Notes on MIDI ch 1 → sample-mode track (pads by note), ` +
-                 `other channels → keyboard-mode track.`)) return;
+    if (!await confirmDialog(`IMPORT → PATTERN ${q + 1}`,
+        `Import "${f.name}"? OVERWRITES that pattern in the device's current ` +
+        `bank (RAM). MIDI ch 1 → sample-mode track (pads by note), other ` +
+        `channels → keyboard-mode track.`, 'IMPORT')) return;
     try {
       const r = await apiJson(`/api/pattern/${q}`, {
         method: 'POST', body: await f.arrayBuffer(),
@@ -209,9 +209,9 @@ function importPatternSmf(q) {
 }
 
 async function initPattern(q, recorded) {
-  if (!confirm(`Reset PATTERN ${q + 1} to the factory INIT pattern` +
-               (recorded ? ' — its recorded notes will be LOST (RAM)' : '') +
-               '?')) return;
+  if (!await confirmDialog(`INIT PATTERN ${q + 1}`,
+      `Reset to the factory INIT pattern` +
+      (recorded ? ' — its recorded notes will be LOST (RAM)?' : '?'), 'INIT')) return;
   try {
     await apiJson(`/api/pattern/${q}/init`, { method: 'POST' });
     tick(`pattern ${q + 1} initialized`);

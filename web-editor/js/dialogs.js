@@ -9,7 +9,7 @@ import { forgetSample } from './sampleLoad.js';
 import { showSlot } from './slot.js';
 import { slotData, state } from './state.js';
 import { tick } from './ticker.js';
-import { $, api, apiJson, jsonBody } from './util.js';
+import { $, api, apiJson, confirmDialog, jsonBody } from './util.js';
 
 // the selected file decoded to float channels (null if not a PCM WAV we can
 // process) and its raw bytes — both cached so OK doesn't re-read the file.
@@ -23,6 +23,35 @@ const readToolOpts = () => ({
   fadeInMs: +$('#ud-fadein').value || 0,
   fadeOutMs: +$('#ud-fadeout').value || 0,
 });
+// 8-char device name from a filename (drop the extension, ASCII-only, upper)
+const fileToName = f => f.name.replace(/\.\w+$/, '')
+  .replace(/[^\x20-\x7e]/g, '').toUpperCase().slice(0, 8) || 'SAMPLE';
+
+// Bulk-load several WAVs into consecutive slots starting at `startSlot`
+// (dropping >1 file on the grid/editor). Raw upload — no audio-tools panel —
+// using each filename as the sample name; one confirm, sequential transfer.
+export async function uploadBatch(startSlot, files) {
+  files = files.slice(0, 36 - startSlot);          // clamp to the last pad
+  const last = startSlot + files.length - 1;
+  if (!await confirmDialog(`LOAD ${files.length} WAVS`,
+      `Into PADS ${startSlot + 1}–${last + 1}? OVERWRITES those slots in the ` +
+      `device's current bank (RAM).`, 'LOAD')) return;
+  let done = 0;
+  for (let i = 0; i < files.length; i++) {
+    const slot = startSlot + i, f = files[i];
+    try {
+      await api(`/api/sample/${slot}?name=${encodeURIComponent(fileToName(f))}&tempo=120`,
+                { method: 'POST', body: await f.arrayBuffer() });
+      forgetSample(slot);
+      tick(`⇧ ${++done}/${files.length}: "${fileToName(f)}" → S${slot + 1}`);
+    } catch (err) {
+      tick(`⚠ batch stopped at S${slot + 1}: ${err.message}`);
+      break;
+    }
+  }
+  await refreshBank();
+  if (done) { state.sel = startSlot; await showSlot(startSlot); }
+}
 
 // ────────────────────────────────────────────────────────────── upload ──
 export function openUpload(file) {
@@ -58,8 +87,7 @@ function setToolsEnabled(on, haveFile) {
 }
 async function syncNameFromFile() {
   const f = $('#ud-file').files[0];
-  if (f) $('#ud-name').value = f.name.replace(/\.\w+$/, '')
-    .replace(/[^\x20-\x7e]/g, '').toUpperCase().slice(0, 8);
+  if (f) $('#ud-name').value = fileToName(f);
   // decode the WAV up front so the tools + memory pre-flight reflect the result
   udDecoded = null; udBytes = null;
   setToolsEnabled(false, !!f);
@@ -260,6 +288,9 @@ editor.addEventListener('dragleave', () => $('#drop-veil').hidden = true);
 editor.addEventListener('drop', e => {
   e.preventDefault();
   $('#drop-veil').hidden = true;
-  const f = [...e.dataTransfer.files].find(f => /\.wav$/i.test(f.name));
-  if (f && state.sel != null) openUpload(f);
+  if (state.sel == null) return;
+  const wavs = [...e.dataTransfer.files].filter(f => /\.wav$/i.test(f.name));
+  if (!wavs.length) return;
+  if (wavs.length === 1) openUpload(wavs[0]);      // single → full upload dialog
+  else uploadBatch(state.sel, wavs);               // many → bulk-fill from here
 });

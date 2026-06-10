@@ -1,5 +1,5 @@
 // 36-slot pad grid: rendering, selection, device note-play, WAV drop.
-import { openUpload } from './dialogs.js';
+import { openUpload, uploadBatch } from './dialogs.js';
 import { showSlot } from './slot.js';
 import { openSlotOp } from './slotops.js';
 import { state } from './state.js';
@@ -44,7 +44,20 @@ export function renderPads() {
     grid.append(b);
   });
   $('#count-used').textContent = used;
+  applyPadFilter();                                // re-apply any active filter
 }
+
+// dim pads whose name doesn't match the filter box (keeps the fixed 3-col note
+// grid intact rather than hiding/reflowing pads)
+function applyPadFilter() {
+  const q = ($('#pad-search').value || '').trim().toLowerCase();
+  for (const b of $('#pad-grid').children) {
+    const name = (b.querySelector('.pad-name').textContent || '').toLowerCase();
+    const match = !q || (!b.classList.contains('empty') && name.includes(q));
+    b.classList.toggle('dimmed', !!q && !match);
+  }
+}
+$('#pad-search').addEventListener('input', applyPadFilter);
 
 // play pads THROUGH THE DEVICE: hold the ▶ corner of a pad → MIDI note
 // on/off via the bridge (note 48+slot on the global channel — the same
@@ -111,12 +124,13 @@ export function renderPads() {
     // pad-to-pad drag → copy/swap dialog (internal drag, no files)
     const from = e.dataTransfer.getData('application/x-msmpl-slot');
     if (from !== '' && +from !== slot) return openSlotOp(+from, slot);
-    // file drop → upload to this pad
-    const f = [...e.dataTransfer.files].find(f => /\.wav$/i.test(f.name));
-    if (!f) return;
+    // file drop → upload to this pad; many WAVs → fill consecutive pads from here
+    const wavs = [...e.dataTransfer.files].filter(f => /\.wav$/i.test(f.name));
+    if (!wavs.length) return;
+    if (wavs.length > 1) return uploadBatch(slot, wavs);
     state.sel = slot;
     renderPads();
     showSlot(slot);                      // no await — dialog opens right away
-    openUpload(f);
+    openUpload(wavs[0]);
   });
 }
