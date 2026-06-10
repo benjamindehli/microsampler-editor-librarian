@@ -28,7 +28,7 @@ This app covers everything the original did, plus a few things it didn't.
   - Conditional parameter graying/swapping exactly like the hardware
 - **PATTERNS**:
   - Receive all 16 patterns
-  - Mini piano-roll preview
+  - Mini piano-roll preview + play patterns on the device (per-pattern ▶)
   - Import and Export MIDI files
 - **UTILITY**:
   - Full bank backup/restore (RAM or persistent user banks)

@@ -78,6 +78,7 @@ class Device:
         self.pattern_cache = {}             # q -> raw 1308B blob
         self._stop = threading.Event()
         self._reader = None
+        self._clock_stop = None             # threading.Event while sending MIDI clock
 
     # -- lifecycle ----------------------------------------------------------
     def open(self):
@@ -123,6 +124,7 @@ class Device:
 
     def close(self):
         self._stop.set()
+        self._stop_clock()
         with self.lock:
             if self.ms:
                 self.ms.close()
@@ -398,6 +400,71 @@ class Device:
             self.ms.send_short(status, note, max(1, min(127, int(velocity))),
                                cable=self.cable)
 
+    def _stop_clock(self):
+        if self._clock_stop:
+            self._clock_stop.set()
+            self._clock_stop = None
+
+    def _start_clock(self, bpm):
+        """Stream MIDI Timing Clock (0xF8) at 24 PPQN for `bpm` in a background
+        thread until stopped. The device's sequencer is a SLAVE under external
+        transport — Start only sets it running; the clock is what advances it
+        (so without this, Start does nothing). The device must have GLOBAL >
+        MIDI CLK = AUTO or EXT MIDI to follow it."""
+        self._stop_clock()
+        bpm = max(20.0, min(300.0, float(bpm)))
+        interval = 60.0 / (bpm * 24)
+        ev = threading.Event()
+        self._clock_stop = ev
+
+        def run():
+            nxt = time.monotonic()
+            while not ev.is_set():
+                with self.lock:
+                    if self.ms:
+                        try:
+                            self.ms.send_short(0xF8, 0, 0, cable=self.cable)
+                        except Exception:
+                            return
+                nxt += interval
+                ev.wait(max(0, nxt - time.monotonic()))
+        threading.Thread(target=run, daemon=True).start()
+
+    def play_pattern(self, q, bpm=120):
+        """Select a pattern + start the sequencer on the DEVICE. Owner's manual
+        MIDI guide (p.45-46): select the [PATTERN] dial via NRPN
+        [Bn 63 20, Bn 62 01, Bn 06 mm] on the GLOBAL channel; per the value
+        table mm 0-7→pattern 1 … 120-127→pattern 16, so 0-based pattern q ⇒
+        mm = q*8. Then stream MIDI clock (the sequencer is a slave — clock
+        advances it) and send system-realtime Start (0xFA). send_short derives
+        the USB-MIDI CIN automatically (0xB CC, 0xF single-byte real-time)."""
+        cc = 0xB0 | (self.channel & 0x0f)
+        mm = max(0, min(127, int(q) * 8))
+        # Always STOP first: a pattern-select (NRPN) doesn't register while the
+        # sequencer is running, and a Start during playback just restarts the
+        # CURRENT pattern — so switching patterns mid-play would replay the old
+        # one. Stop, let the device settle, then select + start the new one.
+        self._stop_clock()
+        with self.lock:
+            self.ms.send_short(0xFC, 0, 0, cable=self.cable)        # MIDI Stop
+        time.sleep(0.06)                                        # let the stop land
+        with self.lock:
+            self.ms.send_short(cc, 0x63, 0x20, cable=self.cable)    # NRPN MSB
+            self.ms.send_short(cc, 0x62, 0x01, cable=self.cable)    # NRPN LSB = [PATTERN]
+            self.ms.send_short(cc, 0x06, mm, cable=self.cable)      # data = pattern value
+        self._start_clock(bpm)                                  # advance the slave seq
+        time.sleep(0.03)                                        # let AUTO switch to EXT
+        with self.lock:
+            self.ms.send_short(0xFA, 0, 0, cable=self.cable)        # MIDI Start
+        return {'pattern': int(q), 'playing': True}
+
+    def stop_pattern(self):
+        """Stop sequencer playback on the DEVICE (MIDI Stop, 0xFC) + stop clock."""
+        self._stop_clock()
+        with self.lock:
+            self.ms.send_short(0xFC, 0, 0, cable=self.cable)        # MIDI Stop
+        return {'playing': False}
+
     def bank_summary(self):
         """Bank blob only, then leave dump mode. NO per-slot header requests:
         func 0x16 opens a dump session that ONLY a data dump (0x1F) closes
@@ -578,6 +645,14 @@ class MockDevice(Device):
 
     def play_note(self, slot, on, velocity=100):
         self._last_note = (int(slot), bool(on), int(velocity))
+
+    def play_pattern(self, q, bpm=120):
+        self._transport = ('play', int(q), float(bpm))
+        return {'pattern': int(q), 'playing': True}
+
+    def stop_pattern(self):
+        self._transport = ('stop', None)
+        return {'playing': False}
 
     def copy_sample(self, frm, to):
         if frm in self._slots:
@@ -1032,6 +1107,16 @@ class Handler(BaseHTTPRequestHandler):
                 DEVICE.play_note(slot, bool(body.get('on', True)),
                                  int(body.get('velocity', 100)))
                 return self._json({'ok': True})
+            if path == '/api/transport/stop':
+                return self._json(DEVICE.stop_pattern())
+            m = re.match(r'^/api/pattern/(\d+)/play$', path)
+            if m:
+                q = int(m.group(1))
+                if not 0 <= q <= 15:
+                    return self._err('pattern 0..15', 400)
+                n = int(self.headers.get('Content-Length', 0))
+                body = json.loads(self.rfile.read(n) or b'{}') if n else {}
+                return self._json(DEVICE.play_pattern(q, float(body.get('bpm', 120))))
             if path == '/api/backup':
                 return self._json(DEVICE.start_backup())
             if path == '/api/backup/import':

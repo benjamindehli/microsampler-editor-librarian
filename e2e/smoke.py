@@ -63,7 +63,7 @@ def run_checks():
         page.wait_for_timeout(300)
         assert '#21' in page.text_content('#ticker-log'), 'decay edit should tick'
 
-        # audition plays in-browser with a moving playhead overlay
+        # audition triggers the device (note on/off) + shows the playhead overlay
         page.locator('#audition-btn').click()
         page.locator('#playhead').wait_for(state='visible', timeout=3000)
         page.locator('#audition-btn').click()      # stop
@@ -72,6 +72,19 @@ def run_checks():
         for view in ('effect', 'patterns', 'utility', 'samples'):
             page.locator('.view-btn[data-view="%s"]' % view).click()
             page.wait_for_timeout(400)
+
+        # patterns: receive, then play a recorded one on the device (transport)
+        page.locator('.view-btn[data-view="patterns"]').click()
+        page.locator('#patterns-refresh').click()
+        page.wait_for_selector('.pattern-card:not(.is-empty)', timeout=10000)
+        play = page.locator('.pattern-card:not(.is-empty) .p-actions .hw-btn').first
+        play.click()
+        # reaches the playing state (■) once its samples are loaded + scheduled
+        page.wait_for_function(
+            "() => { const c = document.querySelector("
+            "'.pattern-card:not(.is-empty) .p-actions .hw-btn .hw-btn-cap');"
+            " return c && c.textContent.trim() === '\\u25a0'; }", timeout=6000)
+        play.click()                               # stop
 
         browser.close()
     return errors
