@@ -87,6 +87,9 @@ tools/make_app_icon.sh        give the launcher its icon (run once, macOS)
 
 ## Development
 
+See [ARCHITECTURE.md](ARCHITECTURE.md) for how the bridge, browser app, and
+device fit together, and [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
+
 Run the offline test suite (no hardware needed):
 
 ```bash

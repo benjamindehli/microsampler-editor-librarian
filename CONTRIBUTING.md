@@ -42,7 +42,9 @@ sudo python3 native-tools/bridge.py
 ```
 
 `--mock` serves fake data so you can develop and test almost everything without
-the device. See the [README](README.md#repository-layout) for the repo layout.
+the device. See the [README](README.md#repository-layout) for the repo layout,
+and [ARCHITECTURE.md](ARCHITECTURE.md) for how the bridge, app, and device fit
+together (data flow, the two transports, the module map).
 
 ## Before you open a PR
 
