@@ -1,7 +1,7 @@
 // PATTERNS view: receive, piano-roll cards, .mid export/import, init.
 import { state } from './state.js';
 import { tick } from './ticker.js';
-import { $, apiJson, esc } from './util.js';
+import { $, apiJson, esc, jsonBody } from './util.js';
 
 let loadingPatterns = false;
 let lastPatterns = null;            // for recolouring the rolls on theme change
@@ -45,6 +45,7 @@ async function loadPatterns() {
 
 function renderPatterns(patterns) {
   lastPatterns = patterns;
+  stopTransport();                     // cards are about to be rebuilt
   const grid = $('#pattern-grid');
   grid.innerHTML = '';
   for (const p of patterns) {
@@ -76,6 +77,14 @@ function renderPatterns(patterns) {
       </div>`;
     const actions = document.createElement('div');
     actions.className = 'p-actions';
+    if (recorded) {                                  // play on the device (transport)
+      const play = document.createElement('button');
+      play.className = 'hw-btn';
+      play.title = 'Play this pattern on the device';
+      play.innerHTML = '<span class="hw-btn-cap">▶</span>';
+      play.onclick = () => playPattern(p, play.querySelector('.hw-btn-cap'));
+      actions.append(play);
+    }
     const dl = document.createElement('a');
     dl.className = 'hw-btn';
     dl.href = `/api/pattern/${p.pattern}.mid`;
@@ -135,6 +144,43 @@ function drawRoll(canvas, p) {
     g.fillRect(x, y, w, 3 * dpr);
   }
   g.globalAlpha = 1;
+}
+
+// ── pattern playback (on the DEVICE) ───────────────────────────────────────
+// Play patterns through the hardware sequencer (the synth must be connected
+// anyway, and it sounds exactly like the device). The bridge sends a Program
+// Change to try to select the pattern, then MIDI Start (0xFA); STOP sends MIDI
+// Stop (0xFC). ⚠ Remote pattern SELECT is experimental — the device may only
+// play the pattern selected on its panel (verify on hardware). One transport,
+// so only one pattern plays at a time.
+let playing = null;      // { pattern, cap } currently transport-playing, or null
+
+function stopTransport() {
+  if (!playing) return;
+  const cap = playing.cap;
+  playing = null;
+  cap.textContent = '▶';
+  apiJson('/api/transport/stop', { method: 'POST' }).catch(() => { });
+}
+
+async function playPattern(p, cap) {
+  if (playing && playing.pattern === p.pattern) { stopTransport(); return; }  // click again = stop
+  // switching patterns: just revert the previous button — the new /play stops
+  // it on the device itself (atomically), so we DON'T fire a separate /stop
+  // (two racing requests sometimes restarted the OLD pattern).
+  if (playing) playing.cap.textContent = '▶';
+  playing = { pattern: p.pattern, cap };
+  cap.textContent = '■';
+  try {
+    // the device sequencer is a slave — the bridge streams MIDI clock at this
+    // tempo so Start actually advances (device needs MIDI CLK = AUTO/EXT MIDI)
+    await apiJson(`/api/pattern/${p.pattern}/play`,
+                  jsonBody({ bpm: (state.bank && state.bank.bpm) || 120 }));
+    tick(`▶ pattern ${p.pattern + 1} (device)`);
+  } catch (e) {
+    tick(`⚠ play failed: ${e.message}`);
+    if (playing && playing.pattern === p.pattern) { cap.textContent = '▶'; playing = null; }
+  }
 }
 
 function importPatternSmf(q) {

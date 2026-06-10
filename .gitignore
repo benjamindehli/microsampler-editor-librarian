@@ -243,6 +243,10 @@ microSAMPLER Editor.app/
 # (tools/re/); do NOT commit it (copyrighted software, not ours to publish)
 microSAMPLER Editor.pkg/
 
+# Korg's owner's manual — local reference only; do NOT commit (Korg copyright)
+microsampler-owners-manual.pdf
+*.pdf
+
 # build tooling (esbuild) + output — dev-only, never committed
 node_modules/
 dist/
