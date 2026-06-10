@@ -49,3 +49,7 @@
 
 /* backup zip import row */
 .backup-import { display: flex; align-items: center; gap: .7rem; margin-top: .8rem; }
+
+/* experimental sampling controls */
+.sampling-row { display: flex; align-items: center; gap: .9rem; margin-top: .4rem; flex-wrap: wrap; }
+.sampling-row .seg { max-width: none; }

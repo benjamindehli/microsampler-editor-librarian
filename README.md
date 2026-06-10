@@ -19,7 +19,7 @@ This app covers everything the original did, plus a few things it didn't.
     mono ↔ stereo (processed in-browser before transfer)
   - Filter pads by name
   - Live editing of all sample parameters
-  - Draggable START/END markers on the waveform
+  - Draggable START/END markers on the waveform (or type exact frame values)
   - Zoomable / pannable waveform (scroll to zoom, drag to pan) for
     sample-accurate trimming
   - Renaming banks and samples
@@ -34,8 +34,10 @@ This app covers everything the original did, plus a few things it didn't.
   - Import and Export MIDI files
 - **UTILITY**:
   - Full bank backup/restore (RAM or persistent user banks)
+  - Remote sampling trigger (input select + [SAMPLING], experimental)
 - **Live two-way sync**:
   - Panel edits on the device show up in the app instantly
+- **Master volume** slider for the device output
 
 ## Requirements
 

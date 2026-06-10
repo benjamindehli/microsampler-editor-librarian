@@ -113,3 +113,19 @@ export function onOpEvent(evt) {
     tick(`${evt.ok ? '✓' : '✗'} ${evt.name} ${evt.ok ? 'complete' : 'failed'}`);
   }
 }
+
+// ── sampling (experimental) ──────────────────────────────────────────────
+{
+  const seg = $('#smp-input');
+  seg.querySelectorAll('button').forEach(b => {
+    b.onclick = () => {
+      seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+      apiJson('/api/sampling/input', jsonBody({ resample: b.dataset.resample === '1' }))
+        .then(() => tick(`input → ${b.textContent.trim()}`)).catch(() => { });
+    };
+  });
+  $('#smp-button').onclick = () =>
+    apiJson('/api/sampling/button', { method: 'POST' })
+      .then(() => tick('● [SAMPLING] pressed — check the device screen'))
+      .catch(e => tick(`⚠ sampling: ${e.message}`));
+}

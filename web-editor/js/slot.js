@@ -3,7 +3,7 @@ import { fmtLevel, fmtPan, setFader, setSeg, setSwitch, tuneDisplay }
   from './controls.js';
 import { noteName } from './pads.js';
 import { slotData } from './state.js';
-import { $, esc, fmtSigned } from './util.js';
+import { $, fmtSigned } from './util.js';
 import { loadWave } from './waveform.js';
 
 export async function showSlot(i, { keepWave = false } = {}) {
@@ -48,12 +48,22 @@ export async function showSlot(i, { keepWave = false } = {}) {
 // (reading headers per slot would strand the device's sample-select state).
 export function renderPoints(s) {
   const ro = $('#ro-row');
-  ro.innerHTML = '';
-  if (s.empty) { $('#meta-points').textContent = ''; return; }
-  for (const [k, v] of [
-    ['START', s.start.toLocaleString()], ['END', s.end.toLocaleString()],
-  ]) ro.insertAdjacentHTML('beforeend',
-    `<span class="ro">${k} <b>${esc(v)}</b></span>`);
+  if (s.empty) { ro.innerHTML = ''; $('#meta-points').textContent = ''; return; }
+  // editable START/END (device frames) — committed by waveform.js. Build the
+  // inputs once, then only update their values, so a drag redraw doesn't churn
+  // the DOM or stomp a field the user is typing in.
+  let si = ro.querySelector('[data-point="start"]');
+  if (!si) {
+    ro.innerHTML =
+      `<label class="ro">START <input class="ro-input" type="number" data-point="start" min="0" step="1"></label>
+       <label class="ro">END <input class="ro-input" type="number" data-point="end" min="0" step="1"></label>`;
+    si = ro.querySelector('[data-point="start"]');
+  }
+  const ei = ro.querySelector('[data-point="end"]');
+  const max = (s.frames || 2) - 2;
+  si.max = ei.max = max;
+  if (document.activeElement !== si) si.value = s.start;
+  if (document.activeElement !== ei) ei.value = s.end;
   $('#meta-points').textContent =
     `START ${s.start.toLocaleString()} · END ${s.end.toLocaleString()}`;
 }

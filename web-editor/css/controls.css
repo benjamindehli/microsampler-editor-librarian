@@ -109,6 +109,7 @@
   margin-top: .8rem; display: flex; gap: .45rem; flex-wrap: wrap;
 }
 .ro {
+  display: inline-flex; align-items: center; gap: .4rem;
   font-family: "Share Tech Mono", monospace; font-size: .64rem;
   color: var(--ink-dim); letter-spacing: .06em;
   border: 1px dashed var(--line); border-radius: 3px;
@@ -116,6 +117,13 @@
 }
 .ro b { color: var(--ink); font-weight: 400; }
 .ro .lock { color: #4c4c55; }
+/* editable START/END (device frames) */
+.ro-input {
+  width: 5.5em; font: inherit; color: var(--amber);
+  background: var(--phos-bg); border: 1px solid #000; border-radius: 2px;
+  padding: .12rem .3rem;
+}
+.ro-input:focus { outline: 1px solid var(--amber-dk); }
 
 /* drop veil */
 .drop-veil {

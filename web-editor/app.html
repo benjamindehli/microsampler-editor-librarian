@@ -56,6 +56,11 @@
 
   <div class="rail-right">
     <span id="mock-badge" class="mock-badge" hidden>MOCK</span>
+    <label class="rail-vol" title="Master volume (device output)">
+      <span aria-hidden="true">🔊</span>
+      <input type="range" id="master-vol" min="0" max="127" value="127"
+             aria-label="Master volume">
+    </label>
     <label class="theme-pick" title="Accent colour">
       <span class="theme-dot" id="theme-dot"></span>
       <select class="theme-select" id="theme-select" aria-label="Accent colour"></select>
@@ -165,6 +170,20 @@
           <span class="util-note">share banks between machines</span>
         </div>
       </div>
+    </div>
+
+    <div class="panel-title" style="margin-top:1.2rem">SAMPLING <em>EXPERIMENTAL</em></div>
+    <p class="util-note">Drive the device's sampling remotely (via its documented
+      MIDI buttons). There's no state readback, so <b>SAMPLE</b> mirrors a press
+      of the panel <b>[SAMPLING]</b> button — press to arm, again to start, again
+      to end — so watch the device screen. The new sample lands on the device.</p>
+    <div class="sampling-row">
+      <span class="ctl-label">INPUT</span>
+      <div class="seg" id="smp-input">
+        <button type="button" data-resample="0" class="on">AUDIO IN</button>
+        <button type="button" data-resample="1">RE-SAMPLE</button>
+      </div>
+      <button class="hw-btn accent" id="smp-button"><span class="hw-btn-cap">● SAMPLE</span></button>
     </div>
 
     <div class="panel-title" style="margin-top:1.2rem">TRANSFER LOG</div>

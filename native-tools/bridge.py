@@ -465,6 +465,38 @@ class Device:
             self.ms.send_short(0xFC, 0, 0, cable=self.cable)        # MIDI Stop
         return {'playing': False}
 
+    def set_master_volume(self, value):
+        """Set the device's overall output via the Universal Real-Time Master
+        Volume SysEx [F0 7F 7F 04 01 vv mm F7] (owner's manual p.46) — 14-bit,
+        mm = MSB, max when both 7F. `value` is a 0..127 slider position."""
+        v = max(0, min(127, int(value)))
+        v14 = round(v / 127 * 0x3FFF)
+        with self.lock:
+            self.ms.send_sysex(bytes([0xF0, 0x7F, 0x7F, 0x04, 0x01,
+                                      v14 & 0x7F, (v14 >> 7) & 0x7F, 0xF7]))
+        return {'value': v}
+
+    def _nrpn(self, lsb, data):
+        """Send one NRPN on the global channel: MSB 0x20, given LSB, data (CC#06).
+        The device's panel buttons/dials are addressed this way (manual p.46)."""
+        cc = 0xB0 | (self.channel & 0x0f)
+        with self.lock:
+            self.ms.send_short(cc, 0x63, 0x20, cable=self.cable)    # NRPN MSB
+            self.ms.send_short(cc, 0x62, lsb & 0x7f, cable=self.cable)
+            self.ms.send_short(cc, 0x06, data & 0x7f, cable=self.cable)  # data MSB
+
+    def sampling_button(self):
+        """'Press' the device's [SAMPLING] button (NRPN LSB 0x11, data 127). Like
+        the panel button it cycles SETUP/STANDBY → SAMPLING → SAMPLING END; the
+        device has no readback, so the app just sends presses. EXPERIMENTAL."""
+        self._nrpn(0x11, 127)
+        return {'ok': True}
+
+    def set_input_source(self, resample):
+        """[INPUT SELECT] NRPN (LSB 0x12): 0..63 = AUDIO IN, 64..127 = RE-SAMPLE."""
+        self._nrpn(0x12, 127 if resample else 0)
+        return {'resample': bool(resample)}
+
     def bank_summary(self):
         """Bank blob only, then leave dump mode. NO per-slot header requests:
         func 0x16 opens a dump session that ONLY a data dump (0x1F) closes
@@ -656,6 +688,15 @@ class MockDevice(Device):
     def stop_pattern(self):
         self._transport = ('stop', None)
         return {'playing': False}
+
+    def set_master_volume(self, value):
+        return {'value': max(0, min(127, int(value)))}
+
+    def sampling_button(self):
+        return {'ok': True}
+
+    def set_input_source(self, resample):
+        return {'resample': bool(resample)}
 
     def copy_sample(self, frm, to):
         if frm in self._slots:
@@ -1113,6 +1154,16 @@ class Handler(BaseHTTPRequestHandler):
                 DEVICE.play_note(slot, bool(body.get('on', True)),
                                  int(body.get('velocity', 100)))
                 return self._json({'ok': True})
+            if path == '/api/master-volume':
+                n = int(self.headers.get('Content-Length', 0))
+                body = json.loads(self.rfile.read(n) or b'{}')
+                return self._json(DEVICE.set_master_volume(int(body.get('value', 127))))
+            if path == '/api/sampling/button':
+                return self._json(DEVICE.sampling_button())
+            if path == '/api/sampling/input':
+                n = int(self.headers.get('Content-Length', 0))
+                body = json.loads(self.rfile.read(n) or b'{}')
+                return self._json(DEVICE.set_input_source(bool(body.get('resample'))))
             if path == '/api/transport/stop':
                 return self._json(DEVICE.stop_pattern())
             m = re.match(r'^/api/pattern/(\d+)/play$', path)

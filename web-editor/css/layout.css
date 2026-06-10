@@ -139,6 +139,12 @@
 }
 .rail-icon:hover { color: var(--amber-hi); box-shadow: 0 0 0 1px var(--amber-dk); }
 
+/* master-volume slider in the rail */
+.rail-vol { display: inline-flex; align-items: center; gap: .35rem; font-size: .8rem; }
+.rail-vol input[type="range"] {
+  width: 84px; height: 16px; cursor: pointer; accent-color: var(--amber);
+}
+
 /* accent-theme picker (swatch + named select) */
 .theme-pick {
   display: inline-flex; align-items: center; gap: .4rem;

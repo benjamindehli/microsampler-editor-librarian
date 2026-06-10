@@ -259,15 +259,36 @@ wave.addEventListener('dblclick', () => { fitView(); redrawZoom(); });
     drag = null;
     wave.style.cursor = '';
     if (mode === 'pan') return;                   // panning sends nothing
-    const i = state.sel, s = slotData(i);
-    try {
-      await api(`/api/sample/${i}/points`, jsonBody({ start: s.start, end: s.end }));
-      tick(`→ S${i + 1} points ${s.start.toLocaleString()}…${s.end.toLocaleString()}`);
-    } catch (e) { tick(`⚠ points failed: ${e.message}`); }
+    const s = slotData(state.sel);
+    await commitPoints(s.start, s.end);
   };
   wave.addEventListener('pointerup', endDrag);
   wave.addEventListener('pointercancel', () => { drag = null; wave.style.cursor = ''; });
 }
+
+// Commit START/END points to the device — shared by the marker drag and the
+// numeric inputs under the waveform: clamp, redraw, POST, refresh the readout.
+async function commitPoints(start, end) {
+  if (state.sel == null) return;
+  const i = state.sel, s = slotData(i);
+  const max = (s.frames || 2) - 2;
+  s.start = Math.max(0, Math.min(max - 1, Math.round(start) || 0));
+  s.end = Math.max(s.start + 1, Math.min(max, Math.round(end) || 0));
+  const buf = curBuf();
+  if (buf) drawWave(buf, s);
+  renderPoints(s);
+  try {
+    await api(`/api/sample/${i}/points`, jsonBody({ start: s.start, end: s.end }));
+    tick(`→ S${i + 1} points ${s.start.toLocaleString()}…${s.end.toLocaleString()}`);
+  } catch (e) { tick(`⚠ points failed: ${e.message}`); }
+}
+
+// numeric START/END entry (the editable readouts under the waveform)
+$('#ro-row').addEventListener('change', e => {
+  if (!e.target.closest('.ro-input') || state.sel == null) return;
+  commitPoints(+$('#ro-row [data-point="start"]').value,
+               +$('#ro-row [data-point="end"]').value);
+});
 
 // ───────────────────────────────────────────────────────────── audition ──
 // Audition plays the sample ON THE DEVICE (like the pad ▶), via a MIDI note —

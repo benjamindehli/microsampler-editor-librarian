@@ -1,9 +1,10 @@
-// UX polish: keyboard shortcuts, accent-colour theming, help overlay.
+// UX polish: keyboard shortcuts, accent-colour theming, help overlay,
+// master-volume slider.
 import { refreshBank } from './app.js';
 import { redo, undo } from './controls.js';
 import { selectSlot } from './pads.js';
 import { slotData, state } from './state.js';
-import { $ } from './util.js';
+import { $, api, jsonBody } from './util.js';
 
 // ── accent theming (CSS custom props on :root, persisted) ────────────────
 // Only the three RGB triplets are overridden — every accent surface (glows,
@@ -37,6 +38,21 @@ themeSelect.onchange = () => applyTheme(+themeSelect.value);
 
 // ── help overlay ─────────────────────────────────────────────────────────
 $('#help-btn').onclick = () => $('#help-dialog').showModal();
+
+// ── master volume (device output, Universal SysEx) ───────────────────────
+// Live while dragging but throttled (one SysEx each), with the final value
+// always sent on release. Sets only — the device doesn't report its level, so
+// the slider starts at max and doesn't transmit until the user moves it.
+{
+  const vol = $('#master-vol');
+  let lastSent = 0;
+  const send = () => api('/api/master-volume', jsonBody({ value: +vol.value })).catch(() => { });
+  vol.addEventListener('input', () => {
+    const now = performance.now();
+    if (now - lastSent > 80) { lastSent = now; send(); }
+  });
+  vol.addEventListener('change', send);
+}
 
 // ── keyboard shortcuts ───────────────────────────────────────────────────
 const typing = () => {
