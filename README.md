@@ -12,7 +12,7 @@ This app covers everything the original did, plus a few things it didn't.
 
 - **SAMPLES**:
   - 36-slot bank overview
-  - Audition (honors start/end points) with a moving playhead on the waveform
+  - Audition on the device (honors start/end points) with a playhead on the waveform
   - WAV download/upload (auto-resample to 48/24/12/6 kHz)
   - Audio tools on upload — normalize, gain, trim silence, fade in/out,
     mono ↔ stereo (processed in-browser before transfer)

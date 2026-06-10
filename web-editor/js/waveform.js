@@ -17,6 +17,7 @@ const wave = $('#wave');
 const curBuf = () => (state.sel != null ? state.buffers.get(state.sel) : null);
 
 export async function loadWave(i) {
+  stopAudition();                  // end any held audition note before switching
   const s = slotData(i);
   const canvas = $('#wave');
   const status = $('#wave-status');
@@ -268,24 +269,43 @@ wave.addEventListener('dblclick', () => { fitView(); redrawZoom(); });
 }
 
 // ───────────────────────────────────────────────────────────── audition ──
-// playhead: a thin line over the canvas tracking the browser-audition position.
-// Driven by rAF off the AudioContext clock, mapped through the zoom window
-// (buffer-sample space), so no canvas redraw is needed.
-let playRAF = null;
-function stopPlayhead() {
+// Audition plays the sample ON THE DEVICE (like the pad ▶), via a MIDI note —
+// click toggles note-on/off. The playhead is APPROXIMATE: the app can't read
+// the device's true position, so a rAF line sweeps START→END over the region's
+// natural duration ((end−start)/rate), looping if the sample loops, mapped
+// through the zoom window. Needs the slot's WAV loaded (it is — its waveform is
+// shown); skipped otherwise.
+let playRAF = null, playing = false, playingSlot = null;
+
+export function stopAudition(sendNoteOff = true) {
+  if (!playing) return;
   if (playRAF) cancelAnimationFrame(playRAF);
   playRAF = null;
   $('#playhead').hidden = true;
+  $('#audition-btn .hw-btn-cap').textContent = '▶ PLAY';
+  if (sendNoteOff && playingSlot != null)
+    api('/api/note', jsonBody({ slot: playingSlot, on: false })).catch(() => { });
+  playing = false; playingSlot = null;
 }
-function startPlayhead(buf, t0, t1) {
+
+function startPlayhead(s) {
+  const buf = state.buffers.get(playingSlot);
+  if (!buf || !s.rate_hz || s.end <= s.start) return;   // unknown duration → no playhead
   const ph = $('#playhead');
-  const startedAt = state.audio.currentTime;
-  const frame = () => {
-    if (!state.playing) return stopPlayhead();
-    const posSec = t0 + (state.audio.currentTime - startedAt);
-    if (posSec >= t1) return stopPlayhead();
-    const x = ((posSec * buf.sampleRate - view.v0) / view.vlen) * wave.clientWidth;
-    if (x < 0 || x > wave.clientWidth) ph.hidden = true;     // scrolled off (zoom)
+  const total = s.frames || buf.length, n = buf.length;
+  const regionMs = ((s.end - s.start) / s.rate_hz) * 1000;
+  let t0 = null;
+  const frame = (ts) => {
+    if (!playing) return;
+    if (t0 == null) t0 = ts;
+    let elapsed = ts - t0;
+    if (elapsed >= regionMs) {
+      if (s.loop) { t0 = ts; elapsed = 0; }            // looping sample → repeat
+      else return stopAudition();                      // one-shot finished
+    }
+    const devFrame = s.start + (elapsed / regionMs) * (s.end - s.start);
+    const x = (((devFrame / total) * n - view.v0) / view.vlen) * wave.clientWidth;
+    if (x < 0 || x > wave.clientWidth) ph.hidden = true;   // scrolled off (zoom)
     else { ph.hidden = false; ph.style.left = x + 'px'; }
     playRAF = requestAnimationFrame(frame);
   };
@@ -293,25 +313,15 @@ function startPlayhead(buf, t0, t1) {
 }
 
 $('#audition-btn').onclick = () => {
+  if (playing) { stopAudition(); return; }
   if (state.sel == null) return;
-  const buf = state.buffers.get(state.sel);
-  if (!buf) return;
-  if (state.playing) { try { state.playing.stop(); } catch { } state.playing = null; return; }
-  const src = state.audio.createBufferSource();
-  src.buffer = buf;
-  src.connect(state.audio.destination);
-  src.onended = () => { state.playing = null; cap.textContent = '▶ PLAY'; stopPlayhead(); };
-  const cap = $('#audition-btn .hw-btn-cap');
-  cap.textContent = '■ STOP';
-  // honor the START/END points like the hardware does. Points are DEVICE
-  // frames; decodeAudioData may have resampled, so map proportionally.
   const s = slotData(state.sel);
-  const total = s.frames || Math.round(buf.duration * (s.rate_hz || 48000));
-  const t0 = Math.max(0, (s.start / total) * buf.duration);
-  const t1 = Math.min(buf.duration, ((s.end + 2) / total) * buf.duration);
-  src.start(0, t0, Math.max(0.01, t1 - t0));
-  state.playing = src;
-  startPlayhead(buf, t0, t1);
+  if (s.empty) return;
+  playing = true; playingSlot = state.sel;
+  $('#audition-btn .hw-btn-cap').textContent = '■ STOP';
+  api('/api/note', jsonBody({ slot: playingSlot, on: true, velocity: 100 }))
+    .catch(err => { tick(`⚠ play failed: ${err.message}`); stopAudition(false); });
+  startPlayhead(s);
 };
 
 // keep the waveform crisp on window resizes — and recoloured on theme changes
