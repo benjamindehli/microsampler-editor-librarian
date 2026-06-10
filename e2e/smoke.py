@@ -63,6 +63,11 @@ def run_checks():
         page.wait_for_timeout(300)
         assert '#21' in page.text_content('#ticker-log'), 'decay edit should tick'
 
+        # audition plays in-browser with a moving playhead overlay
+        page.locator('#audition-btn').click()
+        page.locator('#playhead').wait_for(state='visible', timeout=3000)
+        page.locator('#audition-btn').click()      # stop
+
         # every view renders without error
         for view in ('effect', 'patterns', 'utility', 'samples'):
             page.locator('.view-btn[data-view="%s"]' % view).click()
