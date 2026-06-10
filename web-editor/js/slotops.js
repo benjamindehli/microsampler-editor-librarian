@@ -6,7 +6,7 @@ import { forgetSample } from './sampleLoad.js';
 import { showSlot } from './slot.js';
 import { slotData, state } from './state.js';
 import { tick } from './ticker.js';
-import { $, apiJson, jsonBody } from './util.js';
+import { $, apiJson, confirmDialog, jsonBody } from './util.js';
 
 const padLabel = i => `PAD ${i + 1} (${noteName(i)})`;
 const nameOf = i => { const s = slotData(i); return s.empty ? 'empty' : s.name; };
@@ -42,8 +42,9 @@ $('#clear-btn').onclick = async () => {
   if (state.sel == null) return;
   const s = slotData(state.sel);
   if (s.empty) return;
-  if (!confirm(`Clear ${padLabel(state.sel)} ("${s.name}")?\n\n` +
-               `Empties the slot in the device's current bank (RAM).`)) return;
+  if (!await confirmDialog(`CLEAR ${padLabel(state.sel)}`,
+      `Clear "${s.name}"? Empties the slot in the device's current bank (RAM).`,
+      'CLEAR')) return;
   const sel = state.sel;
   forgetSample(sel);
   try {

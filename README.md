@@ -13,9 +13,11 @@ This app covers everything the original did, plus a few things it didn't.
 - **SAMPLES**:
   - 36-slot bank overview
   - Audition on the device (honors start/end points) with a playhead on the waveform
-  - WAV download/upload (auto-resample to 48/24/12/6 kHz)
+  - WAV download/upload (auto-resample to 48/24/12/6 kHz); drop several WAVs
+    onto the pads to bulk-fill consecutive slots
   - Audio tools on upload — normalize, gain, trim silence, fade in/out,
     mono ↔ stereo (processed in-browser before transfer)
+  - Filter pads by name
   - Live editing of all sample parameters
   - Draggable START/END markers on the waveform
   - Zoomable / pannable waveform (scroll to zoom, drag to pan) for

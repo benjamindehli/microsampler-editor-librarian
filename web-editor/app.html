@@ -60,7 +60,7 @@
       <span class="theme-dot" id="theme-dot"></span>
       <select class="theme-select" id="theme-select" aria-label="Accent colour"></select>
     </label>
-    <button class="rail-icon" id="help-btn" title="Help &amp; shortcuts (?)">?</button>
+    <button class="rail-icon" id="help-btn" aria-label="Help and shortcuts" title="Help &amp; shortcuts (?)">?</button>
     <div class="led-block">
       <span class="led" id="conn-led"></span>
       <span class="led-caption" id="conn-caption">SCANNING</span>
@@ -173,7 +173,7 @@
 </main>
 
 <!-- ── restore dialog ──────────────────────────────────────────────────── -->
-<dialog id="restore-dialog" class="hw-dialog">
+<dialog id="restore-dialog" class="hw-dialog" aria-label="Restore backup">
   <form method="dialog">
     <h3>RESTORE <span id="rd-name">?</span></h3>
     <p class="warn" id="rd-warning"></p>
@@ -201,7 +201,10 @@
 
   <!-- slot pads -->
   <aside class="pads reveal" style="--d:.08s">
-    <div class="panel-title">SAMPLE <em>01–36</em></div>
+    <div class="panel-title">SAMPLE <em>01–36</em>
+      <input id="pad-search" class="pad-search" type="search" placeholder="filter…"
+             spellcheck="false" aria-label="Filter pads by name">
+    </div>
     <div class="pad-grid" id="pad-grid"></div>
     <div class="pads-hint">CLICK A PAD TO EDIT · <b id="count-used">0</b>/36 USED</div>
 
@@ -373,7 +376,7 @@
 </footer>
 
 <!-- ── rename dialog ───────────────────────────────────────────────────── -->
-<dialog id="bank-dialog" class="hw-dialog">
+<dialog id="bank-dialog" class="hw-dialog" aria-label="Bank settings">
   <form method="dialog">
     <h3>BANK SETTINGS</h3>
     <p class="warn">Edits the device's current bank (RAM) — save on the
@@ -387,7 +390,7 @@
   </form>
 </dialog>
 
-<dialog id="help-dialog" class="hw-dialog">
+<dialog id="help-dialog" class="hw-dialog" aria-label="Help and shortcuts">
   <form method="dialog">
     <h3>microSAMPLER EDITOR — HELP</h3>
     <div class="help-body">
@@ -408,14 +411,15 @@
       <p><b>Memory meter</b> — “≈” means estimated; <b>LOAD ALL</b> loads every
         sample so it becomes exact (and pads play instantly after).</p>
       <p><b>Shortcuts</b> — <kbd>← → ↑ ↓</kbd> move pad · <kbd>Space</kbd>
-        audition · <kbd>R</kbd> receive · <kbd>⌘/Ctrl+Z</kbd> undo ·
-        <kbd>⌘/Ctrl+⇧Z</kbd> redo · <kbd>?</kbd> this help.</p>
+        audition · <kbd>+ − 0</kbd> waveform zoom · <kbd>R</kbd> receive ·
+        <kbd>⌘/Ctrl+Z</kbd> undo · <kbd>⌘/Ctrl+⇧Z</kbd> redo ·
+        <kbd>?</kbd> this help.</p>
     </div>
     <menu><button value="ok" class="hw-btn accent"><span class="hw-btn-cap">GOT IT</span></button></menu>
   </form>
 </dialog>
 
-<dialog id="slotop-dialog" class="hw-dialog">
+<dialog id="slotop-dialog" class="hw-dialog" aria-label="Slot copy or swap">
   <form method="dialog">
     <h3>SLOT <span id="so-title">?</span></h3>
     <p class="warn" id="so-warn"></p>
@@ -427,7 +431,7 @@
   </form>
 </dialog>
 
-<dialog id="rename-dialog" class="hw-dialog">
+<dialog id="rename-dialog" class="hw-dialog" aria-label="Rename sample">
   <form method="dialog">
     <h3>RENAME <span id="rn-slot">PAD 1</span></h3>
     <label>NAME <input type="text" id="rn-name" maxlength="8" spellcheck="false"></label>
@@ -440,7 +444,7 @@
 </dialog>
 
 <!-- ── upload dialog ───────────────────────────────────────────────────── -->
-<dialog id="upload-dialog" class="hw-dialog">
+<dialog id="upload-dialog" class="hw-dialog" aria-label="Load sample">
   <form method="dialog">
     <h3>LOAD SAMPLE → <span id="ud-slot">PAD 1</span></h3>
     <p class="warn">⚠ OVERWRITES this slot in the device’s current bank (RAM).</p>
@@ -470,6 +474,17 @@
     <menu>
       <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
       <button value="ok" id="ud-ok" class="hw-btn accent"><span class="hw-btn-cap">TRANSMIT</span></button>
+    </menu>
+  </form>
+</dialog>
+
+<dialog id="confirm-dialog" class="hw-dialog" aria-labelledby="confirm-title">
+  <form method="dialog">
+    <h3 id="confirm-title">CONFIRM</h3>
+    <p class="confirm-body" id="confirm-body"></p>
+    <menu>
+      <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
+      <button value="ok" id="confirm-ok" class="hw-btn accent"><span class="hw-btn-cap">OK</span></button>
     </menu>
   </form>
 </dialog>

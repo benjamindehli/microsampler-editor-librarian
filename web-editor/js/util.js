@@ -24,6 +24,19 @@ export const jsonBody = data => ({
   body: JSON.stringify(data),
 });
 
+// styled replacement for window.confirm — a themed <dialog>, returns a
+// Promise<boolean> (native dialog gives focus-trap + Esc-to-cancel for free).
+export function confirmDialog(title, body, okLabel = 'OK') {
+  const dlg = $('#confirm-dialog');
+  $('#confirm-title').textContent = title;
+  $('#confirm-body').textContent = body;
+  $('#confirm-ok .hw-btn-cap').textContent = okLabel;
+  return new Promise(resolve => {
+    dlg.onclose = () => resolve(dlg.returnValue === 'ok');
+    dlg.showModal();
+  });
+}
+
 export function wavFormat(arrayBuf) {
   // minimal RIFF/WAVE fmt reader (LE): channels @22, rate @24
   const dv = new DataView(arrayBuf);

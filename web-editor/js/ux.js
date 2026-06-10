@@ -69,6 +69,14 @@ addEventListener('keydown', e => {
     }
     return;
   }
+  // waveform zoom: + in, - out, 0 fit (the buttons no-op/disable as needed)
+  const zoom = { '+': '#wz-in', '=': '#wz-in', '-': '#wz-out', _: '#wz-out', '0': '#wz-fit' }[e.key];
+  if (zoom) {
+    const btn = $(zoom);
+    if (btn && !btn.disabled) btn.click();
+    e.preventDefault();
+    return;
+  }
   const COLS = 3, N = 36;
   const delta = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -COLS, ArrowDown: COLS }[e.key];
   if (delta != null) {
