@@ -49,7 +49,7 @@ $('#clear-btn').onclick = async () => {
   forgetSample(sel);
   try {
     await apiJson(`/api/sample/${sel}/clear`, { method: 'POST' });
-    tick(`🗑 cleared S${sel + 1}`);
+    tick(`✕ cleared S${sel + 1}`);
     await refreshBank();
     // refreshBank redraws with keepWave (keeps the canvas); force a full
     // reload so the now-empty slot's stale waveform is cleared too.
