@@ -104,9 +104,12 @@ body {
   padding: .55rem .85rem;
   box-shadow: 0 2px 0 #000, inset 0 1px 0 rgba(255,255,255,.05);
   transition: transform .06s, box-shadow .06s, color .15s;
+  white-space: nowrap;            /* a button label never stacks icon over text */
 }
-.hw-btn:hover .hw-btn-cap { color: var(--amber-hi); }
-.hw-btn:active .hw-btn-cap { transform: translateY(2px); box-shadow: 0 0 0 #000; }
+.hw-btn:not(:disabled):hover .hw-btn-cap { color: var(--amber-hi); }
+.hw-btn:not(:disabled):active .hw-btn-cap { transform: translateY(2px); box-shadow: 0 0 0 #000; }
+.hw-btn:disabled { cursor: not-allowed; }
+.hw-btn:disabled .hw-btn-cap { opacity: .4; }
 .hw-btn.accent .hw-btn-cap {
   color: #1a0d00;
   background: linear-gradient(180deg, var(--amber-hi), var(--amber) 60%,
@@ -115,15 +118,16 @@ body {
 }
 .hw-btn[aria-busy="true"] .hw-btn-cap { opacity: .5; pointer-events: none; }
 
-/* PLAY/STOP audition: fixed-width cap (no jiggle on toggle) + matched-size
-   SVG icons (the ▶/■ glyphs render at different sizes across fonts) */
-.audition-cap {
+/* PLAY/STOP icon buttons (sample audition + pattern cards): matched-size SVG
+   icons — the ▶/■ glyphs render at different sizes across fonts. The .playing
+   class on the button swaps which icon shows. */
+.ai-cap {
   display: inline-flex; align-items: center; justify-content: center; gap: .42em;
 }
 .ai-ico { width: .82em; height: .82em; fill: currentColor; flex: none; }
 /* fixed-width centered label so PLAY/STOP occupy identical space (no jiggle) */
 .ai-lbl { display: inline-block; min-width: 3.2em; text-align: center; }
 .ai-stop { display: none; }
-#audition-btn.playing .ai-play { display: none; }
-#audition-btn.playing .ai-stop { display: inline-block; }
+.playing .ai-play { display: none; }
+.playing .ai-stop { display: inline-block; }
 

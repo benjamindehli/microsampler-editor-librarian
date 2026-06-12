@@ -77,14 +77,18 @@ function renderPatterns(patterns) {
       </div>`;
     const actions = document.createElement('div');
     actions.className = 'p-actions';
-    if (recorded) {                                  // play on the device (transport)
-      const play = document.createElement('button');
-      play.className = 'hw-btn';
-      play.title = 'Play this pattern on the device';
-      play.innerHTML = '<span class="hw-btn-cap">▶</span>';
-      play.onclick = () => playPattern(p, play.querySelector('.hw-btn-cap'));
-      actions.append(play);
-    }
+    // PLAY/STOP on the device — always shown, disabled when there's no data
+    const play = document.createElement('button');
+    play.className = 'hw-btn';
+    play.disabled = !recorded;
+    play.title = recorded ? 'Play this pattern on the device' : 'No pattern data to play';
+    play.innerHTML =
+      `<span class="hw-btn-cap ai-cap">
+         <svg class="ai-ico ai-play" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5 11 6 3 10.5Z"/></svg>
+         <svg class="ai-ico ai-stop" viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="2" width="8" height="8" rx="1"/></svg>
+       </span>`;
+    if (recorded) play.onclick = () => playPattern(p, play);
+    actions.append(play);
     const dl = document.createElement('a');
     dl.className = 'hw-btn';
     dl.href = `/api/pattern/${p.pattern}.mid`;
@@ -153,24 +157,24 @@ function drawRoll(canvas, p) {
 // the clock is what advances it; STOP sends MIDI Stop (0xFC) + clock off.
 // Hardware-confirmed (device must be on GLOBAL > MIDI CLK = AUTO/EXT MIDI). One
 // transport, so only one pattern plays at a time.
-let playing = null;      // { pattern, cap } currently transport-playing, or null
+let playing = null;      // { pattern, btn } currently transport-playing, or null
 
 export function stopTransport() {
   if (!playing) return;
-  const cap = playing.cap;
+  const btn = playing.btn;
   playing = null;
-  cap.textContent = '▶';
+  btn.classList.remove('playing');
   apiJson('/api/transport/stop', { method: 'POST' }).catch(() => { });
 }
 
-async function playPattern(p, cap) {
+async function playPattern(p, btn) {
   if (playing && playing.pattern === p.pattern) { stopTransport(); return; }  // click again = stop
   // switching patterns: just revert the previous button — the new /play stops
   // it on the device itself (atomically), so we DON'T fire a separate /stop
   // (two racing requests sometimes restarted the OLD pattern).
-  if (playing) playing.cap.textContent = '▶';
-  playing = { pattern: p.pattern, cap };
-  cap.textContent = '■';
+  if (playing) playing.btn.classList.remove('playing');
+  playing = { pattern: p.pattern, btn };
+  btn.classList.add('playing');
   try {
     // the device sequencer is a slave — the bridge streams MIDI clock at this
     // tempo so Start actually advances (device needs MIDI CLK = AUTO/EXT MIDI)
@@ -179,7 +183,7 @@ async function playPattern(p, cap) {
     tick(`▶ pattern ${p.pattern + 1} (device)`);
   } catch (e) {
     tick(`⚠ play failed: ${e.message}`);
-    if (playing && playing.pattern === p.pattern) { cap.textContent = '▶'; playing = null; }
+    if (playing && playing.pattern === p.pattern) { btn.classList.remove('playing'); playing = null; }
   }
 }
 

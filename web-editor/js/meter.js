@@ -5,7 +5,8 @@
 // (384 KB), per-pattern usage = bank-blob seq_lengths[i] × 0x200 (the
 // 0x800-block-rounded size). Sample sizes are exact once a slot's WAV has
 // been seen (frames+channels known); otherwise estimated from the END point
-// assuming stereo, flagged "≈" with a MEASURE button to fetch the rest.
+// (channels guessed from the slots already loaded, defaulting to mono — see
+// estChannels), flagged "≈" with a MEASURE button to fetch the rest.
 import { renderPads } from './pads.js';
 import { loadSampleAudio } from './sampleLoad.js';
 import { renderChips } from './slot.js';
@@ -18,13 +19,26 @@ export const MEM_PTRN_TOTAL = 0x60000;
 const MEM_BLK = 0x8000;
 export const memBlk = b => Math.ceil(b / MEM_BLK) * MEM_BLK;
 
-// device bytes a slot occupies: exact once frames+channels are known,
-// estimated from the END point (assume stereo) otherwise
+// channels to assume when estimating an UNLOADED slot: match the majority of
+// the slots we've actually loaded (their stereo flag is known), defaulting to
+// MONO — the common case on this device — when none are loaded yet. The old
+// code always assumed stereo, which doubled the estimate for mono samples and
+// could push the total past the pool size.
+function estChannels() {
+  let mono = 0, stereo = 0;
+  for (const s of state.bank.slots)
+    if (!s.empty && s.stereo != null) s.stereo ? stereo++ : mono++;
+  return stereo > mono ? 2 : 1;
+}
+
+// device bytes a slot occupies: exact once frames+channels are known, else
+// estimated from the END point (≈ frames, as default END = frames−2) × the
+// estimated channel count
 export function slotDevBytes(s) {
   if (s.empty) return { bytes: 0, est: false };
   if (s.frames && s.stereo != null)
     return { bytes: memBlk(s.frames * (s.stereo ? 2 : 1) * 2), est: false };
-  return { bytes: memBlk((s.end + 2) * 2 * 2), est: true };
+  return { bytes: memBlk((s.end + 2) * estChannels() * 2), est: true };
 }
 
 export function sampleMemUsage() {
@@ -34,7 +48,9 @@ export function sampleMemUsage() {
     used += u.bytes;
     est = est || u.est;
   }
-  return { used, est };
+  // an estimate can't legitimately exceed the physical pool — clamp so the
+  // readout never shows more than the maximum possible
+  return { used: Math.min(used, MEM_SMPL_TOTAL), est };
 }
 
 export function renderMeter() {

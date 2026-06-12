@@ -29,12 +29,14 @@
 .pattern-card .p-meta { font-size: .58rem; letter-spacing: .1em; color: var(--ink-dim); }
 .pattern-card .p-meta b { color: var(--amber-dk); font-weight: 600; }
 .pattern-roll {
-  height: 44px; border-radius: 3px;
+  height: 88px; border-radius: 3px;
   background: var(--phos-bg);
   border: 1px solid #000;
   box-shadow: inset 0 2px 8px rgba(0,0,0,.85);
 }
-.pattern-card .p-actions { display: flex; gap: .4rem; }
+.pattern-card .p-actions { display: flex; gap: .3rem; flex-wrap: wrap; }
+/* compact caps so PLAY/STOP + ⇩.MID + ⇧.MID + INIT fit on one row */
+.pattern-card .p-actions .hw-btn-cap { padding: .5rem .5rem; letter-spacing: .05em; }
 .pattern-card.is-empty .pattern-roll { opacity: .45; }
 
 /* track legend dots in pattern cards */

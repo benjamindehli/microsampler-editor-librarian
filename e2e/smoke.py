@@ -79,11 +79,11 @@ def run_checks():
         page.wait_for_selector('.pattern-card:not(.is-empty)', timeout=10000)
         play = page.locator('.pattern-card:not(.is-empty) .p-actions .hw-btn').first
         play.click()
-        # reaches the playing state (■) once its samples are loaded + scheduled
+        # reaches the playing state (button gets .playing, swapping ▶→■ icon)
         page.wait_for_function(
-            "() => { const c = document.querySelector("
-            "'.pattern-card:not(.is-empty) .p-actions .hw-btn .hw-btn-cap');"
-            " return c && c.textContent.trim() === '\\u25a0'; }", timeout=6000)
+            "() => { const b = document.querySelector("
+            "'.pattern-card:not(.is-empty) .p-actions .hw-btn');"
+            " return b && b.classList.contains('playing'); }", timeout=6000)
         play.click()                               # stop
 
         browser.close()
