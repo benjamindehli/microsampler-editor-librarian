@@ -34,7 +34,8 @@ This app covers everything the original did, plus a few things it didn't.
   - Import and Export MIDI files
 - **UTILITY**:
   - Full bank backup/restore (RAM or persistent user banks)
-  - Remote sampling trigger (input select + [SAMPLING], experimental)
+  - Remote sampling trigger (input select + [SAMPLING] over MIDI; no
+    device-state readback, so watch the device screen)
 - **Live two-way sync**:
   - Panel edits on the device show up in the app instantly
 - **Master volume** slider for the device output, and a **panic** button

@@ -114,7 +114,7 @@ export function onOpEvent(evt) {
   }
 }
 
-// ── sampling (experimental) ──────────────────────────────────────────────
+// ── remote sampling ([INPUT SELECT] + [SAMPLING] over NRPN) ──────────────
 {
   const seg = $('#smp-input');
   seg.querySelectorAll('button').forEach(b => {

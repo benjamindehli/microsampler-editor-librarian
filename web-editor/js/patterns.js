@@ -147,12 +147,12 @@ function drawRoll(canvas, p) {
 }
 
 // ── pattern playback (on the DEVICE) ───────────────────────────────────────
-// Play patterns through the hardware sequencer (the synth must be connected
-// anyway, and it sounds exactly like the device). The bridge sends a Program
-// Change to try to select the pattern, then MIDI Start (0xFA); STOP sends MIDI
-// Stop (0xFC). ⚠ Remote pattern SELECT is experimental — the device may only
-// play the pattern selected on its panel (verify on hardware). One transport,
-// so only one pattern plays at a time.
+// Play patterns through the hardware sequencer (it sounds exactly like the
+// device). The bridge selects the pattern via NRPN on the [PATTERN] dial, then
+// streams MIDI clock and sends MIDI Start (0xFA) — the sequencer is a slave, so
+// the clock is what advances it; STOP sends MIDI Stop (0xFC) + clock off.
+// Hardware-confirmed (device must be on GLOBAL > MIDI CLK = AUTO/EXT MIDI). One
+// transport, so only one pattern plays at a time.
 let playing = null;      // { pattern, cap } currently transport-playing, or null
 
 export function stopTransport() {
