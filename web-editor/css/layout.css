@@ -133,10 +133,12 @@
 /* header icon buttons (theme, help) */
 .rail-icon {
   width: 26px; height: 26px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
   border: 1px solid var(--line-hi); background: var(--steel-3);
   color: var(--ink); font: 600 .85rem/1 "Chakra Petch", sans-serif;
   cursor: pointer; transition: color .15s, box-shadow .15s;
 }
+.rail-icon svg { display: block; }
 .rail-icon:hover { color: var(--amber-hi); box-shadow: 0 0 0 1px var(--amber-dk); }
 .rail-icon.panic { color: var(--err); }
 .rail-icon.panic:hover { color: #fff; box-shadow: 0 0 0 1px var(--err); }
