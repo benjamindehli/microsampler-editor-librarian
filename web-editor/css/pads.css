@@ -102,37 +102,3 @@
 .pad.sounding .pad-play { opacity: 1; color: var(--amber); }
 
 /* upload pre-flight memory line */
-
-/* ── local WAV library (sidebar in the pads aside) ──────────────────────── */
-.library { margin-top: 1.1rem; border-top: 1px solid var(--line); padding-top: .9rem; }
-.library .panel-title { display: flex; align-items: center; justify-content: space-between; }
-.lib-refresh {
-  appearance: none; cursor: pointer;
-  width: 20px; height: 20px; line-height: 18px; border-radius: 50%;
-  border: 1px solid var(--line-hi); background: var(--steel-3);
-  color: var(--ink-dim); font-size: .8rem;
-  transition: color .12s, box-shadow .12s;
-}
-.lib-refresh:hover { color: var(--amber-hi); box-shadow: 0 0 0 1px var(--amber-dk); }
-.lib-list {
-  display: flex; flex-direction: column; gap: 2px;
-  max-height: 220px; overflow-y: auto;
-}
-.lib-item {
-  display: flex; align-items: baseline; gap: .6rem;
-  text-align: left; cursor: grab;
-  background: var(--steel-0); border: 1px solid var(--line);
-  border-radius: 3px; padding: .35rem .5rem;
-  transition: border-color .12s, background .12s;
-}
-.lib-item:hover { border-color: var(--amber-dk); background: var(--steel-1); }
-.lib-item:active { cursor: grabbing; }
-.lib-name {
-  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-family: "Share Tech Mono", monospace; font-size: .68rem; color: var(--ink);
-}
-.lib-size { flex: none; font-size: .55rem; letter-spacing: .08em; color: var(--ink-dim); }
-.lib-hint {
-  margin-top: .55rem; font-size: .55rem; letter-spacing: .1em; color: var(--ink-dim);
-  line-height: 1.5;
-}

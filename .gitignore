@@ -230,8 +230,6 @@ __marimo__/
 # (folders are recreated automatically on the next backup)
 native-tools/backups/
 native-tools/bank_current/
-# the user's own WAV library, browsable in the SAMPLES view (their audio)
-native-tools/library/
 
 # ad-hoc dumps written by the CLI tools (download.py etc.)
 native-tools/*.wav

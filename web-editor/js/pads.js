@@ -1,6 +1,5 @@
 // 36-slot pad grid: rendering, selection, device note-play, WAV drop.
 import { openUpload, uploadBatch } from './dialogs.js';
-import { loadLibraryToSlot } from './library.js';
 import { showSlot } from './slot.js';
 import { openSlotOp } from './slotops.js';
 import { state } from './state.js';
@@ -125,9 +124,6 @@ $('#pad-search').addEventListener('input', applyPadFilter);
     // pad-to-pad drag → copy/swap dialog (internal drag, no files)
     const from = e.dataTransfer.getData('application/x-msmpl-slot');
     if (from !== '' && +from !== slot) return openSlotOp(+from, slot);
-    // library item dragged from the sidebar → fetch + upload to this pad
-    const lib = e.dataTransfer.getData('application/x-msmpl-libfile');
-    if (lib) return loadLibraryToSlot(lib, slot);
     // file drop → upload to this pad; many WAVs → fill consecutive pads from here
     const wavs = [...e.dataTransfer.files].filter(f => /\.wav$/i.test(f.name));
     if (!wavs.length) return;

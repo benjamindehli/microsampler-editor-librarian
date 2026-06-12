@@ -15,8 +15,6 @@ This app covers everything the original did, plus a few things it didn't.
   - Audition on the device (honors start/end points) with a playhead on the waveform
   - WAV download/upload (auto-resample to 48/24/12/6 kHz); drop several WAVs
     onto the pads to bulk-fill consecutive slots
-  - Browse a local WAV **library** folder in the sidebar and drag (or click) a
-    file onto a pad to load it
   - Audio tools on upload — normalize, gain, trim silence, fade in/out,
     mono ↔ stereo (processed in-browser before transfer)
   - Filter pads by name
@@ -69,10 +67,6 @@ Then open http://localhost:8765
 ```bash
 python3 native-tools/bridge.py --mock
 ```
-
-The **library** sidebar lists `.wav` files from `native-tools/library/` (drop
-your own samples there, or point the bridge elsewhere with
-`--library /path/to/wavs`); drag one onto a pad to upload it.
 
 Bank backups land in `native-tools/backups/` (gitignored, they're your data).
 Note that sample/parameter transfers target the device's **current bank (RAM)**; save on the device or restore to a user bank to persist.
