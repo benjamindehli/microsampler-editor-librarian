@@ -64,6 +64,7 @@
       </svg>
       <input type="range" id="master-vol" min="0" max="127" value="127"
              aria-label="Master volume">
+      <span class="rail-vol-val" id="master-vol-val">100%</span>
     </label>
     <label class="theme-pick" title="Accent colour">
       <span class="theme-dot" id="theme-dot"></span>
@@ -276,7 +277,10 @@
         <div class="name-actions">
           <button class="hw-btn" id="rename-btn" title="Rename sample"><span class="hw-btn-cap">✎ NAME</span></button>
           <button class="hw-btn" id="clear-btn" title="Clear this slot"><span class="hw-btn-cap">✕ CLEAR</span></button>
-          <button class="hw-btn" id="audition-btn"><span class="hw-btn-cap">▶ PLAY</span></button>
+          <button class="hw-btn" id="audition-btn"><span class="hw-btn-cap audition-cap">
+            <svg class="ai-ico ai-play" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5 11 6 3 10.5Z"/></svg>
+            <svg class="ai-ico ai-stop" viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="2" width="8" height="8" rx="1"/></svg>
+            <span class="ai-lbl">PLAY</span></span></button>
           <a class="hw-btn" id="download-btn" download><span class="hw-btn-cap">⇩ WAV</span></a>
           <button class="hw-btn accent" id="upload-btn"><span class="hw-btn-cap">⇧ LOAD…</span></button>
         </div>

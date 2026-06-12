@@ -56,9 +56,13 @@ $('#panic-btn').onclick = () => {
 // the slider starts at max and doesn't transmit until the user moves it.
 {
   const vol = $('#master-vol');
+  const valOut = $('#master-vol-val');
   let lastSent = 0;
+  const showVal = () => { valOut.textContent = `${Math.round(+vol.value / 127 * 100)}%`; };
   const send = () => api('/api/master-volume', jsonBody({ value: +vol.value })).catch(() => { });
+  showVal();                                       // reflect the initial position
   vol.addEventListener('input', () => {
+    showVal();
     const now = performance.now();
     if (now - lastSent > 80) { lastSent = now; send(); }
   });

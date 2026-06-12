@@ -147,6 +147,10 @@
 .rail-vol input[type="range"] {
   width: 84px; height: 16px; cursor: pointer; accent-color: var(--amber);
 }
+.rail-vol-val {
+  font: .6rem/1 "Share Tech Mono", monospace; color: var(--ink-dim);
+  min-width: 2.6em; text-align: right;
+}
 
 /* accent-theme picker (swatch + named select) */
 .theme-pick {

@@ -115,3 +115,15 @@ body {
 }
 .hw-btn[aria-busy="true"] .hw-btn-cap { opacity: .5; pointer-events: none; }
 
+/* PLAY/STOP audition: fixed-width cap (no jiggle on toggle) + matched-size
+   SVG icons (the ▶/■ glyphs render at different sizes across fonts) */
+.audition-cap {
+  display: inline-flex; align-items: center; justify-content: center; gap: .42em;
+}
+.ai-ico { width: .82em; height: .82em; fill: currentColor; flex: none; }
+/* fixed-width centered label so PLAY/STOP occupy identical space (no jiggle) */
+.ai-lbl { display: inline-block; min-width: 3.2em; text-align: center; }
+.ai-stop { display: none; }
+#audition-btn.playing .ai-play { display: none; }
+#audition-btn.playing .ai-stop { display: inline-block; }
+

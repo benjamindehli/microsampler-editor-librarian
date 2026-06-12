@@ -315,7 +315,8 @@ export function stopAudition(sendNoteOff = true) {
   if (playRAF) cancelAnimationFrame(playRAF);
   playRAF = null;
   $('#playhead').hidden = true;
-  $('#audition-btn .hw-btn-cap').textContent = '▶ PLAY';
+  $('#audition-btn').classList.remove('playing');
+  $('#audition-btn .ai-lbl').textContent = 'PLAY';
   if (sendNoteOff && playingSlot != null)
     api('/api/note', jsonBody({ slot: playingSlot, on: false })).catch(() => { });
   playing = false; playingSlot = null;
@@ -369,7 +370,8 @@ $('#audition-btn').onclick = () => {
   const s = slotData(state.sel);
   if (s.empty) return;
   playing = true; playingSlot = state.sel;
-  $('#audition-btn .hw-btn-cap').textContent = '■ STOP';
+  $('#audition-btn').classList.add('playing');
+  $('#audition-btn .ai-lbl').textContent = 'STOP';
   api('/api/note', jsonBody({ slot: playingSlot, on: true, velocity: 100 }))
     .catch(err => { tick(`⚠ play failed: ${err.message}`); stopAudition(false); });
   startPlayhead(s);
