@@ -481,6 +481,7 @@ class Device:
         with self.lock:
             self.ms.send_short(cc, 0x78, 0, cable=self.cable)   # All Sound Off
             self.ms.send_short(cc, 0x7B, 0, cable=self.cable)   # All Note Off
+            self.ms.send_short(cc, 0x79, 0, cable=self.cable)   # Reset All Controllers
             self.ms.send_short(0xFC, 0, 0, cable=self.cable)    # MIDI Stop
         return {'ok': True}
 
@@ -504,6 +505,14 @@ class Device:
         """[INPUT SELECT] NRPN (LSB 0x12): 0..63 = AUDIO IN, 64..127 = RE-SAMPLE."""
         self._nrpn(0x12, 127 if resample else 0)
         return {'resample': bool(resample)}
+
+    def rec_button(self):
+        """'Press' the device's [REC] button (NRPN LSB 0x02, data 127, manual
+        p.46). Like the panel button it cycles SETUP/REC STANDBY → REC → REC END
+        into the device's current pattern; no readback, so the app just sends
+        presses and the device screen is the only state indicator."""
+        self._nrpn(0x02, 127)
+        return {'ok': True}
 
     def bank_summary(self):
         """Bank blob only, then leave dump mode. NO per-slot header requests:
@@ -701,6 +710,9 @@ class MockDevice(Device):
         return {'value': max(0, min(127, int(value)))}
 
     def sampling_button(self):
+        return {'ok': True}
+
+    def rec_button(self):
         return {'ok': True}
 
     def set_input_source(self, resample):
@@ -1179,6 +1191,8 @@ class Handler(BaseHTTPRequestHandler):
                 n = int(self.headers.get('Content-Length', 0))
                 body = json.loads(self.rfile.read(n) or b'{}')
                 return self._json(DEVICE.set_input_source(bool(body.get('resample'))))
+            if path == '/api/pattern/rec':
+                return self._json(DEVICE.rec_button())
             if path == '/api/transport/stop':
                 return self._json(DEVICE.stop_pattern())
             if path == '/api/panic':

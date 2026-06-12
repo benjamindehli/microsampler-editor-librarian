@@ -141,10 +141,16 @@
         <p class="util-note">Patterns from the device's current bank.
           Reading all 16 takes a few seconds. Export any pattern as a
           Standard MIDI File (96 ticks/quarter, program&nbsp;change =
-          assigned sample).</p>
+          assigned sample). <b>● REC</b> presses the device's record button —
+          arm → start → end — into its current pattern; watch the device screen.</p>
       </div>
-      <button class="hw-btn" id="patterns-refresh">
-        <span class="hw-btn-cap">RECEIVE PATTERNS</span></button>
+      <div class="pat-head-btns">
+        <button class="hw-btn rec" id="pattern-rec"
+                title="Record into the device's current pattern — press to arm, again to start, again to end">
+          <span class="hw-btn-cap">● REC</span></button>
+        <button class="hw-btn" id="patterns-refresh">
+          <span class="hw-btn-cap">RECEIVE PATTERNS</span></button>
+      </div>
     </div>
 
     <div class="pattern-grid" id="pattern-grid">

@@ -224,3 +224,10 @@ async function initPattern(q, recorded) {
 }
 
 $('#patterns-refresh').onclick = () => loadPatterns();
+
+// REC — press the device's [REC] button (NRPN); fire-and-forget, no readback,
+// so the user watches the device screen (arm → start → end). Mirrors SAMPLING.
+$('#pattern-rec').onclick = () =>
+  apiJson('/api/pattern/rec', { method: 'POST' })
+    .then(() => tick('● REC pressed — arm → start → end on the device'))
+    .catch(e => tick(`⚠ rec failed: ${e.message}`));

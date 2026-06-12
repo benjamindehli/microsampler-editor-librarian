@@ -33,6 +33,8 @@ This app covers everything the original did, plus a few things it didn't.
   - Receive all 16 patterns
   - Mini piano-roll preview + play patterns on the device (per-pattern ▶)
   - Import and Export MIDI files
+  - Remote record trigger (presses the device's [REC] over MIDI; watch the
+    device screen)
 - **UTILITY**:
   - Full bank backup/restore (RAM or persistent user banks)
   - Remote sampling trigger (input select + [SAMPLING] over MIDI; no
