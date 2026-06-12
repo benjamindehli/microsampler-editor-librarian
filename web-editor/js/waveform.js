@@ -37,6 +37,7 @@ export async function loadWave(i) {
     status.hidden = true;
     renderChips(s);
     renderMetaFmt(s);
+    renderPoints(s);                             // frames known now → enable START/END
     renderMeter();                               // exact size now known
     view = { v0: 0, vlen: buf.length };          // fresh sample → fit
     drawWave(buf, s);
@@ -271,9 +272,11 @@ wave.addEventListener('dblclick', () => { fitView(); redrawZoom(); });
 async function commitPoints(start, end) {
   if (state.sel == null) return;
   const i = state.sel, s = slotData(i);
-  const max = (s.frames || 2) - 2;
-  s.start = Math.max(0, Math.min(max - 1, Math.round(start) || 0));
-  s.end = Math.max(s.start + 1, Math.min(max, Math.round(end) || 0));
+  if (!s.frames) return;                  // length unknown (WAV not loaded yet) —
+                                          // clamping here would collapse to 1 frame
+  const max = s.frames - 2;               // start < end ≤ max, so start ≤ max-1
+  s.start = Math.max(0, Math.min(max - 1, Math.round(start)));
+  s.end = Math.max(s.start + 1, Math.min(max, Math.round(end)));
   const buf = curBuf();
   if (buf) drawWave(buf, s);
   renderPoints(s);
@@ -283,11 +286,19 @@ async function commitPoints(start, end) {
   } catch (e) { tick(`⚠ points failed: ${e.message}`); }
 }
 
-// numeric START/END entry (the editable readouts under the waveform)
+// numeric START/END entry (the editable readouts under the waveform). A blank or
+// non-numeric field falls back to the current value, so editing one point never
+// silently resets the other; edits before the sample length is known are ignored.
 $('#ro-row').addEventListener('change', e => {
   if (!e.target.closest('.ro-input') || state.sel == null) return;
-  commitPoints(+$('#ro-row [data-point="start"]').value,
-               +$('#ro-row [data-point="end"]').value);
+  const s = slotData(state.sel);
+  if (!s.frames) return renderPoints(s);  // not ready — restore the shown values
+  const sv = $('#ro-row [data-point="start"]').value;
+  const ev = $('#ro-row [data-point="end"]').value;
+  const start = sv === '' ? s.start : Number(sv);
+  const end = ev === '' ? s.end : Number(ev);
+  if (Number.isFinite(start) && Number.isFinite(end)) commitPoints(start, end);
+  else renderPoints(s);                   // bad input — restore the shown values
 });
 
 // ───────────────────────────────────────────────────────────── audition ──

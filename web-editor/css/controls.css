@@ -124,6 +124,7 @@
   padding: .12rem .3rem;
 }
 .ro-input:focus { outline: 1px solid var(--amber-dk); }
+.ro-input:disabled { opacity: .4; cursor: not-allowed; }
 
 /* drop veil */
 .drop-veil {

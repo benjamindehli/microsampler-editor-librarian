@@ -62,6 +62,10 @@ export function renderPoints(s) {
   const ei = ro.querySelector('[data-point="end"]');
   const max = (s.frames || 2) - 2;
   si.max = ei.max = max;
+  // not editable until the WAV (hence the frame count) has loaded — committing a
+  // point against an unknown length clamps to a 1-frame region (corrupts the
+  // sample on the device). loadWave() re-renders to re-enable once frames known.
+  si.disabled = ei.disabled = !s.frames;
   if (document.activeElement !== si) si.value = s.start;
   if (document.activeElement !== ei) ei.value = s.end;
   $('#meta-points').textContent =
