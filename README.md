@@ -26,6 +26,7 @@ This app covers everything the original did, plus a few things it didn't.
   - Device memory meters
 - **EFFECT**:
   - All 22 effect types with their full parameter sets
+  - Hover any parameter to see its range and default
   - The two assignable FX knobs (panel knob movements tracked live)
   - Conditional parameter graying/swapping exactly like the hardware
 - **PATTERNS**:

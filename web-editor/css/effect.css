@@ -27,10 +27,26 @@
   display: grid; gap: .8rem .9rem;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
 }
-.fx-param { min-height: 5.2rem; justify-content: space-between; }
+.fx-param { min-height: 5.2rem; justify-content: space-between; position: relative; }
 .fx-param .fader { width: 100%; }
 .fx-param .fx-select { min-width: 0; width: 100%; }
-.fx-param .ctl-label { line-height: 1.25; }
+.fx-param .ctl-label { line-height: 1.25; cursor: help; }
+
+/* range/default hover hint — theme-styled (recolours with the accent) */
+.fx-param[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute; left: 0; bottom: calc(100% + 6px); z-index: 30;
+  width: max-content; max-width: 240px;
+  background: var(--steel-1); color: var(--ink);
+  border: 1px solid var(--amber-dk); border-radius: 5px;
+  padding: .42rem .6rem;
+  font: 400 .62rem/1.45 "Share Tech Mono", monospace; letter-spacing: .02em;
+  box-shadow: 0 8px 22px rgba(0,0,0,.55), 0 0 0 1px rgba(var(--amber-rgb),.1);
+  text-shadow: 0 0 6px rgba(var(--amber-rgb),.25);
+  opacity: 0; transform: translateY(4px); pointer-events: none;
+  transition: opacity .12s ease, transform .12s ease;
+}
+.fx-param[data-tip]:hover::after { opacity: 1; transform: translateY(0); }
 
 
 /* effect preset save/load */
