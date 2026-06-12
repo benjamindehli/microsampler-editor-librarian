@@ -30,6 +30,15 @@ function fxValStr(p, v) {
   return p.min < 0 ? fmtSigned(v) : String(v);
 }
 
+// hover hint for a parameter: its default, plus the range for continuous
+// controls (selects/switches show their choices already). Values are
+// display-formatted (%, ms, dB, value-table names) just like the readout.
+function fxTip(p) {
+  const def = `Default: ${fxValStr(p, clampDef(p))}`;
+  return p.type === 3 || p.type === 4 ? def
+    : `Range: ${fxValStr(p, p.min)} … ${fxValStr(p, p.max)} · ${def}`;
+}
+
 const fxDesc = () => FX_TYPES[state.fx?.type] || FX_TYPES[0];
 const clampDef = p => Math.max(p.min, Math.min(p.max,
   p.def > p.max ? p.def - p.center : p.def));   // a few defs are byte-space
@@ -95,6 +104,7 @@ export function renderFx() {
       };
       inp.onchange = () => fxSet(p, +inp.value);
     }
+    div.dataset.tip = fxTip(p);                          // styled hover hint (CSS)
     grid.append(div);
   }
   applyFxEnable();
