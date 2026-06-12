@@ -39,6 +39,7 @@ async function boot() {
       'BANK READ FAILED — ' + e.message.toUpperCase();
     console.error('bank read failed:', e.message);
   }
+  restoreView();                                  // now that the app is up
 }
 
 function setOnline(ok, st) {
@@ -85,11 +86,16 @@ function showView(name) {
 }
 document.querySelectorAll('.view-btn').forEach(b =>
   b.onclick = () => showView(b.dataset.view));
-// restore the last-open view across reloads (defaults to SAMPLES)
-try {
-  const v = localStorage.getItem('msmpl.view');
-  if (v && v !== 'samples' && $(`.view-btn[data-view="${v}"]`)) showView(v);
-} catch { /* ignore */ }
+
+// restore the last-open view across reloads (defaults to SAMPLES). Deferred to
+// boot() rather than module load so a saved EFFECT/UTILITY view doesn't render
+// or fetch (loadBackups) against empty state before the bridge is connected.
+function restoreView() {
+  try {
+    const v = localStorage.getItem('msmpl.view');
+    if (v && v !== 'samples' && $(`.view-btn[data-view="${v}"]`)) showView(v);
+  } catch { /* ignore */ }
+}
 
 $('#refresh-btn').onclick = () => refreshBank().catch(e => tick('⚠ ' + e.message));
 

@@ -438,7 +438,6 @@ class Device:
         mm = q*8. Then stream MIDI clock (the sequencer is a slave — clock
         advances it) and send system-realtime Start (0xFA). send_short derives
         the USB-MIDI CIN automatically (0xB CC, 0xF single-byte real-time)."""
-        cc = 0xB0 | (self.channel & 0x0f)
         mm = max(0, min(127, int(q) * 8))
         # Always STOP first: a pattern-select (NRPN) doesn't register while the
         # sequencer is running, and a Start during playback just restarts the
@@ -448,10 +447,7 @@ class Device:
         with self.lock:
             self.ms.send_short(0xFC, 0, 0, cable=self.cable)        # MIDI Stop
         time.sleep(0.06)                                        # let the stop land
-        with self.lock:
-            self.ms.send_short(cc, 0x63, 0x20, cable=self.cable)    # NRPN MSB
-            self.ms.send_short(cc, 0x62, 0x01, cable=self.cable)    # NRPN LSB = [PATTERN]
-            self.ms.send_short(cc, 0x06, mm, cable=self.cable)      # data = pattern value
+        self._nrpn(0x01, mm)                                    # select [PATTERN] dial
         self._start_clock(bpm)                                  # advance the slave seq
         time.sleep(0.03)                                        # let AUTO switch to EXT
         with self.lock:
@@ -1172,7 +1168,11 @@ class Handler(BaseHTTPRequestHandler):
             if path == '/api/master-volume':
                 n = int(self.headers.get('Content-Length', 0))
                 body = json.loads(self.rfile.read(n) or b'{}')
-                return self._json(DEVICE.set_master_volume(int(body.get('value', 127))))
+                try:
+                    value = int(body.get('value', 127))
+                except (TypeError, ValueError):
+                    return self._err('value: integer 0..127', 400)
+                return self._json(DEVICE.set_master_volume(value))
             if path == '/api/sampling/button':
                 return self._json(DEVICE.sampling_button())
             if path == '/api/sampling/input':
