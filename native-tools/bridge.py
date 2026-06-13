@@ -33,6 +33,7 @@ import math
 import os
 import queue
 import re
+import signal
 import struct
 import sys
 import threading
@@ -104,7 +105,18 @@ class Device:
 
                 ms._read_raw = traced_read
                 ms.dev.write = traced_write
-            reply, cable = ms.device_inquiry()
+            # A prior bridge that exited abruptly (closing the Terminal window
+            # sends SIGHUP, not a clean shutdown) leaves the device streaming
+            # MIDI clock into a pipe nobody drained — so a single un-drained
+            # inquiry reads stale bytes and times out, even though the device is
+            # fine. Every other op drains first; do the same here and retry a
+            # few times before giving up (recovers without a power-cycle).
+            reply = cable = None
+            for _ in range(3):
+                DL._drain(ms, ms_quiet=300)
+                reply, cable = ms.device_inquiry()
+                if reply:
+                    break
             if not reply:
                 ms.close()
                 raise RuntimeError('no inquiry reply — device off or wedged '
@@ -1340,6 +1352,16 @@ def main():
         print('microSAMPLER claimed (cable %d, channel %d) — Web MIDI mode is '
               'unavailable until the bridge exits.'
               % (DEVICE.cable, DEVICE.channel + 1))
+
+    # Closing the Terminal window sends SIGHUP (service managers send SIGTERM);
+    # treat them like Ctrl+C so DEVICE.close() runs and the USB interface is
+    # released cleanly. Otherwise the device is left mid-stream and the next
+    # start can't get an inquiry reply until it's power-cycled.
+    def _graceful(*_a):
+        raise KeyboardInterrupt
+    signal.signal(signal.SIGTERM, _graceful)
+    if hasattr(signal, 'SIGHUP'):
+        signal.signal(signal.SIGHUP, _graceful)
 
     srv = ThreadingHTTPServer(('127.0.0.1', args.port), Handler)
     print('bridge ready: http://localhost:%d  (Ctrl+C to stop)' % args.port)
