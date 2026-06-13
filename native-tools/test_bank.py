@@ -34,6 +34,9 @@ class FakeMS:
                                  # SELECTS it; next 0x16 -> error 0x29 until
                                  # the session completes via 0x1F or 0x14
 
+    def send_short(self, status, d1=0, d2=0, cable=None):
+        pass        # short MIDI msgs (e.g. the Stop sent before a dump) — no-op
+
     def _push_sysex(self, msg):
         pkts = to_usb_midi(msg, 1)
         for off in range(0, len(pkts), 64):

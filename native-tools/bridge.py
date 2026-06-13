@@ -214,6 +214,10 @@ class Device:
         data dump closes its own select session; patterns are a fixed 1308
         bytes on this hardware so the data phase always runs."""
         from bank import fetch_sequence
+        # the device answers dump requests with err 0x29 while its sequencer is
+        # playing — stop it (no-op if idle) and let it settle before the dump
+        self.stop_pattern()
+        time.sleep(0.06)
         with self.lock:
             self._inquire()
             out = []
@@ -520,6 +524,9 @@ class Device:
         (hardware-traced 2026-06-05; the 0x14 param request does NOT close it
         — the original's Target=1 flow is dead code). Rate/length are filled
         in lazily by the client from the WAV when a sample is downloaded."""
+        # dumps fail with err 0x29 while the sequencer plays — stop it first
+        self.stop_pattern()
+        time.sleep(0.06)
         with self.lock:
             self._inquire()
             bank = self._fetch_bank_blob()
