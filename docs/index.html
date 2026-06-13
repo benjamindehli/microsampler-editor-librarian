@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>microSAMPLER Editor / Librarian — Documentation</title>
+<meta name="description" content="Installation, requirements and usage guide for the microSAMPLER Editor / Librarian — a modern, unofficial editor/librarian for the Korg microSAMPLER.">
+<link rel="icon" href="assets/appicon.svg">
+<link rel="stylesheet" href="css/docs.css">
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ───────────────────────── sidebar ───────────────────────── -->
+  <aside class="side">
+    <div class="brand">
+      <img src="assets/logo.svg" alt="Dehli Musikk">
+      <b>microSAMPLER<br>Editor / Librarian</b>
+      <button class="menu-btn" aria-label="Toggle menu">MENU</button>
+    </div>
+    <nav>
+      <a href="#overview">Overview</a>
+      <a href="#requirements">Requirements</a>
+      <a href="#install">Installation</a>
+      <a href="#first-run">First run</a>
+      <div class="grp">USING IT</div>
+      <a href="#samples">Samples</a>
+      <a href="#effect">Effect</a>
+      <a href="#patterns">Patterns</a>
+      <a href="#utility">Utility</a>
+      <a href="#rail">Top bar &amp; shortcuts</a>
+      <div class="grp">HELP</div>
+      <a href="#tips">Tips &amp; gotchas</a>
+      <a href="#troubleshooting">Troubleshooting</a>
+      <a href="#about">About &amp; license</a>
+    </nav>
+  </aside>
+
+  <!-- ───────────────────────── content ───────────────────────── -->
+  <main class="content">
+
+    <div class="hero">
+      <h1>micro<b>SAMPLER</b> Editor / Librarian</h1>
+      <p class="tag">A modern editor &amp; librarian for the Korg microSAMPLER — sample editing,
+        effects, patterns and full bank backup, from your computer.</p>
+      <img class="demo" src="assets/demo.gif" alt="The editor walking through its Samples, Effect, Patterns and Utility views">
+      <p style="margin:1.3rem 0 0"><a class="cta" href="https://github.com/benjamindehli/microsampler-editor-librarian">View on GitHub →</a></p>
+    </div>
+
+    <section id="overview">
+      <h2>Overview</h2>
+      <p>The <strong>microSAMPLER Editor / Librarian</strong> brings the Korg microSAMPLER's
+        editing and librarian features to a modern computer — replacing Korg's original
+        application, which was 32-bit and no longer runs on current macOS. It talks to the
+        hardware over USB and gives you a full graphical editor in your browser.</p>
+      <p>What you can do:</p>
+      <ul>
+        <li><strong>Samples</strong> — download/upload WAVs, edit every parameter, trim, audition on the device, and manage all 36 slots.</li>
+        <li><strong>Effect</strong> — edit all 22 effect types with their complete parameter sets.</li>
+        <li><strong>Patterns</strong> — receive, play and record patterns on the device, and import/export them as MIDI files.</li>
+        <li><strong>Librarian</strong> — back up and restore entire banks (including the device's persistent user banks).</li>
+      </ul>
+      <div class="note">
+        <b class="label">UNOFFICIAL PROJECT</b>
+        <p>This is an independent project, <strong>not affiliated with, endorsed or supported by Korg</strong>.
+          It contains no Korg software or firmware. <em>microSAMPLER</em> and <em>Korg</em> are
+          trademarks of Korg Inc., used only to identify the hardware this software works with.</p>
+      </div>
+    </section>
+
+    <section id="requirements">
+      <h2>Requirements</h2>
+      <h3>Hardware</h3>
+      <ul>
+        <li>A <strong>Korg microSAMPLER</strong>.</li>
+        <li>A <strong>USB cable</strong> (USB-B, the standard "printer" type) to connect it to your computer.</li>
+      </ul>
+
+      <figure>
+        <picture>
+          <source type="image/avif" sizes="(max-width: 860px) 100vw, 792px"
+            srcset="assets/hardware/rear-panel_396.avif 396w, assets/hardware/rear-panel_792.avif 792w, assets/hardware/rear-panel_1584.avif 1584w">
+          <source type="image/webp" sizes="(max-width: 860px) 100vw, 792px"
+            srcset="assets/hardware/rear-panel_396.webp 396w, assets/hardware/rear-panel_792.webp 792w, assets/hardware/rear-panel_1584.webp 1584w">
+          <img src="assets/hardware/rear-panel_792.jpg" width="792" height="539" loading="lazy"
+            sizes="(max-width: 860px) 100vw, 792px"
+            srcset="assets/hardware/rear-panel_396.jpg 396w, assets/hardware/rear-panel_792.jpg 792w, assets/hardware/rear-panel_1584.jpg 1584w"
+            alt="microSAMPLER rear panel showing the USB-B port and audio jacks">
+        </picture>
+        <figcaption>The microSAMPLER's rear panel — the USB port is what connects to your computer.</figcaption>
+      </figure>
+
+      <h3>Software</h3>
+      <table>
+        <tr><th>Component</th><th>Notes</th></tr>
+        <tr><td>Operating system</td><td>macOS (tested), Linux (should work), Windows (untested)</td></tr>
+        <tr><td>Python 3.8+</td><td>Pre-installed on macOS; otherwise from <a href="https://python.org">python.org</a></td></tr>
+        <tr><td><code>pyusb</code> (BSD)</td><td><code>pip3 install pyusb</code></td></tr>
+        <tr><td><code>libusb</code> (LGPL)</td><td>macOS: <code>brew install libusb</code></td></tr>
+        <tr><td>A modern browser</td><td>Chrome / Chromium recommended</td></tr>
+      </table>
+      <p>The editor itself needs <strong>no installation and no build step</strong> — it's plain
+        web files served by a small local helper (the "bridge").</p>
+    </section>
+
+    <section id="install">
+      <h2>Installation</h2>
+      <p>Get the project from GitHub — either download the latest release ZIP or clone it:</p>
+      <pre><code>git clone https://github.com/benjamindehli/microsampler-editor-librarian.git
+cd microsampler-editor-librarian</code></pre>
+
+      <h3>macOS — the easy way</h3>
+      <p>Install the two dependencies once, then use the launcher:</p>
+      <pre><code>brew install libusb
+pip3 install pyusb</code></pre>
+      <ol class="steps">
+        <li>Connect the microSAMPLER to your Mac with the USB cable and power it on.</li>
+        <li>Double-click <code>microSAMPLER Editor Librarian.command</code>.</li>
+        <li>Enter your password when asked — administrator rights are required to claim the
+          USB connection from macOS.</li>
+        <li>The editor opens in your browser automatically.</li>
+      </ol>
+
+      <h3>Any platform — manual</h3>
+      <pre><code>sudo python3 native-tools/bridge.py</code></pre>
+      <p>Then open <a href="http://localhost:8765">http://localhost:8765</a> in your browser.</p>
+      <div class="note">
+        <b class="label">WHY SUDO?</b>
+        <p>The operating system's MIDI driver owns the device's USB interface; the bridge needs
+          elevated rights to take it over while it runs. It hands control back when it exits.</p>
+      </div>
+
+      <h3>Try it without hardware</h3>
+      <p>To explore the interface with no device connected, run the bridge in mock mode:</p>
+      <pre><code>python3 native-tools/bridge.py --mock</code></pre>
+    </section>
+
+    <section id="first-run">
+      <h2>First run</h2>
+      <ol class="steps">
+        <li>With the device connected and the bridge running, open the editor in your browser.</li>
+        <li>Check the <strong>CONNECTED</strong> light (top-right) is green.</li>
+        <li>Press <strong>RECEIVE</strong> (top-right) to read the current bank from the device —
+          its 36 sample slots and settings appear.</li>
+        <li>Click any pad to start editing.</li>
+      </ol>
+
+      <figure>
+        <picture>
+          <source type="image/avif" sizes="(max-width: 860px) 100vw, 792px"
+            srcset="assets/hardware/setup_396.avif 396w, assets/hardware/setup_792.avif 792w, assets/hardware/setup_1584.avif 1584w">
+          <source type="image/webp" sizes="(max-width: 860px) 100vw, 792px"
+            srcset="assets/hardware/setup_396.webp 396w, assets/hardware/setup_792.webp 792w, assets/hardware/setup_1584.webp 1584w">
+          <img src="assets/hardware/setup_792.jpg" width="792" height="539" loading="lazy"
+            sizes="(max-width: 860px) 100vw, 792px"
+            srcset="assets/hardware/setup_396.jpg 396w, assets/hardware/setup_792.jpg 792w, assets/hardware/setup_1584.jpg 1584w"
+            alt="microSAMPLER connected to a computer running the editor">
+        </picture>
+        <figcaption>The bridge runs locally and the editor talks to the device over USB.</figcaption>
+      </figure>
+    </section>
+
+    <section id="samples">
+      <h2>Samples</h2>
+      <figure>
+        <img src="assets/screenshots/samples.png" alt="The Samples view: 36-pad grid on the left, waveform and parameter controls on the right" loading="lazy">
+        <figcaption>The SAMPLES view — pad grid, waveform, and the full set of sample parameters.</figcaption>
+      </figure>
+      <ul>
+        <li><strong>36-slot pad grid</strong> — click a pad to edit it; filter by name with the search box.</li>
+        <li><strong>Waveform</strong> — scroll to zoom, drag to pan. Set the start/end points by dragging
+          the <kbd>S</kbd>/<kbd>E</kbd> markers or by typing exact frame values.</li>
+        <li><strong>Audition</strong> — the <strong>▶ PLAY</strong> button plays the slot on the device
+          (with a moving playhead over the waveform).</li>
+        <li><strong>Transfer</strong> — download a slot as a WAV, or upload WAVs (auto-resampled to the
+          device's 48/24/12/6&nbsp;kHz). Drop several WAVs onto the pads to fill consecutive slots.</li>
+        <li><strong>Audio tools on upload</strong> — normalize, adjust gain, trim silence, fade in/out, and
+          convert mono↔stereo, all processed in your browser before transfer.</li>
+        <li><strong>Live editing</strong> — loop, reverse, BPM-sync, FX on/off, decay, release, level, pan,
+          semitone, tune and velocity intensity, all written to the device as you change them.</li>
+        <li><strong>Slot management</strong> — rename, clear (✕), and copy/swap by dragging one pad onto another.</li>
+        <li><strong>Memory meters</strong> — show sample and pattern memory use; <strong>LOAD ALL</strong>
+          makes the readout exact and caches every sample for instant playback.</li>
+      </ul>
+      <figure>
+        <img src="assets/screenshots/upload.png" alt="The upload dialog with audio tools: channels, normalize, trim, gain and fades" loading="lazy">
+        <figcaption>Uploading a WAV — the audio tools panel processes the file before it's sent.</figcaption>
+      </figure>
+    </section>
+
+    <section id="effect">
+      <h2>Effect</h2>
+      <figure>
+        <img src="assets/screenshots/effect.png" alt="The Effect view: an effect type selected with its parameter grid" loading="lazy">
+        <figcaption>The EFFECT view — every effect type with its full parameter set.</figcaption>
+      </figure>
+      <ul>
+        <li><strong>All 22 effect types</strong>, each with its complete set of parameters.</li>
+        <li><strong>Hover any parameter</strong> to see its range and default value.</li>
+        <li><strong>Two assignable knobs</strong> — and moving the matching knobs on the hardware is
+          tracked live in the editor.</li>
+        <li>Parameters gray out and swap exactly like the hardware does, depending on the current settings.</li>
+        <li><strong>Presets</strong> — save the whole effect (type, knobs, parameters) to a file and load it back.</li>
+      </ul>
+    </section>
+
+    <section id="patterns">
+      <h2>Patterns</h2>
+      <figure>
+        <img src="assets/screenshots/patterns.png" alt="The Patterns view: a grid of pattern cards with piano-roll previews" loading="lazy">
+        <figcaption>The PATTERNS view — all 16 patterns with mini piano-roll previews.</figcaption>
+      </figure>
+      <ul>
+        <li><strong>RECEIVE PATTERNS</strong> reads all 16 patterns from the current bank.</li>
+        <li><strong>Play</strong> a pattern on the device (the ▶ on each recorded card).</li>
+        <li><strong>● REC</strong> presses the device's record button over MIDI — arm → start → end —
+          to record into its current pattern.</li>
+        <li><strong>Import / export MIDI</strong> — export any pattern as a Standard MIDI File, or import one.</li>
+      </ul>
+      <div class="note warn">
+        <b class="label">FOR PLAYBACK &amp; RECORD</b>
+        <p>The device must have <strong>GLOBAL → MIDI CLK = AUTO</strong> (or EXT&nbsp;MIDI) so its
+          sequencer follows the editor. Record is fire-and-forget — watch the device screen as it
+          steps through arm → record → end.</p>
+      </div>
+
+      <figure>
+        <picture>
+          <source type="image/avif" sizes="(max-width: 860px) 100vw, 792px"
+            srcset="assets/hardware/midi-clk_396.avif 396w, assets/hardware/midi-clk_792.avif 792w, assets/hardware/midi-clk_1584.avif 1584w">
+          <source type="image/webp" sizes="(max-width: 860px) 100vw, 792px"
+            srcset="assets/hardware/midi-clk_396.webp 396w, assets/hardware/midi-clk_792.webp 792w, assets/hardware/midi-clk_1584.webp 1584w">
+          <img src="assets/hardware/midi-clk_792.jpg" width="792" height="539" loading="lazy"
+            sizes="(max-width: 860px) 100vw, 792px"
+            srcset="assets/hardware/midi-clk_396.jpg 396w, assets/hardware/midi-clk_792.jpg 792w, assets/hardware/midi-clk_1584.jpg 1584w"
+            alt="The device GLOBAL page showing MIDI CLK set to AUTO">
+        </picture>
+        <figcaption>Set MIDI CLK to AUTO so the sequencer follows the editor's transport.</figcaption>
+      </figure>
+    </section>
+
+    <section id="utility">
+      <h2>Utility</h2>
+      <figure>
+        <img src="assets/screenshots/utility.png" alt="The Utility view: bank backup/restore and remote sampling controls" loading="lazy">
+        <figcaption>The UTILITY view — backup/restore and remote sampling.</figcaption>
+      </figure>
+      <ul>
+        <li><strong>Bank backup &amp; restore</strong> — save the current bank to your computer and restore it
+          later, to the current (RAM) bank or to one of the device's persistent user banks. Backups can be
+          exported/imported as ZIP files.</li>
+        <li><strong>Remote sampling</strong> — choose the input source (AUDIO&nbsp;IN / RE-SAMPLE) and press
+          <strong>SAMPLE</strong> to drive the device's sampling over MIDI. It mirrors the panel button
+          (arm → sample → end); watch the device screen.</li>
+      </ul>
+    </section>
+
+    <section id="rail">
+      <h2>Top bar &amp; shortcuts</h2>
+      <ul>
+        <li><strong>Bank name &amp; BPM</strong> — click the bank display to edit them.</li>
+        <li><strong>Master volume</strong> — the slider sets the device's overall output level.</li>
+        <li><strong>Panic</strong> (⏻) — all-sound-off / stop, if a note ever sticks.</li>
+        <li><strong>Theme</strong> — five accent colours; the whole interface recolours.</li>
+        <li><strong>RECEIVE</strong> — re-read the bank from the device.</li>
+        <li><strong>?</strong> — the in-app help overlay.</li>
+      </ul>
+      <table>
+        <tr><th>Shortcut</th><th>Action</th></tr>
+        <tr><td><kbd>← → ↑ ↓</kbd></td><td>Move between pads</td></tr>
+        <tr><td><kbd>Space</kbd></td><td>Audition the selected pad</td></tr>
+        <tr><td><kbd>+</kbd> / <kbd>−</kbd> / <kbd>0</kbd></td><td>Waveform zoom in / out / fit</td></tr>
+        <tr><td><kbd>R</kbd></td><td>Receive bank from device</td></tr>
+        <tr><td><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Z</kbd></td><td>Undo / redo parameter edits</td></tr>
+        <tr><td><kbd>?</kbd></td><td>Help overlay</td></tr>
+      </table>
+    </section>
+
+    <section id="tips">
+      <h2>Tips &amp; gotchas</h2>
+      <div class="note warn">
+        <b class="label">RAM vs. SAVED</b>
+        <p>Edits and uploads go to the device's <strong>current bank, which is RAM</strong> — they're lost
+          on power-off or bank-switch. To keep them: do a <strong>WRITE</strong> on the device, or restore
+          to a user bank from the editor. <strong>Back up your bank</strong> (UTILITY → BACKUP) before bulk
+          operations, and never disconnect mid-transfer.</p>
+      </div>
+      <ul>
+        <li><strong>One USB owner at a time</strong> — close other MIDI applications (and Korg's editor) while
+          the bridge is running; only one program can hold the device.</li>
+        <li><strong>Pattern playback</strong> needs <code>GLOBAL → MIDI CLK = AUTO</code> on the device.</li>
+        <li><strong>Remote sampling &amp; record</strong> give no feedback in the editor — watch the device screen.</li>
+      </ul>
+    </section>
+
+    <section id="troubleshooting">
+      <h2>Troubleshooting</h2>
+      <table>
+        <tr><th>Symptom</th><th>Fix</th></tr>
+        <tr><td>"no inquiry reply — device off or wedged"</td>
+            <td>The bridge retries automatically; if it persists, power-cycle the device and relaunch.</td></tr>
+        <tr><td>Device not found / permission error</td>
+            <td>Make sure you ran with administrator rights (the macOS launcher does this), the cable is
+                connected, and no other MIDI app holds the device.</td></tr>
+        <tr><td>Pattern play does nothing</td>
+            <td>Set <code>GLOBAL → MIDI CLK = AUTO</code> (or EXT MIDI) on the device.</td></tr>
+        <tr><td>Uploaded sample sounds wrong</td>
+            <td>The device plays 16-bit audio at fixed rates; the editor resamples automatically — re-upload
+                if you changed the source file.</td></tr>
+        <tr><td>USB seems stuck</td><td>Power-cycle the microSAMPLER.</td></tr>
+      </table>
+    </section>
+
+    <section id="about">
+      <h2>About &amp; license</h2>
+      <p>Made by <strong>Benjamin Dehli / Dehli Musikk</strong>. The communication protocol was independently
+        reverse-engineered for the sole purpose of interoperability with hardware owned by the user.</p>
+      <p>Licensed under the <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3</a>.
+        Source and releases are on <a href="https://github.com/benjamindehli/microsampler-editor-librarian">GitHub</a>.</p>
+      <div class="note warn">
+        <b class="label">USE AT YOUR OWN RISK</b>
+        <p>This software is provided "as is", without warranty of any kind. The author accepts no
+          responsibility for any damage to your device or loss of samples, patterns or other data.
+          It writes to the device's memory — back up your banks before bulk operations.</p>
+      </div>
+      <footer>
+        <img class="logo" src="assets/logo.svg" alt="Dehli Musikk">
+        <p>microSAMPLER Editor / Librarian — an independent, unofficial project.
+          microSAMPLER and Korg are trademarks of Korg Inc.</p>
+      </footer>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  // mobile menu toggle
+  const nav = document.querySelector('.side nav');
+  document.querySelector('.menu-btn').addEventListener('click', () => nav.classList.toggle('open'));
+  document.querySelectorAll('.side nav a').forEach(a =>
+    a.addEventListener('click', () => nav.classList.remove('open')));
+  // highlight the section currently in view
+  const links = new Map([...document.querySelectorAll('.side nav a')].map(a => [a.getAttribute('href').slice(1), a]));
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        document.querySelectorAll('.side nav a.active').forEach(a => a.classList.remove('active'));
+        links.get(e.target.id)?.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-10% 0px -80% 0px' });
+  document.querySelectorAll('main section[id]').forEach(s => obs.observe(s));
+</script>
+</body>
+</html>

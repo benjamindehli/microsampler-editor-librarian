@@ -8,6 +8,8 @@ This app covers everything the original did, plus a few things it didn't.
 
 ![microSAMPLER Editor / Librarian — sample editing, effects, patterns and utility views](web-editor/assets/demo.gif)
 
+📖 **[Full documentation & guide →](https://benjamindehli.github.io/microsampler-editor-librarian/)**
+
 ## Features
 
 - **SAMPLES**:
