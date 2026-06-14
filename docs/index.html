@@ -263,6 +263,32 @@ pip3 install pyusb</code></pre>
         <li>The editor opens in your browser automatically.</li>
       </ol>
 
+      <h3>Linux</h3>
+      <p>Install <code>libusb</code> (e.g. <code>sudo apt install libusb-1.0-0</code>) and
+        <code>pip3 install pyusb</code>, then use the launcher:</p>
+      <ol class="steps">
+        <li>Connect the microSAMPLER and power it on.</li>
+        <li>Double-click <code>microSAMPLER Editor Librarian.sh</code>. Some file managers open
+          <code>.sh</code> files in an editor — mark it executable / "Allow launching" first, or
+          run <code>./'microSAMPLER Editor Librarian.sh'</code> from a terminal.</li>
+        <li>Enter your password when asked (root is needed to claim the USB device).</li>
+        <li>The editor opens in your browser automatically.</li>
+      </ol>
+
+      <h3>Windows <span style="color:var(--err)">(experimental)</span></h3>
+      <div class="note warn">
+        <b class="label">UNTESTED — EXTRA SETUP REQUIRED</b>
+        <p>Windows hasn't been verified, and libusb can't open the device until its USB driver is
+          switched to <strong>WinUSB</strong> using <a href="https://zadig.akeo.ie/">Zadig</a>.</p>
+      </div>
+      <ol class="steps">
+        <li>Install <a href="https://python.org/">Python&nbsp;3</a> (tick "Add to PATH") and run
+          <code>pip install pyusb</code>; make sure a <code>libusb-1.0</code> DLL is available.</li>
+        <li>With the microSAMPLER connected, run <strong>Zadig</strong> and replace its driver with
+          <strong>WinUSB</strong> (or libusbK).</li>
+        <li>Double-click <code>microSAMPLER Editor Librarian.bat</code>.</li>
+      </ol>
+
       <h3>Any platform — manual</h3>
       <pre><code>sudo python3 native-tools/bridge.py</code></pre>
       <p>Then open <a href="http://localhost:8765">http://localhost:8765</a> in your browser.</p>

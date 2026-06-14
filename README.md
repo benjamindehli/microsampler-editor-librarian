@@ -57,13 +57,24 @@ This app covers everything the original did, plus a few things it didn't.
 
 ## Run
 
-**macOS:** double-click **`microSAMPLER Editor Librarian.command`**.
-It starts the bridge (asks for your password; root is required to claim the USB interface from CoreMIDI) and opens the editor window automatically.
+Double-click the launcher for your platform — each starts the bridge and opens
+the editor in your browser automatically:
 
-### Manual / other OS
+- **macOS:** `microSAMPLER Editor Librarian.command`
+- **Linux:** `microSAMPLER Editor Librarian.sh` (mark it executable / "Allow
+  launching" first, or run `./'microSAMPLER Editor Librarian.sh'`)
+- **Windows:** `microSAMPLER Editor Librarian.bat` — **experimental/untested**;
+  the device's USB driver must first be switched to WinUSB with
+  [Zadig](https://zadig.akeo.ie/) so libusb can open it.
+
+macOS and Linux ask for your password — root is required to claim the USB
+interface from the OS MIDI driver.
+
+### Manual
 
 ```bash
-sudo python3 native-tools/bridge.py
+sudo python3 native-tools/bridge.py   # macOS/Linux (root for USB)
+py -3 native-tools\bridge.py          # Windows
 ```
 
 Then open http://localhost:8765
