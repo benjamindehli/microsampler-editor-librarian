@@ -236,9 +236,8 @@
       <table>
         <tr><th>Component</th><th>Notes</th></tr>
         <tr><td>Operating system</td><td>macOS (tested), Linux (should work), Windows (untested)</td></tr>
-        <tr><td>Python 3.8+</td><td>Pre-installed on macOS; otherwise from <a href="https://python.org">python.org</a></td></tr>
-        <tr><td><code>pyusb</code> (BSD)</td><td><code>pip3 install pyusb</code></td></tr>
-        <tr><td><code>libusb</code> (LGPL)</td><td>macOS: <code>brew install libusb</code></td></tr>
+        <tr><td>Python 3.8+</td><td>macOS: via the Xcode Command Line Tools (<code>xcode-select --install</code>) or <a href="https://python.org">python.org</a> — the only thing you install</td></tr>
+        <tr><td><code>pyusb</code> (BSD) + <code>libusb</code> (LGPL)</td><td>Bundled with the app — no <code>pip</code> or Homebrew step (a system copy is used instead if you have one)</td></tr>
         <tr><td>A modern browser</td><td>Chrome / Chromium recommended</td></tr>
       </table>
       <p>The editor itself needs <strong>no installation and no build step</strong> — it's plain
@@ -258,9 +257,7 @@
 cd microsampler-editor-librarian</code></pre>
 
       <h3>macOS — the easy way</h3>
-      <p>Install the two dependencies once, then use the launcher:</p>
-      <pre><code>brew install libusb
-pip3 install pyusb</code></pre>
+      <p>Nothing to install — pyusb and libusb are bundled. Just use the launcher:</p>
       <ol class="steps">
         <li>Connect the microSAMPLER to your Mac with the USB cable and power it on.</li>
         <li>Double-click <code>microSAMPLER Editor Librarian.command</code>.</li>
@@ -270,8 +267,7 @@ pip3 install pyusb</code></pre>
       </ol>
 
       <h3>Linux</h3>
-      <p>Install <code>libusb</code> (e.g. <code>sudo apt install libusb-1.0-0</code>) and
-        <code>pip3 install pyusb</code>, then use the launcher:</p>
+      <p>pyusb and libusb are bundled (x86-64 and ARM64) — just use the launcher:</p>
       <ol class="steps">
         <li>Connect the microSAMPLER and power it on.</li>
         <li>Double-click <code>microSAMPLER Editor Librarian.sh</code>. Some file managers open
@@ -288,8 +284,8 @@ pip3 install pyusb</code></pre>
           switched to <strong>WinUSB</strong> using <a href="https://zadig.akeo.ie/">Zadig</a>.</p>
       </div>
       <ol class="steps">
-        <li>Install <a href="https://python.org/">Python&nbsp;3</a> (tick "Add to PATH") and run
-          <code>pip install pyusb</code>; make sure a <code>libusb-1.0</code> DLL is available.</li>
+        <li>Install <a href="https://python.org/">Python&nbsp;3</a> (tick "Add to PATH"). pyusb and a
+          64-bit <code>libusb</code> DLL are bundled — nothing else to install.</li>
         <li>With the microSAMPLER connected, run <strong>Zadig</strong> and replace its driver with
           <strong>WinUSB</strong> (or libusbK).</li>
         <li>Double-click <code>microSAMPLER Editor Librarian.bat</code>.</li>

@@ -54,8 +54,13 @@ This app covers everything the original did, plus a few things it didn't.
 ## Requirements
 
 - macOS (tested), Linux (should work) or Windows (untested)
-- Python 3.8+ with [pyusb](https://github.com/pyusb/pyusb) (BSD): `pip3 install pyusb`
-- [libusb](https://libusb.info/) (LGPL): `brew install libusb`
+- **Python 3.8+** — that's the only thing you install.
+  [pyusb](https://github.com/pyusb/pyusb) (BSD) and
+  [libusb](https://libusb.info/) (LGPL) are bundled in
+  [`native-tools/vendor/`](native-tools/vendor/), so there's no `pip` or
+  Homebrew step. (A system pyusb/libusb, if you have one installed, is used in
+  preference — the bundled copies are just a fallback. A newer system libusb,
+  e.g. `brew install libusb`, can be more robust across reconnects.)
 - Chrome/Chromium recommended (any modern should work)
 - A Korg microSAMPLER connected with USB
 
