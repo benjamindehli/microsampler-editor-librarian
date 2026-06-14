@@ -16,6 +16,12 @@ pause_exit() {                       # never vanish silently
 
 HERE="$(cd "$(dirname "$0")" && pwd)" || pause_exit "cannot resolve own path"
 echo "repo:   $HERE"
+
+# Clear the macOS "downloaded from the internet" quarantine flag so Gatekeeper
+# lets the bundled libusb library (native-tools/vendor/libusb/) load. Harmless
+# if already clear (e.g. a git clone); needs doing once for a downloaded ZIP.
+xattr -dr com.apple.quarantine "$HERE" 2>/dev/null || true
+
 cd "$HERE/native-tools" || pause_exit "native-tools/ not found next to this file"
 
 PY="$(command -v python3 || true)"

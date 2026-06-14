@@ -73,6 +73,9 @@ cpSync(join(WEB, 'assets'), d('web-editor/assets'), { recursive: true });
 for (const f of ['msusb.py', 'protocol.py', 'download.py', 'upload.py',
                  'bank.py', 'bridge.py'])
   cpSync(r('native-tools', f), d('native-tools', f));
+// vendored deps (pyusb + per-platform libusb binaries) — so the release runs
+// on just Python 3, no pip/brew
+cpSync(r('native-tools/vendor'), d('native-tools/vendor'), { recursive: true });
 cpSync(r('tools/make_app_icon.sh'), d('tools/make_app_icon.sh'));
 for (const launcher of ['microSAMPLER Editor Librarian.command',  // macOS
                         'microSAMPLER Editor Librarian.sh',        // Linux

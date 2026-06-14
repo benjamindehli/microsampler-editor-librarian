@@ -86,37 +86,70 @@ class Device:
         with self.lock:
             if self.ms:
                 return
-            ms = MicroSampler().open()
-            if self.trace:
-                real_read, real_write = ms._read_raw, ms.dev.write
+            def _fresh_ms():
+                ms = MicroSampler().open()
+                if self.trace:
+                    real_read, real_write = ms._read_raw, ms.dev.write
 
-                def traced_read(timeout=300):
-                    data = real_read(timeout=timeout)
-                    # skip pure clock/active-sensing reads to keep trace usable
-                    if data and not all(
-                            data[i] & 0x0f == 0x0f and data[i+1] in (0xf8, 0xfe)
-                            for i in range(0, len(data) - 3, 4)):
-                        _hexline('<<', data)
-                    return data
+                    def traced_read(timeout=300):
+                        data = real_read(timeout=timeout)
+                        # skip pure clock/active-sensing reads to keep trace usable
+                        if data and not all(
+                                data[i] & 0x0f == 0x0f and data[i+1] in (0xf8, 0xfe)
+                                for i in range(0, len(data) - 3, 4)):
+                            _hexline('<<', data)
+                        return data
 
-                def traced_write(ep, data, timeout=2000):
-                    _hexline('>>', bytes(data))
-                    return real_write(ep, data, timeout=timeout)
+                    def traced_write(ep, data, timeout=2000):
+                        _hexline('>>', bytes(data))
+                        return real_write(ep, data, timeout=timeout)
 
-                ms._read_raw = traced_read
-                ms.dev.write = traced_write
-            # A prior bridge that exited abruptly (closing the Terminal window
-            # sends SIGHUP, not a clean shutdown) leaves the device streaming
-            # MIDI clock into a pipe nobody drained — so a single un-drained
-            # inquiry reads stale bytes and times out, even though the device is
-            # fine. Every other op drains first; do the same here and retry a
-            # few times before giving up (recovers without a power-cycle).
-            reply = cable = None
-            for _ in range(3):
-                DL._drain(ms, ms_quiet=300)
-                reply, cable = ms.device_inquiry()
-                if reply:
-                    break
+                    ms._read_raw = traced_read
+                    ms.dev.write = traced_write
+                return ms
+
+            def _inquire(ms):
+                # A prior bridge that exited abruptly (closing the Terminal
+                # window sends SIGHUP, not a clean shutdown) leaves the device
+                # streaming MIDI clock into a pipe nobody drained — so a single
+                # un-drained inquiry reads stale bytes and times out, even though
+                # the device is fine. Drain first, and retry a few times.
+                for _ in range(3):
+                    DL._drain(ms, ms_quiet=300)
+                    reply, cable = ms.device_inquiry()
+                    if reply:
+                        return reply, cable
+                return None, None
+
+            ms = _fresh_ms()
+            reply, cable = _inquire(ms)
+            if not reply:
+                # Last-resort recovery: a USB port reset re-enumerates the device
+                # and clears a stuck endpoint, so an intermittently wedged device
+                # often comes back WITHOUT a physical power-cycle. Only runs once
+                # the drained retries above have failed, so the normal open path
+                # is untouched. A deeper wedge can need a SECOND reset and a
+                # longer settle for macOS to finish re-enumerating; some still
+                # need a real power-cycle (the firmware, not USB, is stuck) — the
+                # final message says so. Reset invalidates the handle → reopen.
+                for settle in (0.7, 1.5):
+                    try:
+                        ms.dev.reset()
+                    except Exception:
+                        pass
+                    try:
+                        ms.close()
+                    except Exception:
+                        pass
+                    time.sleep(settle)               # let macOS re-enumerate
+                    try:
+                        ms = _fresh_ms()
+                    except Exception:
+                        continue                     # not back yet — wait longer
+                    DL._drain(ms, ms_quiet=800)      # clear a larger backlog
+                    reply, cable = _inquire(ms)
+                    if reply:
+                        break
             if not reply:
                 ms.close()
                 raise RuntimeError('no inquiry reply — device off or wedged '

@@ -9,6 +9,8 @@
 # the high-signal flake8-bugbear (B) checks. Line-length / formatting nits are
 # intentionally left off to avoid churning the existing, deliberate style.
 target-version = "py38"
+# vendored third-party code (pyusb) — don't lint someone else's library
+extend-exclude = ["native-tools/vendor"]
 
 [lint]
 select = ["F", "E9", "B"]

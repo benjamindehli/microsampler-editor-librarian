@@ -12,16 +12,57 @@ UsbMidiInterpreter::createPackets):
     uploader, not here.
 
 This module provides the transport plus an `inquiry`/`monitor` CLI to validate
-the connection. Run it with sudo on macOS (CoreMIDI holds the interface):
-    brew install libusb && python3 -m pip install pyusb
+the connection. pyusb + libusb are vendored (see vendor/), so nothing needs
+installing beyond Python 3 itself. Run it with sudo on macOS (CoreMIDI holds the
+interface):
     sudo python3 msusb.py inquiry
     sudo python3 msusb.py monitor
 """
-import sys, time
+import logging, os, platform, sys, time
 
 VID, PID = 0x0944, 0x010C
 EP_OUT, EP_IN = 0x01, 0x82
 PACKET = 64
+
+# ---------------------------------------------------------------------------
+# Vendored dependencies (vendor/) — so the app needs only Python 3, no pip/brew.
+#   * pyusb (pure-Python, BSD) is appended to sys.path as a FALLBACK, so a
+#     system pyusb, if the user has one installed, still takes precedence.
+#   * libusb native libraries are shipped per OS+arch as a FALLBACK too. We
+#     PREFER a system libusb when one is installed (a brew/apt build is usually
+#     newer than the bundled 1.0.26 and survives more open/close cycles before
+#     the device's USB stack wedges — measured on HW), and use the bundled copy
+#     only when nothing's installed. MSAMPLER_BUNDLED_LIBUSB=1 forces the bundle.
+# ---------------------------------------------------------------------------
+_VENDOR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vendor")
+
+def _add_vendored_pyusb():
+    pu = os.path.join(_VENDOR, "pyusb")
+    if os.path.isdir(pu) and pu not in sys.path:
+        sys.path.append(pu)                       # append → system pyusb wins
+
+def _bundled_libusb():
+    """Absolute path to the libusb shared library bundled for this OS+arch, or
+    None when we don't ship one for this platform."""
+    arch = platform.machine().lower()
+    arch = {"x64": "amd64"}.get(arch, arch)       # normalise a stray alias
+    table = {
+        ("Darwin", "x86_64"):  ("darwin-x86_64", "libusb-1.0.dylib"),
+        ("Darwin", "arm64"):   ("darwin-arm64",  "libusb-1.0.dylib"),
+        ("Linux",  "x86_64"):  ("linux-x86_64",  "libusb-1.0.so"),
+        ("Linux",  "aarch64"): ("linux-aarch64", "libusb-1.0.so"),
+        ("Windows", "amd64"):  ("win-amd64",     "libusb-1.0.dll"),
+    }
+    hit = table.get((platform.system(), arch))
+    if not hit:
+        return None
+    p = os.path.join(_VENDOR, "libusb", hit[0], hit[1])
+    return p if os.path.isfile(p) else None
+
+_add_vendored_pyusb()
+# pyusb logs an error when a backend probe finds no library; that's expected on
+# the system-libusb-absent path (we fall back to the bundle), so hush it.
+logging.getLogger("usb").setLevel(logging.CRITICAL)
 
 # ---------------------------------------------------------------------------
 # USB-MIDI 4-byte event packet codec  (cable 0)
@@ -91,7 +132,24 @@ class MicroSampler:
         import usb.core, usb.util
         self.core, self.util = usb.core, usb.util
         self.USBError = usb.core.USBError
-        self.dev = usb.core.find(idVendor=VID, idProduct=PID)
+        # Prefer a system libusb (newer, survives more open/close cycles), then
+        # fall back to the vendored copy so a bare Python 3 still works.
+        # MSAMPLER_BUNDLED_LIBUSB=1 forces the bundle (testing/determinism).
+        import usb.backend.libusb1 as _libusb1
+        backend = None
+        if not os.environ.get("MSAMPLER_BUNDLED_LIBUSB"):
+            backend = _libusb1.get_backend()              # system libusb, if any
+        if backend is None:
+            _lib = _bundled_libusb()
+            if _lib:
+                backend = _libusb1.get_backend(find_library=lambda _name, _p=_lib: _p)
+        try:
+            self.dev = usb.core.find(idVendor=VID, idProduct=PID, backend=backend)
+        except usb.core.NoBackendError:
+            raise RuntimeError(
+                "no libusb backend could load — the bundled library failed (on "
+                "macOS, make sure the unzipped folder isn't quarantined) and no "
+                "system libusb was found.") from None
         if self.dev is None:
             raise RuntimeError(f"microSAMPLER not found (VID {VID:#06x} PID {PID:#06x}). Plugged in?")
         self.iface = 0
