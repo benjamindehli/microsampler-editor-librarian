@@ -387,8 +387,10 @@ $('#audition-btn').onclick = () => {
   startPlayhead(s);
 };
 
-// keep the waveform crisp on window resizes — and recoloured on theme changes
-const redrawCurrent = () => {
+// redraw the current slot's waveform from its cached buffer (markers included),
+// keeping the zoom view. Used on resize/theme change AND after a bank re-sync
+// so hardware-edited START/END points show up (they aren't live-transmitted).
+export const redrawCurrent = () => {
   if (state.sel != null && state.buffers.has(state.sel)) {
     drawWave(state.buffers.get(state.sel), slotData(state.sel));
     updateZoomUI();

@@ -1,7 +1,6 @@
 // microSAMPLER Editor / Librarian — entry module.
 // Talks to the local bridge (same origin). Live edits = POST /api/param with
 // the hardware-verified 3-value Parameter Change (obj = 16 + slot).
-import './waveform.js';     // wires marker drag, audition, resize redraw
 import './dialogs.js';      // wires upload/rename dialogs + editor drop
 import './patterns.js';     // wires the patterns view
 import './slotops.js';      // wires copy/swap drop + clear button
@@ -17,6 +16,7 @@ import { state } from './state.js';
 import { tick } from './ticker.js';
 import { $, apiJson } from './util.js';
 import { loadBackups } from './utility.js';
+import { redrawCurrent } from './waveform.js';   // also wires marker drag/audition
 
 async function boot() {
   let st;
@@ -66,7 +66,10 @@ export async function refreshBank() {
     $('#bank-bpm').textContent = state.bank.bpm.toFixed(1);
     renderPads();
     renderMeter();
-    if (state.sel != null) showSlot(state.sel, { keepWave: true });
+    if (state.sel != null) {
+      showSlot(state.sel, { keepWave: true });   // refresh header/readouts…
+      redrawCurrent();                            // …and the waveform markers
+    }
     if (state.bank.effect) { fxFromBank(state.bank.effect); renderFx(); }
   } finally {
     btn.removeAttribute('aria-busy');
