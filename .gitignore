@@ -5,6 +5,8 @@ __pycache__/
 
 # C extensions
 *.so
+# …but the vendored libusb runtime libs DO ship in releases — keep them tracked
+!native-tools/vendor/libusb/**
 
 # Distribution / packaging
 .Python
