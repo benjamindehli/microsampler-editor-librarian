@@ -177,12 +177,16 @@ class Device:
                 i += 1
 
     def _scan_notes(self, midi):
-        """Forward SAMPLE-mode note-ons the device transmits when you press a
-        pad/key — note = 48 + slot on the global channel (the inverse of
-        play_note) — as SSE 'note' events so the app can follow the last-
-        triggered sample. Note-offs, velocity-0, off-range and keyboard-channel
-        notes are ignored. Flat scan like _scan_cc; every note msg is 3 bytes so
-        we consume 3 (status bytes can't occur inside a 7-bit SysEx body)."""
+        """Forward SAMPLE-mode note-ons (note = 48 + slot on the global channel,
+        the inverse of play_note) as SSE 'note' events so the app can follow the
+        last-triggered sample. Emits ALL of them — the app gates this behind its
+        FOLLOW toggle (on → manual plays AND pattern playback, app- or device-
+        driven, move the selection; off → nothing follows). Device-panel pattern
+        notes are indistinguishable from manual pad notes at the MIDI level
+        (same channel, the device streams clock continuously as master and sends
+        no Start), so the toggle is the only control. Note-offs, velocity-0,
+        off-range and keyboard-channel notes are ignored. Flat scan like
+        _scan_cc (status bytes can't occur inside a 7-bit SysEx body)."""
         i, n = 0, len(midi)
         while i < n:
             hi = midi[i] & 0xf0

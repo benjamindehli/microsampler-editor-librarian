@@ -135,15 +135,17 @@ $('#pad-search').addEventListener('input', applyPadFilter);
   });
 }
 
-// ── FOLLOW HW toggle: track the last sample triggered on the device ────────
-// (events.js routes SSE 'note' → waveform.followSelect when state.follow is on)
+// ── FOLLOW toggle (default ON): the app selection tracks the last sample
+// triggered on the device (manual OR pattern). events.js gates the SSE 'note'
+// → waveform.followSelect on state.follow. Device-panel patterns can't be told
+// apart from manual play, so this toggle is the only on/off control.
 {
   const fb = $('#follow-hw');
-  try { fb.checked = localStorage.getItem('msmpl.follow') === '1'; } catch { /* ignore */ }
+  try { fb.checked = localStorage.getItem('msmpl.follow') !== '0'; } catch { /* ignore */ }
   state.follow = fb.checked;
   fb.addEventListener('change', () => {
     state.follow = fb.checked;
     try { localStorage.setItem('msmpl.follow', fb.checked ? '1' : '0'); } catch { /* ignore */ }
-    tick(`follow hardware: ${fb.checked ? 'ON' : 'OFF'}`);
+    tick(`follow: ${fb.checked ? 'ON' : 'OFF'}`);
   });
 }

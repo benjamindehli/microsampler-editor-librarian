@@ -8,7 +8,7 @@ export const state = {
   playing: null,         // current source node
   online: false,
   fx: null,              // {type, knobs:[a,b], vals:[..32]} — effect view
-  follow: false,         // follow the last sample triggered on the hardware
+  follow: true,          // FOLLOW toggle: selection tracks the last device note
 };
 
 export function slotData(i) { return state.bank.slots[i]; }
