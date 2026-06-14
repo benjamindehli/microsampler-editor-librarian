@@ -74,8 +74,10 @@ for (const f of ['msusb.py', 'protocol.py', 'download.py', 'upload.py',
                  'bank.py', 'bridge.py'])
   cpSync(r('native-tools', f), d('native-tools', f));
 cpSync(r('tools/make_app_icon.sh'), d('tools/make_app_icon.sh'));
-cpSync(r('microSAMPLER Editor Librarian.command'),
-       d('microSAMPLER Editor Librarian.command'));
+for (const launcher of ['microSAMPLER Editor Librarian.command',  // macOS
+                        'microSAMPLER Editor Librarian.sh',        // Linux
+                        'microSAMPLER Editor Librarian.bat'])      // Windows
+  cpSync(r(launcher), d(launcher));
 for (const f of ['README.md', 'LICENSE']) cpSync(r(f), d(f));
 
 // ── report ───────────────────────────────────────────────────────────────

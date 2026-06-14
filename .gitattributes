@@ -1,0 +1,10 @@
+# Normalise text in the repo; enforce correct line endings for the launchers.
+* text=auto
+
+# Unix shells require LF (a CRLF shebang line breaks them)
+*.sh       text eol=lf
+*.command  text eol=lf
+
+# Windows batch files want CRLF
+*.bat      text eol=crlf
+*.cmd      text eol=crlf
