@@ -6,7 +6,7 @@ A modern editor/librarian for the **Korg microSAMPLER**, replacing Korg's origin
 The hardware protocol was reverse-engineered from the original binary and verified against a real device.
 This app covers everything the original did, plus a few things it didn't.
 
-![microSAMPLER Editor / Librarian — sample editing, effects, patterns and utility views](web-editor/assets/demo.gif)
+![A Korg microSAMPLER in front of a laptop running the microSAMPLER Editor / Librarian](docs/assets/hardware/setup_792.jpg)
 
 📖 **[Full documentation & guide →](https://benjamindehli.github.io/microsampler-editor-librarian/)**
 
