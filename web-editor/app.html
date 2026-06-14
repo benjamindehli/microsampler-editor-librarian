@@ -527,6 +527,19 @@
     </menu>
   </form>
 </dialog>
+<dialog id="cherry-dialog" class="hw-dialog" aria-label="Restore a sample from a backup">
+  <form method="dialog">
+    <h3>RESTORE SAMPLE ← <span id="cp-bk">backup</span></h3>
+    <p class="warn">⚠ OVERWRITES the destination pad in the device’s current bank (RAM).</p>
+    <label>SAMPLE <select id="cp-src"></select></label>
+    <label>→ PAD <select id="cp-dst"></select></label>
+    <div class="ud-mem" id="cp-info"></div>
+    <menu>
+      <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CLOSE</span></button>
+      <button type="button" id="cp-copy" class="hw-btn accent"><span class="hw-btn-cap">COPY →</span></button>
+    </menu>
+  </form>
+</dialog>
 
 <dialog id="confirm-dialog" class="hw-dialog" aria-labelledby="confirm-title">
   <form method="dialog">

@@ -49,7 +49,9 @@ import upload as UL
 
 WEB_ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                          '..', 'web-editor'))
-BACKUP_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backups')
+# where bank backups live; override with MSMPL_BACKUP_DIR (e.g. an external drive)
+BACKUP_ROOT = os.environ.get('MSMPL_BACKUP_DIR') or \
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backups')
 MIME = {'.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
         '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml',
         '.wav': 'audio/wav', '.webp': 'image/webp', '.jpg': 'image/jpeg',
@@ -901,17 +903,25 @@ class MockDevice(Device):
         out = os.path.join(BACKUP_ROOT, label)
 
         def fake(log):
-            os.makedirs(out, exist_ok=True)
-            manifest = {'name': 'MOCKBANK', 'bpm': 120.0,
-                        'samples': [{'slot': i, 'empty': i not in self._slots,
-                                     'name': self._slots.get(i, {}).get('name')}
-                                    for i in range(36)],
+            os.makedirs(os.path.join(out, 'samples'), exist_ok=True)
+            log("bank 'MOCKBANK'  BPM 120.0")
+            samples = []
+            for i in range(36):
+                s = self._slots.get(i)
+                if not s:
+                    samples.append({'slot': i, 'empty': True, 'name': None})
+                    continue
+                wav, tempo = self.download_wav(i)          # real WAV per slot
+                with open(os.path.join(out, 'samples', 's%02d.wav' % i), 'wb') as f:
+                    f.write(wav)
+                samples.append({'slot': i, 'empty': False, 'name': s['name'],
+                                'rate_hz': s['rate'], 'stereo': s['stereo'],
+                                'tempo_bpm': tempo})
+                time.sleep(.1)
+                log("  s%02d: '%s' %d bytes" % (i, s['name'], len(s['pcm'])))
+            manifest = {'name': 'MOCKBANK', 'bpm': 120.0, 'samples': samples,
                         'sequences': [{'pattern': q, 'empty': q > 3, 'size': 1308}
                                       for q in range(16)]}
-            log("bank 'MOCKBANK'  BPM 120.0")
-            for i, s in self._slots.items():
-                time.sleep(.25)
-                log("  s%02d: '%s' %d bytes" % (i, s['name'], len(s['pcm'])))
             with open(os.path.join(out, 'manifest.json'), 'w') as f:
                 json.dump(manifest, f)
             log('backup complete: %d samples -> %s/' % (len(self._slots), label))
@@ -1065,6 +1075,46 @@ def backup_zip(name):
     return buf.getvalue()
 
 
+def backup_sample_list(dirname):
+    """Non-empty samples in a backup (for the cherry-pick picker). `dirname` is
+    validated by backup_dir() (untrusted HTTP input)."""
+    src = backup_dir(dirname)
+    mf = os.path.join(src, 'manifest.json')
+    if not os.path.isfile(mf):
+        raise RuntimeError('unknown backup: %s' % dirname)
+    with open(mf) as f:
+        m = json.load(f)
+    return [{'slot': s['slot'], 'name': s.get('name') or '?',
+             'rate_hz': s.get('rate_hz'), 'stereo': s.get('stereo'),
+             'tempo_bpm': s.get('tempo_bpm')}
+            for s in m.get('samples', [])
+            if not s.get('empty')
+            and os.path.isfile(os.path.join(src, 'samples', 's%02d.wav' % s['slot']))]
+
+
+def backup_sample_wav(dirname, frm):
+    """(wav_bytes, name, tempo) for one non-empty sample in a backup."""
+    if not 0 <= frm <= 35:
+        raise RuntimeError('slot 0..35')
+    src = backup_dir(dirname)
+    wavpath = os.path.join(src, 'samples', 's%02d.wav' % frm)
+    if not os.path.isfile(wavpath):
+        raise RuntimeError('backup slot %d has no sample' % frm)
+    with open(wavpath, 'rb') as f:
+        wav = f.read()
+    name, tempo = 'SAMPLE', 120.0
+    try:
+        with open(os.path.join(src, 'manifest.json')) as f:
+            for s in json.load(f).get('samples', []):
+                if s.get('slot') == frm and not s.get('empty'):
+                    name = (s.get('name') or 'SAMPLE')[:8].upper()
+                    tempo = float(s.get('tempo_bpm') or 120.0)
+                    break
+    except Exception:
+        pass
+    return wav, name, tempo
+
+
 def import_backup_zip(data):
     """Unpack an uploaded backup .zip into a fresh BACKUP_ROOT/<name>.
     Zip-slip safe (every member must stay inside the target) and validated
@@ -1162,6 +1212,9 @@ class Handler(BaseHTTPRequestHandler):
             m = re.match(r'^/api/backup/(.+)\.zip$', path)
             if m:
                 return self._bytes(backup_zip(m.group(1)), 'application/zip')
+            m = re.match(r'^/api/backup/(.+)/samples$', path)
+            if m:
+                return self._json({'samples': backup_sample_list(m.group(1))})
             if path == '/api/op':
                 return self._json(DEVICE.op_status())
             if path == '/api/patterns':
@@ -1298,6 +1351,15 @@ class Handler(BaseHTTPRequestHandler):
                     if not 0 <= bank <= 7:
                         return self._err('bank must be null or 0..7', 400)
                 return self._json(DEVICE.start_restore(str(body['dir']), bank))
+            m = re.match(r'^/api/backup/(.+)/restore-sample$', path)
+            if m:
+                n = int(self.headers.get('Content-Length', 0))
+                body = json.loads(self.rfile.read(n) or b'{}')
+                to = int(body['to'])
+                if not 0 <= to <= 35:
+                    return self._err('slot 0..35', 400)
+                wav, name, tempo = backup_sample_wav(m.group(1), int(body['from']))
+                return self._json(DEVICE.upload_wav(to, wav, name, tempo))
             m = re.match(r'^/api/pattern/(\d+)(/init)?$', path)
             if m:
                 q = int(m.group(1))

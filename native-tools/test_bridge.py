@@ -403,6 +403,22 @@ assert any('backup complete' in l for l in bk.op['lines'])
 lst = B.list_backups()
 assert len(lst) == 1 and lst[0]['name'] == 'TESTBANK' and lst[0]['samples'] == 1
 
+# cherry-pick helpers: list a backup's samples + read one out as a WAV
+cps = B.backup_sample_list(res['dir'])
+assert len(cps) == 1, cps
+cp_slot = cps[0]['slot']
+cp_wav, cp_name, cp_tempo = B.backup_sample_wav(res['dir'], cp_slot)
+assert cp_wav[:4] == b'RIFF' and len(cp_wav) > 44 and isinstance(cp_name, str)
+assert cp_tempo > 0
+# an empty slot in that backup has no extractable sample
+cp_empty = next(i for i in range(36) if i != cp_slot)
+try:
+    B.backup_sample_wav(res['dir'], cp_empty)
+    raise AssertionError('expected no sample at empty backup slot')
+except RuntimeError:
+    pass
+print('cherry-pick: list + extract one sample OK')
+
 rs = B.Device()
 rs.ms = FakeWriteMS()
 rs.ms.dev = FakeWriteDev(rs.ms)
