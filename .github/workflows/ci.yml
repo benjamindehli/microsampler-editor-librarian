@@ -84,6 +84,10 @@ jobs:
         run: |
           npm install
           npm run lint:js
+      # the docs download link / structured data must match package.json's
+      # version (npm version stamps it; this catches a manual bump that forgot)
+      - name: docs version in sync
+        run: node tools/stamp-docs-version.mjs --check
 
   e2e:
     name: e2e smoke (playwright)
