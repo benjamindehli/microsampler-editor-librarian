@@ -27,8 +27,8 @@ This app covers everything the original did, plus a few things it didn't.
   - Renaming banks and samples
   - All samples preload on connect (progress shown), so the memory meter is
     exact and waveforms are instant
-  - Optional **follow mode** — auto-selects the sample you last triggered on the
-    hardware (Sample-mode pads)
+  - **FOLLOW** toggle (on by default) — the selection tracks the last sample
+    triggered on the device, whether you play it or a pattern does
 - **EFFECT**:
   - All 22 effect types with their full parameter sets
   - Hover any parameter to see its range and default
