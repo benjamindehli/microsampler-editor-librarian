@@ -166,6 +166,13 @@ sudo python3 dist/native-tools/bridge.py
 `dist/` mirrors the run layout (`web-editor/` + `native-tools/` + launcher) and runs exactly like the source.
 `esbuild` is build-time only — the app ships no runtime npm dependencies.
 
+Bumping the version with `npm version <new>` automatically stamps it into the
+docs download link and structured data (the `version` lifecycle runs
+`npm run stamp-version` and stages `docs/index.html` into the version commit), so
+the **Download vX.Y.Z (ZIP)** button on the site always points at the matching
+release asset. Run `npm run stamp-version` manually if you bump the version some
+other way.
+
 ## Disclaimer
 
 This is an **independent, unofficial project**. It is not affiliated with, endorsed, sponsored, or supported by Korg Inc.

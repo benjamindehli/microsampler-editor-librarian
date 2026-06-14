@@ -9,7 +9,9 @@
   "scripts": {
     "build": "node tools/build.mjs",
     "lint:js": "eslint web-editor/js",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "stamp-version": "node tools/stamp-docs-version.mjs",
+    "version": "node tools/stamp-docs-version.mjs && git add docs/index.html"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
