@@ -347,8 +347,12 @@ pip3 install pyusb</code></pre>
         <li><strong>Live editing</strong> — loop, reverse, BPM-sync, FX on/off, decay, release, level, pan,
           semitone, tune and velocity intensity, all written to the device as you change them.</li>
         <li><strong>Slot management</strong> — rename, clear (✕), and copy/swap by dragging one pad onto another.</li>
-        <li><strong>Memory meters</strong> — show sample and pattern memory use; <strong>LOAD ALL</strong>
-          makes the readout exact and caches every sample for instant playback.</li>
+        <li><strong>Memory meters</strong> — all samples are downloaded when you connect (a
+          progress bar shows the count), so the readout is always exact and every waveform is
+          instant.</li>
+        <li><strong>Follow HW</strong> (optional toggle) — selects the sample you last triggered on
+          the device in Sample mode, so editing keeps up with your playing. Since samples are
+          preloaded, the switch is instant.</li>
       </ul>
       <figure>
         <img src="assets/screenshots/upload.png" alt="The upload dialog with audio tools: channels, normalize, trim, gain and fades" loading="lazy">

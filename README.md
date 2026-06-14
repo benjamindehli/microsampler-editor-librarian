@@ -25,7 +25,10 @@ This app covers everything the original did, plus a few things it didn't.
   - Zoomable / pannable waveform (scroll to zoom, drag to pan) for
     sample-accurate trimming
   - Renaming banks and samples
-  - Device memory meters
+  - All samples preload on connect (progress shown), so the memory meter is
+    exact and waveforms are instant
+  - Optional **follow mode** — auto-selects the sample you last triggered on the
+    hardware (Sample-mode pads)
 - **EFFECT**:
   - All 22 effect types with their full parameter sets
   - Hover any parameter to see its range and default
