@@ -67,7 +67,7 @@ img { max-width: 100%; height: auto; }
 .hero h1 { margin: 0 0 .3rem; font: 400 2rem/1.1 "Chakra Petch", sans-serif; color: #fff; }
 .hero h1 b { font-weight: 700; }
 .hero .tag { color: var(--ink-dim); letter-spacing: .04em; margin: 0 0 1.4rem; }
-.hero img.demo { width: 100%; border-radius: 6px; border: 1px solid #000;
+.hero .demo { width: 100%; height: auto; border-radius: 6px; border: 1px solid #000;
   box-shadow: 0 10px 30px rgba(0,0,0,.6); display: block; }
 .cta { display: inline-block; margin-top: .3rem; font: 600 .8rem/1 "Chakra Petch", sans-serif;
   letter-spacing: .1em; color: #1a0d00;
