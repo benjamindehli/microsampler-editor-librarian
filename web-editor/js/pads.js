@@ -29,7 +29,9 @@ export function renderPads() {
     b.dataset.slot = s.slot;
     // "loaded" = decoded audio cached → instant audition/waveform, exact meter
     const loaded = !s.empty && state.buffers.has(s.slot);
-    b.className = 'pad ' + (s.empty ? 'empty' : 'used') +
+    // sharps (C#/D#/F#/G#/A#) are a keyboard's black keys — tint them darker
+    const black = [1, 3, 6, 8, 10].includes((48 + s.slot) % 12);
+    b.className = 'pad ' + (s.empty ? 'empty' : 'used') + (black ? ' black' : '') +
       (state.sel === s.slot ? ' sel' : '') + (loaded ? ' loaded' : '');
     b.innerHTML = `<span class="pad-num">${String(s.slot + 1).padStart(2, '0')} · ${noteName(s.slot)}</span>
                    <span class="pad-name">${s.empty ? '· · · ·' : esc(s.name)}</span>

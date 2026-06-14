@@ -39,6 +39,10 @@
 }
 .pad:hover { border-color: var(--line-hi); }
 .pad:active { transform: translateY(1px); box-shadow: 0 1px 0 #000; }
+/* sharps = a keyboard's black keys: darker face so the layout reads at a glance
+   (defined before .pad.sel so a selected sharp still gets the amber tint) */
+.pad.black { background: linear-gradient(180deg, #141418, #0b0b0d); }
+.pad.black:hover { border-color: var(--line-hi); }
 .pad-num {
   font-family: "Share Tech Mono", monospace;
   font-size: .6rem; color: var(--ink-dim);
