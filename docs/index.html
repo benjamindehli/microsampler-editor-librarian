@@ -3,10 +3,146 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>microSAMPLER Editor / Librarian — Documentation</title>
+<title>microSAMPLER Editor / Librarian — Korg microSAMPLER editor &amp; guide</title>
 <meta name="description" content="Installation, requirements and usage guide for the microSAMPLER Editor / Librarian — a modern, unofficial editor/librarian for the Korg microSAMPLER.">
+<link rel="canonical" href="https://benjamindehli.github.io/microsampler-editor-librarian/">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#0b0b0d">
 <link rel="icon" href="assets/appicon.svg">
+
+<!-- Open Graph (Facebook, LinkedIn, Discord, Slack, …) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="microSAMPLER Editor / Librarian">
+<meta property="og:title" content="microSAMPLER Editor / Librarian — Korg microSAMPLER editor">
+<meta property="og:description" content="A modern, unofficial editor and librarian for the Korg microSAMPLER — sample editing, effects, patterns and full bank backup, from your computer.">
+<meta property="og:url" content="https://benjamindehli.github.io/microsampler-editor-librarian/">
+<meta property="og:image" content="https://benjamindehli.github.io/microsampler-editor-librarian/assets/og-cover.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The microSAMPLER Editor / Librarian interface">
+<meta property="og:locale" content="en_US">
+
+<!-- Twitter / X card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="microSAMPLER Editor / Librarian — Korg microSAMPLER editor">
+<meta name="twitter:description" content="A modern, unofficial editor and librarian for the Korg microSAMPLER — sample editing, effects, patterns and full bank backup.">
+<meta name="twitter:image" content="https://benjamindehli.github.io/microsampler-editor-librarian/assets/og-cover.jpg">
+<meta name="twitter:site" content="@BenjaminDehli">
+<meta name="twitter:creator" content="@BenjaminDehli">
+
 <link rel="stylesheet" href="css/docs.css">
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "WebSite",
+            "@id": "https://benjamindehli.github.io/microsampler-editor-librarian",
+            "name": "microSAMPLER Editor / Librarian",
+            "url": "https://benjamindehli.github.io/microsampler-editor-librarian/",
+            "description": "Installation, requirements and usage guide for the microSAMPLER Editor / Librarian — a modern, unofficial editor/librarian for the Korg microSAMPLER.",
+            "inLanguage": "en",
+            "author": { "@id": "https://musicbrainz.org/artist/56639e59-2bb5-40bd-9d5a-97d964298b6f" },
+            "publisher": { "@id": "https://www.dehlimusikk.no/" },
+            "license": "https://creativecommons.org/licenses/by-sa/4.0/",
+            "about": { "@id": "https://github.com/benjamindehli/microsampler-editor-librarian#software" },
+            "sameAs": ["https://github.com/benjamindehli"]
+        },
+        {
+            "@type": "SoftwareApplication",
+            "@id": "https://github.com/benjamindehli/microsampler-editor-librarian#software",
+            "name": "microSAMPLER Editor / Librarian",
+            "url": "https://benjamindehli.github.io/microsampler-editor-librarian/",
+            "description": "A modern, unofficial editor and librarian for the Korg microSAMPLER — sample download/upload, full parameter editing, all 22 effects, patterns and complete bank backup/restore over USB.",
+            "applicationCategory": "MultimediaApplication",
+            "operatingSystem": "macOS, Linux",
+            "softwareVersion": "1.5.0",
+            "downloadUrl": "https://github.com/benjamindehli/microsampler-editor-librarian/releases",
+            "softwareHelp": { "@id": "https://benjamindehli.github.io/microsampler-editor-librarian" },
+            "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+            "isAccessibleForFree": true,
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "author": { "@id": "https://musicbrainz.org/artist/56639e59-2bb5-40bd-9d5a-97d964298b6f" },
+            "publisher": { "@id": "https://www.dehlimusikk.no/" },
+            "screenshot": "https://benjamindehli.github.io/microsampler-editor-librarian/assets/screenshots/samples.png",
+            "featureList": [
+                "WAV sample download and upload with automatic resampling",
+                "Full sample parameter editing and waveform trimming",
+                "All 22 effect types with their complete parameter sets",
+                "Pattern receive, playback, record and MIDI file import/export",
+                "Full bank backup and restore, including persistent user banks"
+            ],
+            "sameAs": "https://github.com/benjamindehli/microsampler-editor-librarian"
+        },
+        {
+            "@type": "Person",
+            "@id": "https://musicbrainz.org/artist/56639e59-2bb5-40bd-9d5a-97d964298b6f",
+            "name": "Benjamin Dehli",
+            "url": "https://www.dehlimusikk.no/",
+            "description": "Benjamin Dehli is a keyboard player, composer and producer from Norway. Benjamin offers keyboard instrument tracks on recordings for artists and bands through his music business Dehli Musikk.",
+            "image": {
+                "@type": "ImageObject",
+                "url": "https://www.dehlimusikk.no/benjamin-dehli.jpg",
+                "contentUrl": "https://www.dehlimusikk.no/benjamin-dehli.jpg",
+                "license": "https://creativecommons.org/licenses/by/4.0/legalcode",
+                "acquireLicensePage": "https://www.dehlimusikk.no/#contact",
+                "copyrightNotice": "Benjamin Dehli",
+                "creditText": "Dehli Musikk",
+                "creator": { "@id": "https://musicbrainz.org/artist/56639e59-2bb5-40bd-9d5a-97d964298b6f" }
+            },
+            "brand": { "@id": "https://www.dehlimusikk.no/" },
+            "worksFor": { "@id": "https://www.dehlimusikk.no/" },
+            "sameAs": [
+                "https://www.dehlimusikk.no/",
+                "https://store.dehlimusikk.no/",
+                "https://www.facebook.com/DehliMusikk/",
+                "https://x.com/BenjaminDehli",
+                "https://www.instagram.com/benjamindehli/",
+                "https://youtube.com/@BenjaminDehli",
+                "https://www.linkedin.com/in/benjamindehli/",
+                "https://vimeo.com/benjamindehli",
+                "https://flickr.com/photos/projectdehli/",
+                "https://benjamindehli.tumblr.com/",
+                "https://github.com/benjamindehli",
+                "https://musicbrainz.org/artist/56639e59-2bb5-40bd-9d5a-97d964298b6f",
+                "https://soundcloud.com/benjamin-dehli",
+                "https://ko-fi.com/benjamindehli",
+                "https://credits.muso.ai/profile/39f5096c-b6bd-41d0-9248-d959da8c4b81",
+                "https://credits.muso.ai/profile/120086b1-1215-4d5c-a61d-d992e0b2289e",
+                "https://www.discogs.com/artist/6942564-Benjamin-Dehli"
+            ]
+        },
+        {
+            "@type": "Organization",
+            "@id": "https://www.dehlimusikk.no/",
+            "name": "Dehli Musikk",
+            "url": "https://www.dehlimusikk.no/",
+            "description": "Dehli Musikk is a local music business based in Bø i Telemark, Norway. Founded by Benjamin Dehli in 2019, it offers keyboard instrument tracks on recordings for artists and bands.",
+            "foundingDate": "2019-10-01",
+            "founder": { "@id": "https://musicbrainz.org/artist/56639e59-2bb5-40bd-9d5a-97d964298b6f" },
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://www.dehlimusikk.no/DehliMusikkLogo.png",
+                "contentUrl": "https://www.dehlimusikk.no/DehliMusikkLogo.png",
+                "license": "https://creativecommons.org/licenses/by/4.0/legalcode",
+                "acquireLicensePage": "https://www.dehlimusikk.no/#contact",
+                "copyrightNotice": "Benjamin Dehli",
+                "creditText": "Dehli Musikk",
+                "creator": { "@id": "https://musicbrainz.org/artist/56639e59-2bb5-40bd-9d5a-97d964298b6f" }
+            },
+            "sameAs": [
+                "https://www.dehlimusikk.no/",
+                "https://store.dehlimusikk.no/",
+                "https://www.facebook.com/DehliMusikk/",
+                "https://x.com/BenjaminDehli",
+                "https://www.instagram.com/benjamindehli/",
+                "https://youtube.com/@BenjaminDehli",
+                "https://www.linkedin.com/in/benjamindehli/"
+            ]
+        }
+    ]
+}
+</script>
 </head>
 <body>
 <div class="wrap">
@@ -43,7 +179,13 @@
       <h1>micro<b>SAMPLER</b> Editor / Librarian</h1>
       <p class="tag">A modern editor &amp; librarian for the Korg microSAMPLER — sample editing,
         effects, patterns and full bank backup, from your computer.</p>
-      <img class="demo" src="assets/demo.gif" alt="The editor walking through its Samples, Effect, Patterns and Utility views">
+      <video class="demo" autoplay loop muted playsinline preload="metadata"
+             poster="assets/demo-poster.jpg"
+             aria-label="The editor walking through its Samples, Effect, Patterns and Utility views">
+        <source src="assets/demo.webm" type="video/webm">
+        <source src="assets/demo.mp4" type="video/mp4">
+        <img src="assets/demo.gif" alt="The editor walking through its Samples, Effect, Patterns and Utility views">
+      </video>
       <p style="margin:1.3rem 0 0"><a class="cta" href="https://github.com/benjamindehli/microsampler-editor-librarian">View on GitHub →</a></p>
     </div>
 
