@@ -2,10 +2,11 @@
 // editor-panel WAV drop target.
 import { refreshBank } from './app.js';
 import { decodeWavPcm, encodeWav, processBuffer, toolsActive } from './audioTools.js';
-import { fmtMem, MEM_SMPL_TOTAL, memBlk, sampleMemUsage, slotDevBytes }
+import { fmtMem, loadAllSamples, MEM_SMPL_TOTAL, memBlk, sampleMemUsage, slotDevBytes }
   from './meter.js';
 import { noteName, renderPads } from './pads.js';
 import { forgetSample } from './sampleLoad.js';
+import { openSlice } from './slice.js';
 import { showSlot } from './slot.js';
 import { slotData, state } from './state.js';
 import { tick } from './ticker.js';
@@ -50,7 +51,10 @@ export async function uploadBatch(startSlot, files) {
     }
   }
   await refreshBank();
-  if (done) { state.sel = startSlot; await showSlot(startSlot); }
+  if (done) {
+    state.sel = startSlot; await showSlot(startSlot);
+    loadAllSamples().catch(() => { });             // eager-load the new samples
+  }
 }
 
 // ────────────────────────────────────────────────────────────── upload ──
@@ -80,6 +84,7 @@ function resetTools() {
 }
 function setToolsEnabled(on, haveFile) {
   for (const id of UD_TOOL_IDS) $('#' + id).disabled = !on;
+  $('#ud-slice').disabled = !on;                   // slicing needs a decodable WAV
   const note = $('#ud-tools-note');
   note.hidden = on || !haveFile;
   if (!note.hidden)
@@ -165,6 +170,16 @@ async function uploadPreflight() {
   }
 }
 $('#upload-btn').onclick = () => openUpload(null);
+
+// SLICE… → hand the (tool-processed) decoded buffer to the slice dialog
+$('#ud-slice').onclick = () => {
+  if (!udDecoded || state.sel == null) return;
+  const opts = readToolOpts();
+  const buf = toolsActive(opts) ? processBuffer(udDecoded, opts) : udDecoded;
+  const base = ($('#ud-name').value || 'SLICE').replace(/[^\x20-\x7e]/g, '').toUpperCase();
+  $('#upload-dialog').close();
+  openSlice(buf, base, state.sel);
+};
 
 $('#ud-ok').onclick = async e => {
   e.preventDefault();

@@ -523,10 +523,32 @@
     <div class="ud-progress" id="ud-progress" hidden><div></div></div>
     <menu>
       <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
+      <button type="button" id="ud-slice" class="hw-btn" disabled title="Chop this sample across several pads"><span class="hw-btn-cap">SLICE…</span></button>
       <button value="ok" id="ud-ok" class="hw-btn accent"><span class="hw-btn-cap">TRANSMIT</span></button>
     </menu>
   </form>
 </dialog>
+
+<dialog id="slice-dialog" class="hw-dialog" aria-label="Slice sample across pads">
+  <form method="dialog">
+    <h3>SLICE → PADS FROM <span id="sl-from">PAD 1</span></h3>
+    <p class="warn">⚠ OVERWRITES the consecutive slots it fills in the device’s current bank (RAM).</p>
+    <p class="sl-src" id="sl-src"></p>
+    <div class="sl-mode">
+      <label class="ud-check"><input type="radio" name="sl-mode" value="equal" checked> EQUAL slices</label>
+      <label class="ud-check"><input type="radio" name="sl-mode" value="transient"> TRANSIENTS</label>
+    </div>
+    <label id="sl-count-row">SLICES <input type="number" id="sl-count" min="1" max="36" step="1" value="8"></label>
+    <label id="sl-sens-row" hidden>SENSITIVITY <input type="range" id="sl-sens" min="0" max="100" step="1" value="75"></label>
+    <div class="ud-mem" id="sl-info"></div>
+    <div class="ud-progress" id="sl-progress" hidden><div></div></div>
+    <menu>
+      <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
+      <button type="button" id="sl-go" class="hw-btn accent"><span class="hw-btn-cap">SLICE</span></button>
+    </menu>
+  </form>
+</dialog>
+
 <dialog id="cherry-dialog" class="hw-dialog" aria-label="Restore a sample from a backup">
   <form method="dialog">
     <h3>RESTORE SAMPLE ← <span id="cp-bk">backup</span></h3>

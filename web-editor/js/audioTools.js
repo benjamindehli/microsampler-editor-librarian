@@ -144,6 +144,80 @@ function scale(chans, g) {
   });
 }
 
+// ── slicing (auto-slice one sample across several pads) ────────────────────
+const SLICE_FADE_IN_MS = 2;     // de-click slice head (short — keeps the attack)
+const SLICE_FADE_OUT_MS = 5;    // de-click slice tail
+
+// Onset detection for transient slicing: an RMS "flux" novelty over ~10 ms
+// windows; keep windows whose rise peaks above a sensitivity-scaled threshold,
+// with a minimum gap between hits. Returns segment START frames, always
+// beginning at 0. Best-effort — the UI offers equal slicing as the fallback.
+function detectOnsets(src, sensitivity, minMs) {
+  const rate = src.rate, ch = src.channels, frames = ch[0].length;
+  const hop = Math.max(1, Math.round(rate * 0.01));
+  const nW = Math.ceil(frames / hop);
+  const env = new Float32Array(nW);
+  for (let w = 0; w < nW; w++) {
+    let e = 0; const s = w * hop, end = Math.min(frames, s + hop);
+    for (let i = s; i < end; i++) for (const c of ch) e += c[i] * c[i];
+    env[w] = Math.sqrt(e / Math.max(1, (end - s) * ch.length));
+  }
+  const flux = new Float32Array(nW);
+  let mx = 0;
+  for (let w = 1; w < nW; w++) {
+    flux[w] = Math.max(0, env[w] - env[w - 1]);
+    if (flux[w] > mx) mx = flux[w];
+  }
+  if (mx <= 0) return [0];
+  // higher sensitivity → lower threshold → more hits. The low end is
+  // deliberately steep so minimum sensitivity yields very few slices (only the
+  // strongest onsets survive).
+  const thr = mx * (0.55 * (1 - sensitivity) + 0.03);
+  const minGap = Math.max(1, Math.round(rate * minMs / 1000 / hop));
+  const starts = [0];
+  let last = -minGap;
+  for (let w = 1; w < nW - 1; w++) {
+    if (flux[w] >= thr && flux[w] >= flux[w - 1] && flux[w] > flux[w + 1]
+        && w - last >= minGap) {
+      starts.push(w * hop); last = w;
+    }
+  }
+  return starts;
+}
+
+// Cut a decoded buffer into segments. spec:
+//   { mode:'equal', count:N }                       → N equal-length pieces
+//   { mode:'transient', sensitivity:0..1, minMs }   → cut at detected onsets
+// Each segment is de-clicked (short raised-cosine at both edges) so the hard
+// cut doesn't pop. Pure: returns an array of fresh { channels, rate }.
+export function sliceBuffer(src, spec) {
+  const frames = src.channels[0].length;
+  let starts;
+  if (spec.mode === 'transient') {
+    starts = detectOnsets(src, spec.sensitivity == null ? 0.5 : spec.sensitivity,
+                          spec.minMs || 60);
+  } else {
+    const n = Math.max(1, spec.count | 0);
+    starts = [];
+    for (let i = 0; i < n; i++) starts.push(Math.round(i * frames / n));
+  }
+  const segs = [];
+  for (let i = 0; i < starts.length; i++) {
+    const a = starts[i], b = i + 1 < starts.length ? starts[i + 1] : frames;
+    if (b <= a) continue;
+    const chans = src.channels.map(c => c.slice(a, b));
+    const len = chans[0].length, half = Math.floor(len / 2);
+    const fi = Math.min(Math.round(src.rate * SLICE_FADE_IN_MS / 1000), half);
+    const fo = Math.min(Math.round(src.rate * SLICE_FADE_OUT_MS / 1000), half);
+    for (const c of chans) {
+      for (let j = 0; j < fi; j++) c[j] *= rcos(j, fi);
+      for (let j = 0; j < fo; j++) c[len - 1 - j] *= rcos(j, fo);
+    }
+    segs.push({ channels: chans, rate: src.rate });
+  }
+  return segs;
+}
+
 // Encode float channels → a 16-bit PCM little-endian WAV (what the bridge's
 // Python `wave` reader expects; it byteswaps to big-endian for the device).
 export function encodeWav(channels, rate) {
