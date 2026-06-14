@@ -180,3 +180,27 @@
 .theme-select:hover { color: var(--amber-hi); }
 .theme-select:focus { outline: none; }
 .theme-select option { background: var(--steel-1); color: var(--ink); }
+
+/* ── sample-preload progress (prominent toast above the ticker) ─────────── */
+.preload {
+  position: fixed; left: 50%; bottom: 3.4rem; transform: translateX(-50%);
+  z-index: 70; min-width: 280px; max-width: 92vw;
+  display: flex; flex-direction: column; gap: .5rem;
+  padding: .8rem 1.1rem;
+  background: var(--steel-1); border: 1px solid var(--amber-dk); border-radius: 8px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.6), 0 0 0 1px rgba(var(--amber-rgb),.1);
+  animation: preload-in .2s ease;
+}
+@keyframes preload-in { from { opacity: 0; transform: translate(-50%, 8px); } }
+.preload-txt {
+  font: 600 .68rem/1 "Chakra Petch", sans-serif; letter-spacing: .16em;
+  color: var(--amber-hi); text-align: center;
+}
+.preload-track {
+  height: 6px; border-radius: 3px; background: var(--phos-bg);
+  border: 1px solid #000; overflow: hidden;
+}
+.preload-fill {
+  height: 100%; width: 0; background: var(--amber);
+  box-shadow: 0 0 10px rgba(var(--amber-rgb),.6); transition: width .2s ease;
+}

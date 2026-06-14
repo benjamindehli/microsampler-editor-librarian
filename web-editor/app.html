@@ -243,7 +243,13 @@
              spellcheck="false" aria-label="Filter pads by name">
     </div>
     <div class="pad-grid" id="pad-grid"></div>
-    <div class="pads-hint">CLICK A PAD TO EDIT · <b id="count-used">0</b>/36 USED</div>
+    <div class="pads-hint">
+      <span>CLICK A PAD TO EDIT · <b id="count-used">0</b>/36 USED</span>
+      <label class="follow-toggle"
+             title="Follow the hardware: select the last sample triggered on the device">
+        <input type="checkbox" id="follow-hw"> FOLLOW HW
+      </label>
+    </div>
 
     <!-- device memory meters -->
     <div class="mem-block" id="mem-block" hidden>
@@ -256,10 +262,6 @@
         <span class="mem-label">PTRN</span>
         <div class="mem-bar"><div class="mem-fill" id="mem-ptrn-fill"></div></div>
         <span class="mem-val" id="mem-ptrn-val">--</span>
-      </div>
-      <div class="mem-foot">
-        <span id="mem-note" hidden>≈ ESTIMATED —</span>
-        <button class="mem-measure" id="mem-measure" hidden>LOAD ALL</button>
       </div>
     </div>
   </aside>
@@ -408,6 +410,12 @@
   </section>
 </main>
 
+<!-- ── sample preload progress (prominent, auto-hides) ─────────────────── -->
+<div class="preload" id="preload" role="status" aria-live="polite" hidden>
+  <span class="preload-txt" id="preload-txt">LOADING SAMPLES</span>
+  <div class="preload-track"><div class="preload-fill" id="preload-fill"></div></div>
+</div>
+
 <!-- ── activity ticker ─────────────────────────────────────────────────── -->
 <footer class="ticker reveal" style="--d:.24s">
   <span class="ticker-led" id="ticker-led"></span>
@@ -448,8 +456,8 @@
       <p><b>RAM vs flash</b> — all edits/transfers target the device's CURRENT
         bank (RAM); they're lost on power-off. Save on the device, or restore a
         backup to a USER bank (UTILITY) to persist.</p>
-      <p><b>Memory meter</b> — “≈” means estimated; <b>LOAD ALL</b> loads every
-        sample so it becomes exact (and pads play instantly after).</p>
+      <p><b>Memory meter</b> — exact: every sample is downloaded on connect (you'll
+        see a progress bar), so the readout is real and waveforms are instant.</p>
       <p><b>Panic</b> (<b>⏻</b>, top-right) — all-sound-off + stop, if a note
         ever sticks.</p>
       <p><b>Shortcuts</b> — <kbd>← → ↑ ↓</kbd> move pad · <kbd>Space</kbd>

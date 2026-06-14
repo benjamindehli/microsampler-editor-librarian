@@ -2,6 +2,7 @@
 // dragging, device audition + approximate playhead.
 import { tuneCents } from './controls.js';
 import { renderMeter } from './meter.js';
+import { selectSlot } from './pads.js';
 import { loadSampleAudio } from './sampleLoad.js';
 import { renderChips, renderMetaFmt, renderPoints } from './slot.js';
 import { slotData, state } from './state.js';
@@ -300,6 +301,15 @@ $('#ro-row').addEventListener('change', e => {
   if (Number.isFinite(start) && Number.isFinite(end)) commitPoints(start, end);
   else renderPoints(s);                   // bad input — restore the shown values
 });
+
+// Follow the hardware: select the slot the device just triggered (SSE 'note').
+// Samples are preloaded on connect (meter.loadAllSamples), so this is normally
+// an instant select with the waveform already cached; an as-yet-unloaded slot
+// (preload still running) just loads on select like a normal click.
+export function followSelect(i) {
+  if (i == null || i < 0 || i > 35 || !state.bank) return;
+  if (i !== state.sel) selectSlot(i);
+}
 
 // ───────────────────────────────────────────────────────────── audition ──
 // Audition plays the sample ON THE DEVICE (like the pad ▶), via a MIDI note —

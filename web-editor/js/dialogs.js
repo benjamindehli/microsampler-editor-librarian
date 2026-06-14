@@ -152,18 +152,16 @@ async function uploadPreflight() {
   const target = [48000, 24000, 12000, 6000].reduce((a, r) =>
     Math.abs(r - rate) < Math.abs(a - rate) ? r : a);
   const need = memBlk(Math.floor(frames * target / rate) * channels * 2);
-  const { used, est } = sampleMemUsage();
-  const freed = slotDevBytes(slotData(state.sel)).bytes;
+  const used = sampleMemUsage();                 // always exact (all preloaded)
+  const freed = slotDevBytes(slotData(state.sel));
   const free = MEM_SMPL_TOTAL - used + freed;
   el.hidden = false;
-  const pre = est ? '≈' : '';
   if (need > free) {
     el.classList.add('over');
-    el.textContent = `✕ WON'T FIT — needs ${fmtMem(need)}, ${pre}${fmtMem(Math.max(0, free))} free` +
-      (est ? ' (estimate — MEASURE on the SAMPLES page for exact)' : '');
-    ok.disabled = !est;                          // hard-block only when exact
+    el.textContent = `✕ WON'T FIT — needs ${fmtMem(need)}, only ${fmtMem(Math.max(0, free))} free`;
+    ok.disabled = true;
   } else {
-    el.textContent = `SMPL MEM after load: ${pre}${fmtMem(used - freed + need)}/${fmtMem(MEM_SMPL_TOTAL)}`;
+    el.textContent = `SMPL MEM after load: ${fmtMem(used - freed + need)}/${fmtMem(MEM_SMPL_TOTAL)}`;
   }
 }
 $('#upload-btn').onclick = () => openUpload(null);

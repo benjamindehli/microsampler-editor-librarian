@@ -69,8 +69,15 @@
 }
 .pads-hint {
   margin-top: .8rem; font-size: .58rem; letter-spacing: .16em; color: var(--ink-dim);
+  display: flex; align-items: center; justify-content: space-between; gap: .6rem;
 }
 .pads-hint b { color: var(--amber); font-weight: 600; }
+.follow-toggle {
+  display: inline-flex; align-items: center; gap: .35rem; flex: none;
+  cursor: pointer; color: var(--ink-dim); white-space: nowrap;
+}
+.follow-toggle input { accent-color: var(--amber); cursor: pointer; margin: 0; }
+.follow-toggle:hover { color: var(--ink); }
 
 
 /* pad drop target highlight (drag a WAV onto a pad) */

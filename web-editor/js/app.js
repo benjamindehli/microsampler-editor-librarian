@@ -9,7 +9,7 @@ import './ux.js';           // keyboard shortcuts, theming, help overlay
 
 import { fxFromBank, renderFx } from './effect.js';
 import { subscribeEvents } from './events.js';
-import { renderMeter } from './meter.js';
+import { loadAllSamples, renderMeter } from './meter.js';
 import { renderPads } from './pads.js';
 import { reapplyFormats } from './sampleLoad.js';
 import { showSlot } from './slot.js';
@@ -40,6 +40,7 @@ async function boot() {
     console.error('bank read failed:', e.message);
   }
   restoreView();                                  // now that the app is up
+  loadAllSamples().catch(() => { });              // preload every sample (bg)
 }
 
 function setOnline(ok, st) {

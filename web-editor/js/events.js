@@ -7,6 +7,7 @@ import { state } from './state.js';
 import { tick } from './ticker.js';
 import { $, fmtSigned } from './util.js';
 import { onOpEvent } from './utility.js';
+import { followSelect } from './waveform.js';
 
 export function subscribeEvents() {
   const es = new EventSource('/api/events');
@@ -16,6 +17,7 @@ export function subscribeEvents() {
     if (evt.type === 'progress')
       return evt.op === 'patterns' && onPatternsProgress(evt.done, evt.total);
     if (evt.type === 'cc') return onCC(evt);
+    if (evt.type === 'note') return state.follow && followSelect(evt.slot);
     if (evt.type !== 'parameter_change') return;
     const isFx = evt.obj === FX_OBJ;
     const who = evt.sample != null ? `S${evt.sample + 1}`

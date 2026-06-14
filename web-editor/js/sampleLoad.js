@@ -5,7 +5,7 @@
 // device format (rate/channels/frames) is cached in state.formats, which —
 // unlike the bank slot objects — PERSISTS across refreshBank(); reapplyFormats()
 // re-stamps it onto the fresh bank so a focus re-sync doesn't lose load state
-// or reset the meter (was bug: meter reverted + "MEASURE" reappeared on focus).
+// or reset the memory meter (it would otherwise revert to unknown on focus).
 import { slotData, state } from './state.js';
 import { api, wavFormat } from './util.js';
 

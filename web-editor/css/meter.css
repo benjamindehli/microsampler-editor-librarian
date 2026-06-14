@@ -23,26 +23,3 @@
   font-family: "Share Tech Mono", monospace; font-size: .62rem;
   color: var(--amber); min-width: 6.4rem; text-align: right;
 }
-.mem-foot {
-  display: flex; align-items: center; gap: .5rem; min-height: 1rem;
-  font-size: .56rem; letter-spacing: .14em; color: var(--ink-dim);
-}
-.mem-measure {
-  font: inherit; font-size: .56rem; letter-spacing: .18em; cursor: pointer;
-  color: var(--amber); background: none;
-  border: 1px solid rgba(var(--amber-rgb),.35); border-radius: 3px;
-  padding: .14rem .5rem;
-}
-.mem-measure:hover { box-shadow: 0 0 0 1px var(--amber); }
-.mem-measure:disabled { opacity: .5; cursor: default; }
-
-
-/* LOAD ALL progress fill (--p set per sample) */
-.mem-measure.loading {
-  position: relative; color: var(--amber-hi); border-color: var(--amber-dk);
-  overflow: hidden;
-}
-.mem-measure.loading::before {
-  content: ''; position: absolute; inset: 0; width: var(--p, 0%);
-  background: rgba(var(--amber-rgb),.28); transition: width .15s ease; z-index: -1;
-}

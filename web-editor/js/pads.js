@@ -134,3 +134,16 @@ $('#pad-search').addEventListener('input', applyPadFilter);
     openUpload(wavs[0]);
   });
 }
+
+// ── FOLLOW HW toggle: track the last sample triggered on the device ────────
+// (events.js routes SSE 'note' → waveform.followSelect when state.follow is on)
+{
+  const fb = $('#follow-hw');
+  try { fb.checked = localStorage.getItem('msmpl.follow') === '1'; } catch { /* ignore */ }
+  state.follow = fb.checked;
+  fb.addEventListener('change', () => {
+    state.follow = fb.checked;
+    try { localStorage.setItem('msmpl.follow', fb.checked ? '1' : '0'); } catch { /* ignore */ }
+    tick(`follow hardware: ${fb.checked ? 'ON' : 'OFF'}`);
+  });
+}

@@ -156,6 +156,7 @@ class Device:
                 for msg in self.ms.reasm.feed(midi):
                     self._on_sysex(msg)
                 self._scan_cc(midi)
+                self._scan_notes(midi)
             finally:
                 self.lock.release()
             time.sleep(0.005)
@@ -171,6 +172,27 @@ class Device:
                     and midi[i + 1] < 0x80 and midi[i + 2] < 0x80:
                 self._emit({'type': 'cc', 'ch': midi[i] & 0x0f,
                             'cc': midi[i + 1], 'value': midi[i + 2]})
+                i += 3
+            else:
+                i += 1
+
+    def _scan_notes(self, midi):
+        """Forward SAMPLE-mode note-ons the device transmits when you press a
+        pad/key — note = 48 + slot on the global channel (the inverse of
+        play_note) — as SSE 'note' events so the app can follow the last-
+        triggered sample. Note-offs, velocity-0, off-range and keyboard-channel
+        notes are ignored. Flat scan like _scan_cc; every note msg is 3 bytes so
+        we consume 3 (status bytes can't occur inside a 7-bit SysEx body)."""
+        i, n = 0, len(midi)
+        while i < n:
+            hi = midi[i] & 0xf0
+            if hi in (0x90, 0x80) and i + 2 < n \
+                    and midi[i + 1] < 0x80 and midi[i + 2] < 0x80:
+                if hi == 0x90 and (midi[i] & 0x0f) == (self.channel & 0x0f):
+                    note, vel = midi[i + 1], midi[i + 2]
+                    if vel > 0 and 48 <= note <= 83:        # 48..83 -> slot 0..35
+                        self._emit({'type': 'note', 'slot': note - 48,
+                                    'note': note, 'velocity': vel})
                 i += 3
             else:
                 i += 1
