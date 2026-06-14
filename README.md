@@ -43,6 +43,8 @@ This app covers everything the original did, plus a few things it didn't.
     device screen)
 - **UTILITY**:
   - Full bank backup/restore (RAM or persistent user banks)
+  - Cherry-pick restore — copy a single sample out of a backup into any pad
+    of the current bank
   - Remote sampling trigger (input select + [SAMPLING] over MIDI; no
     device-state readback, so watch the device screen)
 - **Live two-way sync**:

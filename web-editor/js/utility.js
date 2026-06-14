@@ -1,5 +1,8 @@
 // UTILITY view: backup list, restore dialog, background-op console.
 import { refreshBank } from './app.js';
+import { loadAllSamples } from './meter.js';
+import { noteName } from './pads.js';
+import { forgetSample } from './sampleLoad.js';
 import { state } from './state.js';
 import { tick } from './ticker.js';
 import { $, apiJson, esc, jsonBody } from './util.js';
@@ -28,7 +31,15 @@ export async function loadBackups() {
     btn.className = 'hw-btn';
     btn.innerHTML = '<span class="hw-btn-cap">RESTORE…</span>';
     btn.onclick = () => openRestore(b);
-    row.append(zip, btn);
+    row.append(zip);
+    if (b.samples) {                               // cherry-pick a single sample
+      const pick = document.createElement('button');
+      pick.className = 'hw-btn';
+      pick.innerHTML = '<span class="hw-btn-cap">SAMPLES…</span>';
+      pick.onclick = () => openCherryPick(b);
+      row.append(pick);
+    }
+    row.append(btn);
     list.append(row);
   }
 }
@@ -98,6 +109,54 @@ function openRestore(b) {
     }
   };
 }
+
+// ── cherry-pick: copy ONE sample out of a backup into the current bank ──────
+let cpDir = null;
+
+async function openCherryPick(b) {
+  let samples;
+  try {
+    samples = (await apiJson(`/api/backup/${encodeURIComponent(b.dir)}/samples`)).samples;
+  } catch (e) { tick(`⚠ ${e.message}`); return; }
+  if (!samples.length) { tick('backup has no samples'); return; }
+  cpDir = b.dir;
+  $('#cp-bk').textContent = `${b.name} (${b.dir})`;
+  $('#cp-src').innerHTML = samples.map(s =>
+    `<option value="${s.slot}">${String(s.slot + 1).padStart(2, '0')} · ${esc(s.name)}</option>`).join('');
+  buildCpDst();
+  $('#cp-info').textContent = '';
+  $('#cherry-dialog').showModal();
+}
+
+// destination = any of the 36 current-bank pads (showing what each holds now)
+function buildCpDst() {
+  const sel = $('#cp-dst'), prev = sel.value;
+  const slots = (state.bank && state.bank.slots) || [];
+  sel.innerHTML = slots.map((s, i) =>
+    `<option value="${i}">${String(i + 1).padStart(2, '0')} · ${noteName(i)} · ${s.empty ? '— empty —' : esc(s.name)}</option>`).join('');
+  if (prev && sel.querySelector(`option[value="${prev}"]`)) sel.value = prev;
+  else { const e = slots.findIndex(s => s.empty); if (e >= 0) sel.value = e; }
+}
+
+$('#cp-copy').onclick = async () => {
+  if (cpDir == null) return;
+  const from = +$('#cp-src').value, to = +$('#cp-dst').value;
+  const btn = $('#cp-copy'); btn.disabled = true;
+  try {
+    await apiJson(`/api/backup/${encodeURIComponent(cpDir)}/restore-sample`,
+                  jsonBody({ from, to }));
+    forgetSample(to);
+    tick(`⇧ copied backup S${from + 1} → PAD ${to + 1}`);
+    $('#cp-info').textContent = `✓ copied → PAD ${to + 1}`;
+    await refreshBank();                            // reflect the new slot
+    loadAllSamples().catch(() => { });              // eager-load it (not lazy)
+    buildCpDst();                                   // …in the destination list
+  } catch (e) {
+    tick(`⚠ copy failed: ${e.message}`);
+    $('#cp-info').textContent = '✕ ' + e.message;
+  }
+  btn.disabled = false;
+};
 
 export function onOpEvent(evt) {
   if (evt.type === 'op') opPrint(evt.line);
