@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { decodeWavPcm, encodeWav, processBuffer, toolsActive }
+import { decodeWavPcm, encodeWav, processBuffer, sliceBuffer, toolsActive }
   from '../web-editor/js/audioTools.js';
 
 const RATE = 48000;
@@ -98,5 +98,41 @@ test('processBuffer does not mutate its input', () => {
   const src = { channels: [Float32Array.from({ length: 20 }, () => 0.5)], rate: RATE };
   const before = [...src.channels[0]];
   processBuffer(src, { ...NOOP, gainDb: 6, normalize: true });
+  assert.deepEqual([...src.channels[0]], before);
+});
+
+test('sliceBuffer equal mode yields N contiguous segments covering the source', () => {
+  const N = 4800;
+  const src = { channels: [Float32Array.from({ length: N }, () => 0.5)], rate: RATE };
+  const segs = sliceBuffer(src, { mode: 'equal', count: 4 });
+  assert.equal(segs.length, 4);
+  assert.equal(segs.reduce((s, g) => s + g.channels[0].length, 0), N);   // no gaps/overlap
+  for (const g of segs) assert.equal(g.channels[0].length, N / 4);
+  assert.equal(segs[0].rate, RATE);
+});
+
+test('sliceBuffer de-clicks each segment edge toward zero', () => {
+  const src = { channels: [Float32Array.from({ length: 4800 }, () => 0.8)], rate: RATE };
+  const [seg] = sliceBuffer(src, { mode: 'equal', count: 1 });
+  const c = seg.channels[0];
+  assert.ok(Math.abs(c[0]) < 0.8);                       // faded in
+  assert.ok(Math.abs(c[c.length - 1]) < 0.8);            // faded out
+  assert.ok(Math.abs(c[c.length >> 1]) > 0.7);           // body untouched
+});
+
+test('sliceBuffer transient mode finds the onsets in a spaced-impulse signal', () => {
+  const N = RATE;                                        // 1 s
+  const a = new Float32Array(N);                         // 4 bursts, 200 ms apart
+  for (const at of [0, 9600, 19200, 28800])
+    for (let i = 0; i < 600; i++) a[at + i] = 0.9;
+  const segs = sliceBuffer({ channels: [a], rate: RATE }, { mode: 'transient', sensitivity: 0.6 });
+  // best-effort: should land near 4 (the bursts), not 1 and not dozens
+  assert.ok(segs.length >= 3 && segs.length <= 6, `got ${segs.length} segments`);
+});
+
+test('sliceBuffer does not mutate its input', () => {
+  const src = { channels: [Float32Array.from({ length: 100 }, () => 0.7)], rate: RATE };
+  const before = [...src.channels[0]];
+  sliceBuffer(src, { mode: 'equal', count: 3 });
   assert.deepEqual([...src.channels[0]], before);
 });

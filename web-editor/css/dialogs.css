@@ -67,6 +67,16 @@
 }
 .ud-tools input[type="number"] { flex: 0 0 5rem; }
 .ud-check { justify-content: flex-start; gap: .55rem; cursor: pointer; }
+
+/* slice-across-pads dialog */
+.sl-src {
+  font-family: "Share Tech Mono", monospace; font-size: .72rem;
+  color: var(--amber-hi); margin: .2rem 0 .6rem;
+}
+.sl-mode { display: flex; gap: 1.4rem; margin: .3rem 0 .6rem; }
+.sl-mode .ud-check { margin: 0; }
+#sl-sens-row input[type="range"] { flex: 1; accent-color: var(--amber); }
+
 /* cherry-pick (restore one sample from a backup) */
 #cherry-dialog select {
   flex: 1; background: var(--phos-bg); color: var(--amber);
