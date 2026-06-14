@@ -40,8 +40,7 @@ async function boot() {
     console.error('bank read failed:', e.message);
   }
   restoreView();                                  // now that the app is up
-  loadAllSamples().catch(() => { });              // preload every sample (bg)
-}
+}                                                 // refreshBank() preloads samples
 
 function setOnline(ok, st) {
   state.online = ok;
@@ -57,10 +56,11 @@ export async function refreshBank() {
   try {
     const prevName = state.bank && state.bank.name;
     state.bank = await apiJson('/api/bank');
-    // a different bank (switched on the device) invalidates cached audio;
-    // same bank keeps it — re-stamp persisted formats so the meter stays
-    // exact and load state survives a focus re-sync.
-    if (state.bank.name !== prevName) { state.buffers.clear(); state.formats.clear(); }
+    // a different bank (switched on the device, or the first load) invalidates
+    // cached audio; same bank keeps it — re-stamp persisted formats so the meter
+    // stays exact and load state survives a focus re-sync.
+    const bankChanged = state.bank.name !== prevName;
+    if (bankChanged) { state.buffers.clear(); state.formats.clear(); }
     reapplyFormats();
     $('#bank-name').textContent = (state.bank.name || '--------').padEnd(8);
     $('#bank-bpm').textContent = state.bank.bpm.toFixed(1);
@@ -71,6 +71,10 @@ export async function refreshBank() {
       redrawCurrent();                            // …and the waveform markers
     }
     if (state.bank.effect) { fxFromBank(state.bank.effect); renderFx(); }
+    // a fresh bank (first connect, or switched on the device) → preload all its
+    // samples so the meter is exact and waveforms are instant. Guarded + skips
+    // cached slots, so a same-bank re-sync is a no-op.
+    if (bankChanged) loadAllSamples().catch(() => { });
   } finally {
     btn.removeAttribute('aria-busy');
   }

@@ -25,8 +25,9 @@ This app covers everything the original did, plus a few things it didn't.
   - Zoomable / pannable waveform (scroll to zoom, drag to pan) for
     sample-accurate trimming
   - Renaming banks and samples
-  - All samples preload on connect (progress shown), so the memory meter is
-    exact and waveforms are instant
+  - All samples preload on connect — and again when you switch banks on the
+    device (re-synced when you return to the app) — with progress shown, so the
+    memory meter is exact and waveforms are instant
   - **FOLLOW** toggle (on by default) — the selection tracks the last sample
     triggered on the device, whether you play it or a pattern does
 - **EFFECT**:
