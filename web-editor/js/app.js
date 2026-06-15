@@ -14,6 +14,7 @@ import { reapplyFormats } from './sampleLoad.js';
 import { showSlot } from './slot.js';
 import { state } from './state.js';
 import { tick } from './ticker.js';
+import { checkForUpdate } from './update.js';
 import { $, apiJson } from './util.js';
 import { loadBackups } from './utility.js';
 import { redrawCurrent } from './waveform.js';   // also wires marker drag/audition
@@ -40,6 +41,7 @@ async function boot() {
     console.error('bank read failed:', e.message);
   }
   restoreView();                                  // now that the app is up
+  checkForUpdate(st.version).catch(() => { });    // GitHub releases → toast
 }                                                 // refreshBank() preloads samples
 
 function setOnline(ok, st) {

@@ -416,6 +416,14 @@
   <div class="preload-track"><div class="preload-fill" id="preload-fill"></div></div>
 </div>
 
+<!-- ── "update available" notice (GitHub releases check; auto-hides) ─────── -->
+<div class="update-toast" id="update-toast" role="status" hidden>
+  <span class="update-dot"></span>
+  <span id="update-text"></span>
+  <a class="hw-btn" id="update-link" target="_blank" rel="noopener"><span class="hw-btn-cap">GET IT</span></a>
+  <button class="update-x" id="update-dismiss" aria-label="Dismiss update notice">✕</button>
+</div>
+
 <!-- ── activity ticker ─────────────────────────────────────────────────── -->
 <footer class="ticker reveal" style="--d:.24s">
   <span class="ticker-led" id="ticker-led"></span>
