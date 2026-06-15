@@ -54,6 +54,7 @@ This app covers everything the original did, plus a few things it didn't.
 - **Master volume** slider for the device output, and a **panic** button
   (all sound off / stop) for stuck notes
 - Remembers your last-open view across reloads
+- Tells you when a newer release is available (checks GitHub; dismissible)
 
 ## Requirements
 
