@@ -47,6 +47,7 @@ from msusb import MicroSampler, from_usb_midi
 import download as DL
 import upload as UL
 
+VERSION = '1.8.0'   # current app version; kept in sync by tools/stamp-docs-version.mjs
 WEB_ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                          '..', 'web-editor'))
 # where bank backups live; override with MSMPL_BACKUP_DIR (e.g. an external drive)
@@ -351,7 +352,7 @@ class Device:
     # -- operations (all hold the lock) --------------------------------------
     def status(self):
         return {'connected': self.ms is not None, 'inquiry': self.inquiry,
-                'mock': False}
+                'mock': False, 'version': VERSION}
 
     def _inquire(self):
         """Fresh Device Inquiry — the original editor opens EVERY session with
@@ -773,7 +774,8 @@ class MockDevice(Device):
         pass
 
     def status(self):
-        return {'connected': True, 'inquiry': self.inquiry, 'mock': True}
+        return {'connected': True, 'inquiry': self.inquiry, 'mock': True,
+                'version': VERSION}
 
     def play_note(self, slot, on, velocity=100):
         self._last_note = (int(slot), bool(on), int(velocity))
