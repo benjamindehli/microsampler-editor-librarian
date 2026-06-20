@@ -62,9 +62,13 @@ def make_msmpl(path):
     param[0x20:0x29] = b'Smoke Smp'
     hdr = struct.pack('<IHB', len(pcm), 1200, 0) + b'\xff'       # mono, 48k, 120 BPM
     bnkp = chunk(b'BnkP', b'SMOKEBNK' + struct.pack('<H', 1200) + b'\xff' * 54)
-    data = chunk(b'BnkD', bnkp + chunk(b'SmpS', chunk(b'SmpD', bytes(param) + hdr + pcm)))
+    smps = chunk(b'SmpS', chunk(b'SmpD', bytes(param) + hdr + pcm))
+    # one recorded pattern so the library's pattern (MIDI) export shows up too
+    sys.path.insert(0, os.path.join(ROOT, 'native-tools'))
+    from test_msmpl import recorded_pattern_blob
+    seqs = chunk(b'SeqS', chunk(b'SeqD', recorded_pattern_blob(name='SMOKE')))
     with open(path, 'wb') as f:
-        f.write(data)
+        f.write(chunk(b'BnkD', bnkp + smps + seqs))
 
 
 def wait_ready(timeout=20):
@@ -210,6 +214,9 @@ def run_checks(wav_path):
             "() => document.querySelectorAll('#lib-banks .lib-bank').length > 0", timeout=8000)
         pg3.wait_for_function(
             "() => document.querySelectorAll('#lib-grid .lib-pad.used').length > 0", timeout=8000)
+        # the recorded pattern shows in the patterns (MIDI) export list
+        pg3.wait_for_function(
+            "() => document.querySelectorAll('#lib-patterns .lib-pat').length > 0", timeout=8000)
         lib.close()
 
         browser.close()
