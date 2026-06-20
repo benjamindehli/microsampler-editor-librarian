@@ -55,6 +55,7 @@
     <button class="view-btn" data-view="effect">EFFECT</button>
     <button class="view-btn" data-view="patterns">PATTERNS</button>
     <button class="view-btn" data-view="utility">UTILITY</button>
+    <button class="view-btn lib-tab" data-view="library" hidden>LIBRARY</button>
   </nav>
 
   <div class="lcd bank-lcd" id="bank-lcd" title="Click to edit bank name / BPM"
@@ -218,6 +219,21 @@
 
     <div class="panel-title" style="margin-top:1.2rem">TRANSFER LOG</div>
     <div class="op-console" id="op-console">— idle —</div>
+  </section>
+</main>
+
+<main class="deck utility-deck" id="view-library" hidden>
+  <section class="lib">
+    <div class="panel-title">LIBRARY <span class="dim">— open Korg microSAMPLER backups, no hardware needed</span></div>
+    <div class="lib-bar">
+      <button class="hw-btn accent" id="lib-import"><span class="hw-btn-cap">OPEN BANK FILE…</span></button>
+      <input type="file" id="lib-file" accept=".msmpl_bank,.zip" hidden>
+      <span class="lib-hint">a Korg <code>.msmpl_bank</code> backup, or a <code>.zip</code> made by this app</span>
+    </div>
+    <div class="lib-cols">
+      <div class="lib-banks" id="lib-banks"></div>
+      <div class="lib-detail" id="lib-detail"></div>
+    </div>
   </section>
 </main>
 

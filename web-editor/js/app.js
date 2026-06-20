@@ -8,6 +8,7 @@ import './ux.js';           // keyboard shortcuts, theming, help overlay
 
 import { fxFromBank, renderFx } from './effect.js';
 import { subscribeEvents } from './events.js';
+import { initLibrary, renderLibrary } from './library.js';
 import { loadAllSamples, renderMeter } from './meter.js';
 import { renderPads } from './pads.js';
 import { reapplyFormats } from './sampleLoad.js';
@@ -31,10 +32,21 @@ async function boot() {
     return;
   }
   setOnline(true, st);
+  // hardware-free LIBRARY mode (bridge --library): no device, just the librarian.
+  if (st.library) { enterLibraryMode(st); return; }
   // bridge is up but couldn't claim the device (missing / wedged) — show the
   // connection helper with a Retry button instead of failing into the editor.
   if (!st.connected) { showDeviceHelp(st); return; }
   await onConnected(st);
+}
+
+function enterLibraryMode(st) {
+  document.body.classList.add('library-mode');    // CSS hides device-only chrome
+  $('#conn-caption').textContent = 'LIBRARY';
+  document.querySelector('.lib-tab').hidden = false;
+  showView('library');
+  initLibrary();
+  checkForUpdate(st.version).catch(() => { });
 }
 
 async function onConnected(st) {
@@ -122,7 +134,9 @@ function showView(name) {
   $('#view-effect').hidden = name !== 'effect';
   $('#view-patterns').hidden = name !== 'patterns';
   $('#view-utility').hidden = name !== 'utility';
+  $('#view-library').hidden = name !== 'library';
   if (name === 'utility') loadBackups().catch(() => { });
+  if (name === 'library') renderLibrary();
   if (name === 'effect') renderFx();
   try { localStorage.setItem('msmpl.view', name); } catch { /* ignore */ }
 }

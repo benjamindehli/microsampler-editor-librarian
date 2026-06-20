@@ -53,3 +53,35 @@
 /* remote sampling controls */
 .sampling-row { display: flex; align-items: center; gap: .9rem; margin-top: .4rem; flex-wrap: wrap; }
 .sampling-row .seg { max-width: none; }
+
+/* ── LIBRARY view (hardware-free sample librarian) ─────────────────────── */
+.lib-bar { display: flex; align-items: center; gap: .8rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.lib-hint { font-size: .6rem; color: var(--ink-dim); letter-spacing: .06em; }
+.lib-hint code { color: var(--amber-dk); }
+.lib-cols { display: grid; grid-template-columns: 220px 1fr; gap: 1.2rem; align-items: start; }
+.lib-banks { display: flex; flex-direction: column; gap: .4rem; }
+.lib-bank {
+  text-align: left; appearance: none; cursor: pointer;
+  background: var(--steel-1); border: 1px solid var(--line); border-radius: 5px;
+  padding: .55rem .7rem; color: var(--ink);
+}
+.lib-bank:hover { border-color: var(--line-hi); }
+.lib-bank.sel { border-color: var(--amber-dk);
+  box-shadow: 0 0 0 1px var(--amber-dk), 0 0 14px rgba(var(--amber-rgb),.15); }
+.lib-bank-name { display: block; font-family: "Share Tech Mono", monospace;
+  color: var(--amber-hi); letter-spacing: .05em; }
+.lib-bank-meta { display: block; font-size: .58rem; color: var(--ink-dim);
+  letter-spacing: .04em; margin-top: .15rem; }
+.lib-detail-head { display: flex; align-items: center; justify-content: space-between;
+  gap: .6rem; margin-bottom: .7rem; font-size: .62rem; letter-spacing: .1em; color: var(--ink-dim); }
+.lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.lib-pad { cursor: default; }
+.lib-pad.used { cursor: pointer; }
+.lib-pad.sounding { border-color: var(--amber);
+  box-shadow: 0 0 14px rgba(var(--amber-rgb),.5), 0 2px 0 #000; }
+.lib-pad.sounding .pad-name { color: var(--amber); }
+.lib-dl { position: absolute; bottom: 2px; right: 5px; color: var(--ink-dim);
+  font-size: .95rem; line-height: 1; text-decoration: none; opacity: .5; }
+.lib-pad:hover .lib-dl { opacity: 1; }
+.lib-dl:hover { color: var(--amber-hi); }
+@media (max-width: 760px) { .lib-cols { grid-template-columns: 1fr; } }
