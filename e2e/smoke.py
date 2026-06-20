@@ -47,6 +47,26 @@ def make_wav(path):
         w.writeframes(bytes(frames))
 
 
+def make_msmpl(path):
+    """A minimal synthetic original-Korg .msmpl_bank (one mono sample) for the
+    library-mode leg — same 6150-chunk shape the real files use."""
+    def chunk(tag, payload):
+        return (b'6150' + tag + struct.pack('<H', 32) + struct.pack('<I', len(payload))
+                + b'\x00\x00' + struct.pack('<I', 3) + struct.pack('<I', 1)
+                + struct.pack('<I', len(payload)) + b'\xff\xff\xff\xff' + payload)
+    pcm = struct.pack('>' + 'h' * 80, *([2000, -2000] * 40))     # mono 16-bit BE
+    param = bytearray(b'\xff' * 64)
+    param[0:8] = b'SMOKESMP'
+    param[0x0c:0x14] = struct.pack('<II', 0, 78)                 # START / END
+    param[0x20:0x40] = b'\x00' * 32
+    param[0x20:0x29] = b'Smoke Smp'
+    hdr = struct.pack('<IHB', len(pcm), 1200, 0) + b'\xff'       # mono, 48k, 120 BPM
+    bnkp = chunk(b'BnkP', b'SMOKEBNK' + struct.pack('<H', 1200) + b'\xff' * 54)
+    data = chunk(b'BnkD', bnkp + chunk(b'SmpS', chunk(b'SmpD', bytes(param) + hdr + pcm)))
+    with open(path, 'wb') as f:
+        f.write(data)
+
+
 def wait_ready(timeout=20):
     deadline = time.time() + timeout
     while time.time() < deadline:
@@ -167,6 +187,30 @@ def run_checks(wav_path):
         pg2.locator('#device-help').wait_for(state='hidden', timeout=8000)
         assert pg2.text_content('#bank-name').strip() == 'MOCKBANK', 'recovered after retry'
         ctx.close()
+
+        # library mode: a status of {library:true} shows the LIBRARY view (device
+        # chrome hidden); importing an original .msmpl_bank lists it and renders
+        # its sample pads. (Import/serve routes hit the real mock bridge.)
+        msmpl = os.path.join(os.path.dirname(wav_path), 'synth.msmpl_bank')
+        make_msmpl(msmpl)
+        lib = browser.new_context(viewport={'width': 1340, 'height': 820})
+        pg3 = lib.new_page()
+        pg3.on('pageerror', lambda e: errors.append('pageerror(library): %s' % e))
+        pg3.on('console', lambda m: errors.append('console.error(library): %s' % m.text)
+               if m.type == 'error' else None)
+        pg3.route('**/api/status', lambda r: r.fulfill(
+            status=200, content_type='application/json',
+            body=json.dumps({'connected': True, 'library': True, 'mock': True,
+                             'version': '0', 'error': None})))
+        pg3.goto(BASE, wait_until='load')
+        pg3.locator('#view-library').wait_for(state='visible', timeout=5000)
+        assert pg3.is_hidden('.view-btn[data-view="samples"]'), 'device tabs hidden in library'
+        pg3.set_input_files('#lib-file', msmpl)
+        pg3.wait_for_function(
+            "() => document.querySelectorAll('#lib-banks .lib-bank').length > 0", timeout=8000)
+        pg3.wait_for_function(
+            "() => document.querySelectorAll('#lib-grid .lib-pad.used').length > 0", timeout=8000)
+        lib.close()
 
         browser.close()
     return errors
