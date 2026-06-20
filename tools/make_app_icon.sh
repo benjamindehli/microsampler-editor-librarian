@@ -1,6 +1,6 @@
 #!/bin/bash
-# One-shot (run ON the Mac): give "microSAMPLER Editor Librarian.command"
-# the Dehli Musikk icon.
+# One-shot (run ON the Mac): give the macOS launchers (macOS/*.command) the
+# Dehli Musikk icon.
 #
 # Applies web-editor/assets/AppIcon.png (1024x1024, transparent background,
 # pre-rendered from AppIcon.svg) with NSWorkspace — a Finder "custom icon",
@@ -12,16 +12,16 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-TARGET="$PWD/microSAMPLER Editor Librarian.command"
 PNG="$PWD/web-editor/assets/AppIcon.png"
-
-[ -f "$TARGET" ] || { echo "not found: $TARGET"; exit 1; }
 if [ "${1:-}" = "--png" ]; then
   PNG="$(cd "$(dirname "$2")" && pwd)/$(basename "$2")"
 fi
 [ -f "$PNG" ] || { echo "not found: $PNG"; exit 1; }
 
-/usr/bin/osascript - "$PNG" "$TARGET" <<'EOF'
+for TARGET in "$PWD/macOS/microSAMPLER Editor Librarian.command" \
+              "$PWD/macOS/microSAMPLER Library.command"; do
+  [ -f "$TARGET" ] || { echo "not found: $TARGET"; exit 1; }
+  /usr/bin/osascript - "$PNG" "$TARGET" <<'EOF'
 use framework "AppKit"
 on run argv
 	set pngPath to item 1 of argv
@@ -32,6 +32,6 @@ on run argv
 	if not (ok as boolean) then error "setIcon failed for " & targetPath
 end run
 EOF
-
-echo "icon applied to: $TARGET"
-echo "(if it was already in the Dock, remove and re-add it — Dock icons cache)"
+  echo "icon applied to: $TARGET"
+done
+echo "(if either was already in the Dock, remove and re-add it — Dock icons cache)"

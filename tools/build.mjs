@@ -77,10 +77,14 @@ for (const f of ['msusb.py', 'protocol.py', 'download.py', 'upload.py',
 // on just Python 3, no pip/brew
 cpSync(r('native-tools/vendor'), d('native-tools/vendor'), { recursive: true });
 cpSync(r('tools/make_app_icon.sh'), d('tools/make_app_icon.sh'));
-for (const launcher of ['microSAMPLER Editor Librarian.command',  // macOS
-                        'microSAMPLER Editor Librarian.sh',        // Linux
-                        'microSAMPLER Editor Librarian.bat',       // Windows
-                        'microSAMPLER Library.command'])           // macOS, no-HW
+// launchers, grouped by OS folder (each: device Editor + no-hardware Library)
+for (const osdir of ['macOS', 'Linux', 'Windows']) mkdirSync(d(osdir), { recursive: true });
+for (const launcher of ['macOS/microSAMPLER Editor Librarian.command',
+                        'macOS/microSAMPLER Library.command',
+                        'Linux/microSAMPLER Editor Librarian.sh',
+                        'Linux/microSAMPLER Library.sh',
+                        'Windows/microSAMPLER Editor Librarian.bat',
+                        'Windows/microSAMPLER Library.bat'])
   cpSync(r(launcher), d(launcher));
 for (const f of ['README.md', 'LICENSE']) cpSync(r(f), d(f));
 

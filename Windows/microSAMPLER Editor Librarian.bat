@@ -13,9 +13,9 @@ title microSAMPLER Editor / Librarian
 echo == microSAMPLER Editor / Librarian ==
 echo.
 
-cd /d "%~dp0native-tools"
+cd /d "%~dp0..\native-tools"
 if not exist bridge.py (
-  echo ERROR: native-tools\bridge.py was not found next to this launcher.
+  echo ERROR: native-tools\bridge.py was not found next to the app.
   pause
   exit /b 1
 )

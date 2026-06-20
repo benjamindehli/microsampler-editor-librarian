@@ -13,10 +13,11 @@ pause_exit() {
 }
 
 HERE="$(cd "$(dirname "$0")" && pwd)" || pause_exit "cannot resolve own path"
-echo "repo:   $HERE"
+ROOT="$(cd "$HERE/.." && pwd)"       # app folder (this launcher lives in macOS/)
+echo "repo:   $ROOT"
 # clear the macOS download-quarantine flag so the bundled files load cleanly
-xattr -dr com.apple.quarantine "$HERE" 2>/dev/null || true
-cd "$HERE/native-tools" || pause_exit "native-tools/ not found next to this file"
+xattr -dr com.apple.quarantine "$ROOT" 2>/dev/null || true
+cd "$ROOT/native-tools" || pause_exit "native-tools/ not found next to the app"
 
 PY="$(command -v python3 || true)"
 [ -n "$PY" ] || pause_exit "python3 not found in PATH"
