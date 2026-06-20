@@ -79,7 +79,8 @@ cpSync(r('native-tools/vendor'), d('native-tools/vendor'), { recursive: true });
 cpSync(r('tools/make_app_icon.sh'), d('tools/make_app_icon.sh'));
 for (const launcher of ['microSAMPLER Editor Librarian.command',  // macOS
                         'microSAMPLER Editor Librarian.sh',        // Linux
-                        'microSAMPLER Editor Librarian.bat'])      // Windows
+                        'microSAMPLER Editor Librarian.bat',       // Windows
+                        'microSAMPLER Library.command'])           // macOS, no-HW
   cpSync(r(launcher), d(launcher));
 for (const f of ['README.md', 'LICENSE']) cpSync(r(f), d(f));
 
