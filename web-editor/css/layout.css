@@ -232,4 +232,5 @@
 body.library-mode .view-btn:not(.lib-tab),
 body.library-mode #refresh-btn,
 body.library-mode .rail-vol,
+body.library-mode #bank-lcd,
 body.library-mode #panic-btn { display: none; }
