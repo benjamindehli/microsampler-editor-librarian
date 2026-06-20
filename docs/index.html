@@ -169,6 +169,7 @@
       <a href="#tips">Tips &amp; gotchas</a>
       <a href="#troubleshooting">Troubleshooting</a>
       <a href="#about">About &amp; license</a>
+      <a href="https://github.com/benjamindehli/microsampler-editor-librarian/releases" target="_blank" rel="noopener">Releases &amp; changelog ↗</a>
     </nav>
   </aside>
 
@@ -477,17 +478,31 @@ cd microsampler-editor-librarian</code></pre>
       <h2>Troubleshooting</h2>
       <table>
         <tr><th>Symptom</th><th>Fix</th></tr>
-        <tr><td>"no inquiry reply — device off or wedged"</td>
-            <td>The bridge retries automatically; if it persists, power-cycle the device and relaunch.</td></tr>
+        <tr><td>"microSAMPLER not responding" / "no inquiry reply"</td>
+            <td>The app shows a panel with a <strong>Retry</strong> button: power-cycle the device
+                (off, then on) and click Retry — no need to restart the bridge. The bridge also retries
+                (incl. a USB reset) on its own first.</td></tr>
+        <tr><td>"BRIDGE OFFLINE"</td>
+            <td>The local bridge isn't running — start it with the launcher (or
+                <code>sudo python3 native-tools/bridge.py</code>); the page reconnects by itself.</td></tr>
+        <tr><td>macOS won't open the launcher ("unidentified developer")</td>
+            <td>Right-click (or Control-click) the launcher → <strong>Open</strong> the first time. It's
+                unsigned; this approves it.</td></tr>
         <tr><td>Device not found / permission error</td>
-            <td>Make sure you ran with administrator rights (the macOS launcher does this), the cable is
-                connected, and no other MIDI app holds the device.</td></tr>
+            <td>Run with administrator rights (the launcher does this), check the cable, and close any other
+                MIDI app holding the device. On Windows, switch the driver to WinUSB with
+                <a href="https://zadig.akeo.ie/">Zadig</a>.</td></tr>
+        <tr><td>Edits made on the device don't show in the app</td>
+            <td>The microSAMPLER only transmits panel edits while it's on its sample-edit page. Press
+                <strong>RECEIVE</strong> (or just refocus the window) to re-read the bank.</td></tr>
         <tr><td>Pattern play does nothing</td>
             <td>Set <code>GLOBAL → MIDI CLK = AUTO</code> (or EXT MIDI) on the device.</td></tr>
         <tr><td>Uploaded sample sounds wrong</td>
             <td>The device plays 16-bit audio at fixed rates; the editor resamples automatically — re-upload
                 if you changed the source file.</td></tr>
-        <tr><td>USB seems stuck</td><td>Power-cycle the microSAMPLER.</td></tr>
+        <tr><td>USB seems stuck after many reconnects</td>
+            <td>Power-cycle the microSAMPLER — heavy connect/disconnect churn can wedge its USB firmware,
+                which only a power-cycle fully resets.</td></tr>
       </table>
     </section>
 
@@ -496,7 +511,9 @@ cd microsampler-editor-librarian</code></pre>
       <p>Made by <strong>Benjamin Dehli / Dehli Musikk</strong>. The communication protocol was independently
         reverse-engineered for the sole purpose of interoperability with hardware owned by the user.</p>
       <p>Licensed under the <a href="https://www.gnu.org/licenses/gpl-3.0.html">GNU GPL v3</a>.
-        Source and releases are on <a href="https://github.com/benjamindehli/microsampler-editor-librarian">GitHub</a>.</p>
+        Source is on <a href="https://github.com/benjamindehli/microsampler-editor-librarian">GitHub</a>;
+        the <a href="https://github.com/benjamindehli/microsampler-editor-librarian/releases">releases page</a>
+        has every version with its changelog.</p>
       <div class="note warn">
         <b class="label">USE AT YOUR OWN RISK</b>
         <p>This software is provided "as is", without warranty of any kind. The author accepts no
