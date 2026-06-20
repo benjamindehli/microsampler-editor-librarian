@@ -443,6 +443,27 @@ for evil in ('..', '.', '...', '../x', 'a/b', '/etc', 'x\x00y', ''):
 assert B.backup_dir('20260604-120000').startswith(
     os.path.realpath(B.BACKUP_ROOT))            # normal labels still resolve
 
+# backups-ownership / writability (the sudo-device vs no-sudo-library case):
+# _check_backup_writable() passes on a writable BACKUP_ROOT and raises a helpful
+# "chown" message on a root-owned (non-writable) one; _own_backups_to_invoker()
+# is a safe no-op when not running as root under sudo.
+B._check_backup_writable()                       # current temp root is writable → ok
+if hasattr(os, 'geteuid') and os.geteuid() != 0:   # (root ignores perms; skip there)
+    ro = tempfile.mkdtemp()
+    os.chmod(ro, 0o555)
+    _saved_root = B.BACKUP_ROOT
+    B.BACKUP_ROOT = ro
+    try:
+        B._check_backup_writable()
+        raise AssertionError('expected a not-writable error')
+    except RuntimeError as e:
+        assert 'chown' in str(e), e
+    finally:
+        os.chmod(ro, 0o755)
+        B.BACKUP_ROOT = _saved_root
+B._own_backups_to_invoker()                      # no-op here (not root) — must not raise
+print('backups writability/ownership guard: OK')
+
 # --- backup zip export + import round-trip (direct calls; server is down) --------
 import zipfile as _zf
 zdata = B.backup_zip(res['dir'])

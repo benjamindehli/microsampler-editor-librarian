@@ -332,6 +332,8 @@ class Device:
     def start_backup(self):
         import bank as BK
         os.makedirs(BACKUP_ROOT, exist_ok=True)
+        _own_backups_to_invoker()    # if sudo: keep backups/ user-owned so a
+        #                              non-root library bridge can write here too
         label = time.strftime('%Y%m%d-%H%M%S')
         out = os.path.join(BACKUP_ROOT, label)
         self.start_op('backup',
@@ -1028,6 +1030,22 @@ class MockDevice(Device):
                 'bpm_sync': 0, 'fx_sw': slot == 0}
 
 
+class LibraryDevice(MockDevice):
+    """Hardware-free LIBRARY mode (--library): no device, no fake bank — just the
+    backup librarian (import original .msmpl_bank / our .zip, browse + play +
+    download samples in the browser). Reuses MockDevice's op runner / SSE / no-op
+    USB; status carries `library:true` so the app shows the library UI and hides
+    all device-only features."""
+
+    def __init__(self):
+        super().__init__()
+        self._slots = {}                               # no fake samples
+
+    def status(self):
+        return {'connected': True, 'library': True, 'mock': False,
+                'version': VERSION, 'error': None}
+
+
 def _pattern_json(q, blob):
     p = P.parse_pattern(blob) if blob else None
     if p is None:
@@ -1118,11 +1136,40 @@ def backup_sample_wav(dirname, frm):
     return wav, name, tempo
 
 
+def _check_backup_writable():
+    """Friendly error when BACKUP_ROOT exists but isn't writable — happens when a
+    sudo (device) run made it root-owned and a non-root (library) run now writes."""
+    if os.path.isdir(BACKUP_ROOT) and not os.access(BACKUP_ROOT, os.W_OK):
+        raise RuntimeError(
+            'cannot write backups in %s — it is owned by another user (most '
+            'likely root, from running the device bridge with sudo). Fix it once '
+            'with:  sudo chown -R "$(id -un)" "%s"' % (BACKUP_ROOT, BACKUP_ROOT))
+
+
+def _own_backups_to_invoker():
+    """When running as root via sudo, hand BACKUP_ROOT back to the user who ran
+    sudo, so non-root tools (library mode) can manage the backups. No-op unless
+    running as root under sudo. Self-heals a backups/ left root-owned earlier."""
+    uid = os.environ.get('SUDO_UID')
+    if (not uid or not hasattr(os, 'geteuid') or os.geteuid() != 0
+            or not os.path.isdir(BACKUP_ROOT)):
+        return
+    uid, gid = int(uid), int(os.environ.get('SUDO_GID', uid))
+    try:
+        for root, _dirs, files in os.walk(BACKUP_ROOT):
+            os.chown(root, uid, gid)
+            for f in files:
+                os.chown(os.path.join(root, f), uid, gid)
+    except OSError:
+        pass
+
+
 def import_backup_zip(data):
     """Unpack an uploaded backup .zip into a fresh BACKUP_ROOT/<name>.
     Zip-slip safe (every member must stay inside the target) and validated
     (must carry a manifest.json). Returns the new directory name."""
     import zipfile
+    _check_backup_writable()
     os.makedirs(BACKUP_ROOT, exist_ok=True)
     with zipfile.ZipFile(io.BytesIO(data)) as z:
         names = [n for n in z.namelist() if not n.endswith('/')]
@@ -1144,6 +1191,22 @@ def import_backup_zip(data):
             os.makedirs(os.path.dirname(out), exist_ok=True)
             with z.open(member) as fsrc, open(out, 'wb') as fdst:
                 fdst.write(fsrc.read())
+    return os.path.basename(dest)
+
+
+def import_msmpl_bank(data):
+    """Convert a Korg-original .msmpl_bank (raw bytes) into a backup directory,
+    so it joins the librarian like any other backup. Returns the new dir name."""
+    import msmpl_bank
+    bank = msmpl_bank.parse_bank(data)               # validates (raises if not one)
+    base = re.sub(r'[^A-Za-z0-9._-]', '', (bank['name'] or 'bank')) or 'bank'
+    _check_backup_writable()
+    os.makedirs(BACKUP_ROOT, exist_ok=True)
+    dest = backup_dir(base)                           # allowlist + containment guard
+    n = 1
+    while os.path.exists(dest):
+        dest = backup_dir('%s-%d' % (base, n)); n += 1
+    msmpl_bank.extract_bytes(data, dest)
     return os.path.basename(dest)
 
 
@@ -1218,6 +1281,11 @@ class Handler(BaseHTTPRequestHandler):
             m = re.match(r'^/api/backup/(.+)/samples$', path)
             if m:
                 return self._json({'samples': backup_sample_list(m.group(1))})
+            m = re.match(r'^/api/backup/(.+)/sample/(\d+)\.wav$', path)
+            if m:
+                wav, name, _tempo = backup_sample_wav(m.group(1), int(m.group(2)))
+                return self._bytes(wav, 'audio/wav',
+                                   {'X-Sample-Name': name})
             if path == '/api/op':
                 return self._json(DEVICE.op_status())
             if path == '/api/patterns':
@@ -1352,6 +1420,10 @@ class Handler(BaseHTTPRequestHandler):
                 n = int(self.headers.get('Content-Length', 0))
                 name = import_backup_zip(self.rfile.read(n))
                 return self._json({'dir': name})
+            if path == '/api/backup/import-msmpl':       # original Korg .msmpl_bank
+                n = int(self.headers.get('Content-Length', 0))
+                name = import_msmpl_bank(self.rfile.read(n))
+                return self._json({'dir': name})
             if path == '/api/restore':
                 n = int(self.headers.get('Content-Length', 0))
                 body = json.loads(self.rfile.read(n) or b'{}')
@@ -1462,18 +1534,26 @@ def main():
     global DEVICE
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--port', type=int, default=8765)
+    ap.add_argument('--port', type=int, default=None,
+                    help='HTTP port (default 8765; 8766 in --library mode so it '
+                         'never collides with a running device bridge)')
     ap.add_argument('--mock', action='store_true',
                     help='serve fake data for UI development (no hardware)')
+    ap.add_argument('--library', action='store_true',
+                    help='hardware-free LIBRARY mode: browse/import/export bank '
+                         'backups + original .msmpl_bank files, no device needed')
     ap.add_argument('--no-reader', action='store_true',
                     help='disable the background panel-edit reader (diagnostic; '
                          'the /api/events stream stays silent)')
     ap.add_argument('--trace', action='store_true',
                     help='hexdump every USB read/write to stderr (diagnostic)')
     args = ap.parse_args()
+    port = args.port if args.port else (8766 if args.library else 8765)
+    _own_backups_to_invoker()    # if sudo: give backups/ back to the user (heals)
 
-    DEVICE = MockDevice() if args.mock else Device(reader=not args.no_reader,
-                                                   trace=args.trace)
+    DEVICE = (LibraryDevice() if args.library else
+              MockDevice() if args.mock else
+              Device(reader=not args.no_reader, trace=args.trace))
     try:
         DEVICE.open()
     except Exception as e:
@@ -1483,7 +1563,9 @@ def main():
         DEVICE.open_error = str(e)
         print('device open failed: %s\n  → serving the editor anyway; '
               'power-cycle the device and click Retry (or restart).' % e)
-    if not args.mock and DEVICE.open_error is None:
+    if args.library:
+        print('LIBRARY mode — no device; browse/import/export bank backups.')
+    if not args.mock and not args.library and DEVICE.open_error is None:
         print('microSAMPLER claimed (cable %d, channel %d) — Web MIDI mode is '
               'unavailable until the bridge exits.'
               % (DEVICE.cable, DEVICE.channel + 1))
@@ -1498,8 +1580,8 @@ def main():
     if hasattr(signal, 'SIGHUP'):
         signal.signal(signal.SIGHUP, _graceful)
 
-    srv = ThreadingHTTPServer(('127.0.0.1', args.port), Handler)
-    print('bridge ready: http://localhost:%d  (Ctrl+C to stop)' % args.port)
+    srv = ThreadingHTTPServer(('127.0.0.1', port), Handler)
+    print('bridge ready: http://localhost:%d  (Ctrl+C to stop)' % port)
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
