@@ -262,7 +262,7 @@ cd microsampler-editor-librarian</code></pre>
       <p>Nothing to install — pyusb and libusb are bundled. Just use the launcher:</p>
       <ol class="steps">
         <li>Connect the microSAMPLER to your Mac with the USB cable and power it on.</li>
-        <li>Double-click <code>microSAMPLER Editor Librarian.command</code>.</li>
+        <li>Open the <code>macOS/</code> folder and double-click <code>microSAMPLER Editor Librarian.command</code>.</li>
         <li>Enter your password when asked — administrator rights are required to claim the
           USB connection from macOS.</li>
         <li>The editor opens in your browser automatically.</li>
@@ -272,9 +272,9 @@ cd microsampler-editor-librarian</code></pre>
       <p>pyusb and libusb are bundled (x86-64 and ARM64) — just use the launcher:</p>
       <ol class="steps">
         <li>Connect the microSAMPLER and power it on.</li>
-        <li>Double-click <code>microSAMPLER Editor Librarian.sh</code>. Some file managers open
-          <code>.sh</code> files in an editor — mark it executable / "Allow launching" first, or
-          run <code>./'microSAMPLER Editor Librarian.sh'</code> from a terminal.</li>
+        <li>Open the <code>Linux/</code> folder and double-click <code>microSAMPLER Editor Librarian.sh</code>.
+          Some file managers open <code>.sh</code> files in an editor — mark it executable / "Allow
+          launching" first, or run <code>./'Linux/microSAMPLER Editor Librarian.sh'</code> from a terminal.</li>
         <li>Enter your password when asked (root is needed to claim the USB device).</li>
         <li>The editor opens in your browser automatically.</li>
       </ol>
@@ -290,7 +290,7 @@ cd microsampler-editor-librarian</code></pre>
           64-bit <code>libusb</code> DLL are bundled — nothing else to install.</li>
         <li>With the microSAMPLER connected, run <strong>Zadig</strong> and replace its driver with
           <strong>WinUSB</strong> (or libusbK).</li>
-        <li>Double-click <code>microSAMPLER Editor Librarian.bat</code>.</li>
+        <li>Open the <code>Windows/</code> folder and double-click <code>microSAMPLER Editor Librarian.bat</code>.</li>
       </ol>
 
       <h3>Any platform — manual</h3>
@@ -444,9 +444,10 @@ cd microsampler-editor-librarian</code></pre>
         <strong>library mode</strong>:</p>
       <pre><code>python3 native-tools/bridge.py --library</code></pre>
       <p>It serves on <a href="http://localhost:8766">http://localhost:8766</a> — a separate port from
-        the device bridge's 8765, so the two never clash. On macOS you can double-click
-        <code>microSAMPLER&nbsp;Library.command</code> instead — no password is needed, since library
-        mode never touches USB.</p>
+        the device bridge's 8765, so the two never clash. Or just double-click the
+        <code>microSAMPLER&nbsp;Library</code> launcher in your platform's folder
+        (<code>macOS/</code>, <code>Linux/</code>, <code>Windows/</code>) — no password is needed,
+        since library mode never touches USB.</p>
       <ul>
         <li><strong>Open a bank file</strong> — in the <strong>LIBRARY</strong> view, <strong>OPEN
           BANK FILE…</strong> imports a Korg <code>.msmpl_bank</code> backup or a <code>.zip</code>

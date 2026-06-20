@@ -74,15 +74,16 @@ This app covers everything the original did, plus a few things it didn't.
 
 ## Run
 
-Double-click the launcher for your platform — each starts the bridge and opens
-the editor in your browser automatically:
+Open the folder for your platform — **`macOS/`**, **`Linux/`**, or **`Windows/`**
+— and double-click **`microSAMPLER Editor Librarian`** (`.command` / `.sh` /
+`.bat`). It starts the bridge and opens the editor in your browser automatically.
+(Each folder also has a **`microSAMPLER Library`** launcher — see
+[Library mode](#library-mode-no-hardware) below.)
 
-- **macOS:** `microSAMPLER Editor Librarian.command`
-- **Linux:** `microSAMPLER Editor Librarian.sh` (mark it executable / "Allow
-  launching" first, or run `./'microSAMPLER Editor Librarian.sh'`)
-- **Windows:** `microSAMPLER Editor Librarian.bat` — **experimental/untested**;
-  the device's USB driver must first be switched to WinUSB with
-  [Zadig](https://zadig.akeo.ie/) so libusb can open it.
+- **Linux:** mark the `.sh` executable / "Allow launching" first, or run
+  `./'Linux/microSAMPLER Editor Librarian.sh'` from a terminal.
+- **Windows:** **experimental/untested** — the device's USB driver must first be
+  switched to WinUSB with [Zadig](https://zadig.akeo.ie/) so libusb can open it.
 
 macOS and Linux ask for your password — root is required to claim the USB
 interface from the OS MIDI driver.
@@ -115,8 +116,9 @@ python3 native-tools/bridge.py --library
 Library mode serves on **http://localhost:8766** — a separate port from the
 device bridge's 8765, so it never clashes with (or attaches to) a running device
 bridge.
-On macOS you can double-click **`microSAMPLER Library.command`** instead (no
-password needed — library mode never touches USB).
+Or just double-click the **`microSAMPLER Library`** launcher in your platform's
+folder (`macOS/`, `Linux/`, `Windows/`) — no password needed, since library mode
+never touches USB.
 Open the editor, go to **LIBRARY**, and use **OPEN BANK FILE…** to import a
 `.msmpl_bank` (original Korg) or a `.zip` (this app's) backup.
 You can then play each sample in the browser, download individual WAVs, or grab
@@ -135,7 +137,9 @@ Note that sample/parameter transfers target the device's **current bank (RAM)**;
 ## Repository layout
 
 ```text
-microSAMPLER Editor Librarian.command   double-clickable launcher (macOS)
+macOS/ Linux/ Windows/        double-clickable launchers per OS — each has
+                              "microSAMPLER Editor Librarian" (device) and
+                              "microSAMPLER Library" (no-hardware librarian)
 web-editor/                   the browser app (served by the bridge)
 native-tools/                 Python bridge + CLI tools (libusb USB-MIDI):
   bridge.py                     HTTP/SSE server the app talks to
