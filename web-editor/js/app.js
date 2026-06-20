@@ -19,6 +19,8 @@ import { $, apiJson } from './util.js';
 import { loadBackups } from './utility.js';
 import { redrawCurrent } from './waveform.js';   // also wires marker drag/audition
 
+let subscribed = false;
+
 async function boot() {
   let st;
   try {
@@ -29,7 +31,15 @@ async function boot() {
     return;
   }
   setOnline(true, st);
-  subscribeEvents();
+  // bridge is up but couldn't claim the device (missing / wedged) — show the
+  // connection helper with a Retry button instead of failing into the editor.
+  if (!st.connected) { showDeviceHelp(st); return; }
+  await onConnected(st);
+}
+
+async function onConnected(st) {
+  $('#device-help').hidden = true;
+  if (!subscribed) { subscribeEvents(); subscribed = true; }   // SSE, once
   try {
     await refreshBank();
   } catch (e) {
@@ -43,6 +53,28 @@ async function boot() {
   restoreView();                                  // now that the app is up
   checkForUpdate(st.version).catch(() => { });    // GitHub releases → toast
 }                                                 // refreshBank() preloads samples
+
+function showDeviceHelp(st) {
+  $('#device-help-msg').textContent =
+    (st && st.error) || 'The microSAMPLER isn’t responding.';
+  $('#device-help').hidden = false;
+}
+
+// Retry claiming the device without restarting the bridge (POST /api/connect).
+$('#device-help-retry').addEventListener('click', async () => {
+  const btn = $('#device-help-retry');
+  btn.disabled = true;
+  const cap = btn.querySelector('.hw-btn-cap');
+  const was = cap.textContent; cap.textContent = 'CONNECTING…';
+  try {
+    const st = await apiJson('/api/connect', { method: 'POST' });
+    if (st.connected) { await onConnected(st); }
+    else { showDeviceHelp(st); }
+  } catch {
+    setOnline(false);                             // bridge went away mid-retry
+  }
+  btn.disabled = false; cap.textContent = was;
+});
 
 function setOnline(ok, st) {
   state.online = ok;

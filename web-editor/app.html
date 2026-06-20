@@ -29,6 +29,18 @@
   </div>
 </div>
 
+<div id="device-help" class="offline" hidden>
+  <div class="offline-card">
+    <div class="offline-led"></div>
+    <h2>microSAMPLER NOT RESPONDING</h2>
+    <p>The bridge is running, but it couldn’t claim the device:</p>
+    <code id="device-help-msg"></code>
+    <p class="dim">Power-cycle the microSAMPLER (turn it off, then on), check the
+      USB cable, then retry — no need to restart the bridge.</p>
+    <button class="hw-btn accent" id="device-help-retry"><span class="hw-btn-cap">RETRY</span></button>
+  </div>
+</div>
+
 <!-- ── top rail ────────────────────────────────────────────────────────── -->
 <header class="rail reveal">
   <img class="org-logo" src="assets/svg/DehliMusikkLogoInverse.svg"

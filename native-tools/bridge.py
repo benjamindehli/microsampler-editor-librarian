@@ -76,6 +76,7 @@ class Device:
         self.channel = 0
         self.cable = 1
         self.inquiry = None
+        self.open_error = None              # last device-open failure (for the UI)
         self.listeners = []                 # SSE queues
         self.reader_enabled = reader
         self.op = None                      # current/last backup or restore
@@ -352,7 +353,7 @@ class Device:
     # -- operations (all hold the lock) --------------------------------------
     def status(self):
         return {'connected': self.ms is not None, 'inquiry': self.inquiry,
-                'mock': False, 'version': VERSION}
+                'mock': False, 'version': VERSION, 'error': self.open_error}
 
     def _inquire(self):
         """Fresh Device Inquiry — the original editor opens EVERY session with
@@ -775,7 +776,7 @@ class MockDevice(Device):
 
     def status(self):
         return {'connected': True, 'inquiry': self.inquiry, 'mock': True,
-                'version': VERSION}
+                'version': VERSION, 'error': self.open_error}
 
     def play_note(self, slot, on, velocity=100):
         self._last_note = (int(slot), bool(on), int(velocity))
@@ -1259,6 +1260,13 @@ class Handler(BaseHTTPRequestHandler):
         path, _, query = self.path.partition('?')
         params = dict(p.split('=', 1) for p in query.split('&') if '=' in p)
         try:
+            if path == '/api/connect':       # (re)attempt to claim the device
+                try:
+                    DEVICE.open()
+                    DEVICE.open_error = None
+                except Exception as e:
+                    DEVICE.open_error = str(e)
+                return self._json(DEVICE.status())
             if path == '/api/param':
                 n = int(self.headers.get('Content-Length', 0))
                 body = json.loads(self.rfile.read(n) or b'{}')
@@ -1469,9 +1477,13 @@ def main():
     try:
         DEVICE.open()
     except Exception as e:
-        print('device open failed: %s' % e)
-        return 1
-    if not args.mock:
+        # Serve anyway so the app can show a friendly "device not responding"
+        # panel with a Retry button (POST /api/connect), instead of the user
+        # seeing only this terminal line. Power-cycle + Retry usually recovers.
+        DEVICE.open_error = str(e)
+        print('device open failed: %s\n  → serving the editor anyway; '
+              'power-cycle the device and click Retry (or restart).' % e)
+    if not args.mock and DEVICE.open_error is None:
         print('microSAMPLER claimed (cable %d, channel %d) — Web MIDI mode is '
               'unavailable until the bridge exits.'
               % (DEVICE.cable, DEVICE.channel + 1))
