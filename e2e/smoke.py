@@ -170,6 +170,34 @@ def run_checks(wav_path):
             "() => { const p = document.querySelector(`.pad[data-slot='30']`);"
             " return p && p.classList.contains('used'); }", timeout=8000)
 
+        # on-screen keyboard: the piano mirrors all 36 pads, and the octave
+        # buttons move the base octave
+        page.keyboard.press('Escape')                       # close the cherry dialog
+        page.wait_for_selector('#cherry-dialog', state='hidden', timeout=4000)
+        page.locator('.view-btn[data-view="samples"]').click()
+        page.wait_for_selector('#piano .pkey', timeout=4000)
+        assert page.eval_on_selector_all('#piano .pkey', 'els => els.length') == 36, '36 piano keys'
+        page.locator('#kb-oct-up').click()
+        assert page.text_content('#kb-oct-val').strip() == 'C5', 'octave-up button'
+        page.locator('#kb-oct-down').click()                # back to C4
+        # clicking a piano key plays it through the device (mouse → sounding)
+        page.locator('#piano .pkey.white').first.dispatch_event('pointerdown')
+        page.wait_for_function(
+            "() => !!document.querySelector('#piano .pkey.sounding')", timeout=3000)
+        page.dispatch_event('body', 'pointerup')
+
+        # QWERTY pad-play: arm the toggle, a mapped key sounds a pad + piano key
+        # (held) and releases on key-up (note plays through the device /api/note)
+        page.check('#qwerty-play')
+        page.keyboard.down('a')
+        page.wait_for_function(
+            "() => !!document.querySelector('#pad-grid .pad.sounding')"
+            " && !!document.querySelector('#piano .pkey.sounding')", timeout=3000)
+        page.keyboard.up('a')
+        page.wait_for_function(
+            "() => !document.querySelector('#pad-grid .pad.sounding')", timeout=3000)
+        page.uncheck('#qwerty-play')
+
         # connection helper: a wedged device (status connected:false) shows the
         # Retry panel, and a successful Retry (/api/connect) recovers the app.
         ctx = browser.new_context(viewport={'width': 1340, 'height': 820})
