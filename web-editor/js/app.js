@@ -43,6 +43,8 @@ async function boot() {
 function enterLibraryMode(st) {
   document.body.classList.add('library-mode');    // CSS hides device-only chrome
   $('#conn-caption').textContent = 'LIBRARY';
+  document.title = 'microSAMPLER Library';         // this app is the librarian only
+  document.querySelector('.brand-sub').textContent = 'LIBRARY';
   document.querySelector('.lib-tab').hidden = false;
   showView('library');
   initLibrary();

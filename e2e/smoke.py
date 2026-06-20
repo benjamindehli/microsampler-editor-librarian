@@ -209,6 +209,8 @@ def run_checks(wav_path):
         pg3.goto(BASE, wait_until='load')
         pg3.locator('#view-library').wait_for(state='visible', timeout=5000)
         assert pg3.is_hidden('.view-btn[data-view="samples"]'), 'device tabs hidden in library'
+        assert pg3.title() == 'microSAMPLER Library', 'library title'
+        assert pg3.text_content('.brand-sub').strip() == 'LIBRARY', 'library brand-sub'
         pg3.set_input_files('#lib-file', msmpl)
         pg3.wait_for_function(
             "() => document.querySelectorAll('#lib-banks .lib-bank').length > 0", timeout=8000)
