@@ -71,7 +71,7 @@ cpSync(join(WEB, 'assets'), d('web-editor/assets'), { recursive: true });
 
 // ── Python runtime (no tests), launcher, icon tooling, docs ──────────────
 for (const f of ['msusb.py', 'protocol.py', 'download.py', 'upload.py',
-                 'bank.py', 'bridge.py'])
+                 'bank.py', 'msmpl_bank.py', 'bridge.py'])
   cpSync(r('native-tools', f), d('native-tools', f));
 // vendored deps (pyusb + per-platform libusb binaries) — so the release runs
 // on just Python 3, no pip/brew
