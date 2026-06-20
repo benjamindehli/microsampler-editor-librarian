@@ -15,6 +15,8 @@ This app covers everything the original did, plus a few things it didn't.
 - **SAMPLES**:
   - 36-slot bank overview
   - Audition on the device (honors start/end points) with a playhead on the waveform
+  - On-screen keyboard mirroring the 36 pads — click to play, or tick **⌨ TYPE TO
+    PLAY** to play from your computer keyboard (Z/X shift octave)
   - WAV download/upload (auto-resample to 48/24/12/6 kHz); drop several WAVs
     onto the pads to bulk-fill consecutive slots
   - Auto-slice — chop one long sample across consecutive pads, by equal pieces
