@@ -50,6 +50,15 @@
 }
 @media (max-width: 980px) { .deck { grid-template-columns: 1fr; } }
 
+/* right column: editor + on-screen keyboard stacked. align-self:stretch makes it
+   take the row height (the taller pad column), and the keybed flex-grows to fill
+   whatever the editor doesn't use. */
+.editor-col {
+  align-self: stretch;
+  display: flex; flex-direction: column; gap: 1.1rem;
+  min-width: 0;
+}
+
 .panel-title {
   font-size: .62rem; letter-spacing: .28em; color: var(--ink-dim);
   margin-bottom: .7rem;

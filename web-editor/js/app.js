@@ -5,6 +5,7 @@ import './dialogs.js';      // wires upload/rename dialogs + editor drop
 import './patterns.js';     // wires the patterns view
 import './slotops.js';      // wires copy/swap drop + clear button
 import './ux.js';           // keyboard shortcuts, theming, help overlay
+import './qwerty.js';       // QWERTY pad-play (computer MIDI keyboard)
 
 import { fxFromBank, renderFx } from './effect.js';
 import { subscribeEvents } from './events.js';

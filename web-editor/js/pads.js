@@ -1,5 +1,6 @@
 // 36-slot pad grid: rendering, selection, device note-play, WAV drop.
 import { openUpload, uploadBatch } from './dialogs.js';
+import { syncKeybed } from './qwerty.js';
 import { showSlot } from './slot.js';
 import { openSlotOp } from './slotops.js';
 import { state } from './state.js';
@@ -47,6 +48,7 @@ export function renderPads() {
   });
   $('#count-used').textContent = used;
   applyPadFilter();                                // re-apply any active filter
+  syncKeybed();                                    // mirror used/loaded/selected onto the piano
 }
 
 // dim pads whose name doesn't match the filter box (keeps the fixed 3-col note

@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/layout.css">
 <link rel="stylesheet" href="css/pads.css">
+<link rel="stylesheet" href="css/keybed.css">
 <link rel="stylesheet" href="css/editor.css">
 <link rel="stylesheet" href="css/controls.css">
 <link rel="stylesheet" href="css/dialogs.css">
@@ -294,6 +295,9 @@
     </div>
   </aside>
 
+  <!-- right column: the sample editor with the on-screen keyboard beneath it,
+       together filling the (taller) pad column's height -->
+  <div class="editor-col">
   <!-- sample editor -->
   <section class="editor reveal" style="--d:.16s">
     <div class="screw tl"></div><div class="screw tr"></div>
@@ -436,6 +440,24 @@
     <!-- drop veil -->
     <div class="drop-veil" id="drop-veil" hidden><span>DROP WAV TO LOAD INTO SLOT</span></div>
   </section>
+
+  <!-- on-screen keyboard (mirrors the 36 pads) + computer-keyboard play -->
+  <section class="keybed reveal" id="keybed" style="--d:.24s">
+    <div class="keybed-head">
+      <span class="keybed-title">KEYBOARD</span>
+      <div class="keybed-oct" role="group" aria-label="Octave">
+        <button class="kb-oct" id="kb-oct-down" title="Octave down (Z)" aria-label="Octave down">◀</button>
+        <span class="kb-oct-val" id="kb-oct-val">C4</span>
+        <button class="kb-oct" id="kb-oct-up" title="Octave up (X)" aria-label="Octave up">▶</button>
+      </div>
+      <label class="follow-toggle keybed-arm"
+             title="Type to play: your computer keyboard plays the highlighted keys through the device — home row = white keys, top row = black keys, Z / X (or ◀ ▶) shift the octave">
+        <input type="checkbox" id="qwerty-play"> <span id="qwerty-cap">⌨ TYPE TO PLAY</span>
+      </label>
+    </div>
+    <div class="piano" id="piano" role="group" aria-label="On-screen keyboard — click a key to play"></div>
+  </section>
+  </div>
 </main>
 
 <!-- ── sample preload progress (prominent, auto-hides) ─────────────────── -->
@@ -496,6 +518,13 @@
         see a progress bar), so the readout is real and waveforms are instant.</p>
       <p><b>Panic</b> (<b>⏻</b>, top-right) — all-sound-off + stop, if a note
         ever sticks.</p>
+      <p><b>Keyboard</b> (below the editor) — an on-screen piano mirrors the 36 pads;
+        click any key to play it through the device (real envelope/FX). Tick
+        <b>⌨ TYPE TO PLAY</b> to play from your computer keyboard too: home row
+        <kbd>A S D F G H J K</kbd> = white keys, top row <kbd>W E · T Y U</kbd> = black
+        keys (the piano shows which key is which), and <kbd>Z</kbd> / <kbd>X</kbd> — or
+        the <kbd>◀ ▶</kbd> buttons — shift the octave (C3/C4/C5). While it's off, those
+        keys stay free for the shortcuts below.</p>
       <p><b>Shortcuts</b> — <kbd>← → ↑ ↓</kbd> move pad · <kbd>Space</kbd>
         audition · <kbd>+ − 0</kbd> waveform zoom · <kbd>R</kbd> receive ·
         <kbd>⌘/Ctrl+Z</kbd> undo · <kbd>⌘/Ctrl+⇧Z</kbd> redo ·
