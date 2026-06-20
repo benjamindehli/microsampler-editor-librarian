@@ -64,7 +64,11 @@
 /* a sounding key (typed, clicked, or device-follow) lights amber */
 .pkey.white.sounding { background: linear-gradient(#ffd79a, #ffb454); }
 .pkey.black.sounding { background: linear-gradient(#b9690f, #7c4500); color: #1a1a1e; }
-.pkey.sel { outline: 2px solid var(--amber); outline-offset: -2px; z-index: 3; }
+/* selection outline. A white key keeps its z-index (below the black keys) so its
+   full rectangle doesn't cover the overlapping blacks; only a selected black key
+   rises above. */
+.pkey.sel { outline: 2px solid var(--amber); outline-offset: -2px; }
+.pkey.black.sel { z-index: 3; }
 
 /* a dot marks keys that hold a sample (lit amber once its audio is loaded) */
 .pkey.used::before {
