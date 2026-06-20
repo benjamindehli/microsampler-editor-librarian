@@ -440,11 +440,11 @@ cd microsampler-editor-librarian</code></pre>
     <section id="library">
       <h2>Library mode (no hardware)</h2>
       <figure>
-        <img src="assets/screenshots/library.png" alt="The Library view: a list of imported banks on the left and the selected bank's sample pads on the right, each playable and downloadable" loading="lazy">
-        <figcaption>Library mode — imported banks on the left, the selected bank's samples as pads you can play and download.</figcaption>
+        <img src="assets/screenshots/library.png" alt="The Library view: a list of imported banks on the left and the selected bank's sample pads on the right, each playable and downloadable, with the recovered patterns listed below as MIDI downloads" loading="lazy">
+        <figcaption>Library mode — imported banks on the left, the selected bank's samples as pads you can play and download, and its recorded patterns as MIDI downloads below.</figcaption>
       </figure>
-      <p>You don't need a microSAMPLER to browse and extract samples from bank backups — useful for
-        recovering audio from old backups saved by Korg's original editor. Start the bridge in
+      <p>You don't need a microSAMPLER to browse and extract the contents of bank backups — useful for
+        recovering audio and patterns from old backups saved by Korg's original editor. Start the bridge in
         <strong>library mode</strong>:</p>
       <pre><code>python3 native-tools/bridge.py --library</code></pre>
       <p>It serves on <a href="http://localhost:8766">http://localhost:8766</a> — a separate port from
@@ -458,11 +458,13 @@ cd microsampler-editor-librarian</code></pre>
           backup made by this app.</li>
         <li><strong>Browse &amp; play</strong> — each imported bank shows its 36 pads; click a pad to
           play that sample in the browser.</li>
-        <li><strong>Export</strong> — download any sample as a WAV, or grab the whole bank as a ZIP of
-          WAVs. Device-only features are hidden while in library mode.</li>
+        <li><strong>Export samples</strong> — download any sample as a WAV, or grab the whole bank as a
+          ZIP of WAVs. Device-only features are hidden while in library mode.</li>
+        <li><strong>Export patterns</strong> — any recorded patterns appear below the pads; download
+          each as a MIDI file, or all of them as a <code>.mid</code> ZIP, ready to drop into your DAW.</li>
       </ul>
       <p>Prefer the command line? <code>python3 native-tools/msmpl_bank.py extract "bank.msmpl_bank"</code>
-        writes all the samples to WAVs without opening the app.</p>
+        writes all the samples to WAVs (and any patterns to <code>.bin</code> blobs) without opening the app.</p>
     </section>
 
     <section id="rail">

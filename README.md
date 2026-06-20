@@ -56,8 +56,9 @@ This app covers everything the original did, plus a few things it didn't.
 - Remembers your last-open view across reloads
 - Tells you when a newer release is available (checks GitHub; dismissible)
 - **Library mode** (no hardware): import original Korg `.msmpl_bank` backups (or
-  this app's `.zip` backups), browse and play their samples in the browser, and
-  export them as WAVs — handy for recovering audio from old backups
+  this app's `.zip` backups), browse and play their samples in the browser,
+  export them as WAVs, and recover the recorded patterns as MIDI files — handy
+  for getting audio and sequences out of old backups
 
 ## Requirements
 
@@ -123,6 +124,8 @@ Open the editor, go to **LIBRARY**, and use **OPEN BANK FILE…** to import a
 `.msmpl_bank` (original Korg) or a `.zip` (this app's) backup.
 You can then play each sample in the browser, download individual WAVs, or grab
 the whole bank as a ZIP of WAVs.
+If the bank holds recorded patterns, they're listed below the pads — download
+each as a MIDI file, or all of them as a `.mid` ZIP.
 
 To extract straight to WAVs from the command line, without the app:
 
