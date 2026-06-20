@@ -44,6 +44,9 @@ jobs:
       - name: bridge HTTP/SSE round-trips (mock device)
         run: python test_bridge.py
         working-directory: native-tools
+      - name: original .msmpl_bank reader
+        run: python test_msmpl.py
+        working-directory: native-tools
 
   frontend:
     name: frontend syntax
