@@ -8,6 +8,9 @@ __pycache__/
 # …but the vendored libusb runtime libs DO ship in releases — keep them tracked
 !native-tools/vendor/libusb/**
 
+# personal Korg backups dropped here to import/extract (your data, often large)
+/original-backup-files/
+
 # Distribution / packaging
 .Python
 build/
