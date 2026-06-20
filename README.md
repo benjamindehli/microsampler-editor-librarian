@@ -55,6 +55,9 @@ This app covers everything the original did, plus a few things it didn't.
   (all sound off / stop) for stuck notes
 - Remembers your last-open view across reloads
 - Tells you when a newer release is available (checks GitHub; dismissible)
+- **Library mode** (no hardware): import original Korg `.msmpl_bank` backups (or
+  this app's `.zip` backups), browse and play their samples in the browser, and
+  export them as WAVs — handy for recovering audio from old backups
 
 ## Requirements
 
@@ -97,6 +100,33 @@ Then open http://localhost:8765
 
 ```bash
 python3 native-tools/bridge.py --mock
+```
+
+### Library mode (no hardware)
+
+To browse and extract samples from bank backups with no microSAMPLER connected —
+for example to recover audio from old `.msmpl_bank` files saved by Korg's
+original editor — run the bridge in library mode:
+
+```bash
+python3 native-tools/bridge.py --library
+```
+
+Library mode serves on **http://localhost:8766** — a separate port from the
+device bridge's 8765, so it never clashes with (or attaches to) a running device
+bridge.
+On macOS you can double-click **`microSAMPLER Library.command`** instead (no
+password needed — library mode never touches USB).
+Open the editor, go to **LIBRARY**, and use **OPEN BANK FILE…** to import a
+`.msmpl_bank` (original Korg) or a `.zip` (this app's) backup.
+You can then play each sample in the browser, download individual WAVs, or grab
+the whole bank as a ZIP of WAVs.
+
+To extract straight to WAVs from the command line, without the app:
+
+```bash
+python3 native-tools/msmpl_bank.py info    "my bank.msmpl_bank"   # list samples
+python3 native-tools/msmpl_bank.py extract "my bank.msmpl_bank"   # -> WAVs + manifest
 ```
 
 Bank backups land in `native-tools/backups/` (gitignored, they're your data).

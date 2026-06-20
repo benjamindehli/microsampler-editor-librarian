@@ -164,6 +164,7 @@
       <a href="#effect">Effect</a>
       <a href="#patterns">Patterns</a>
       <a href="#utility">Utility</a>
+      <a href="#library">Library mode</a>
       <a href="#rail">Top bar &amp; shortcuts</a>
       <div class="grp">HELP</div>
       <a href="#tips">Tips &amp; gotchas</a>
@@ -434,6 +435,29 @@ cd microsampler-editor-librarian</code></pre>
           <strong>SAMPLE</strong> to drive the device's sampling over MIDI. It mirrors the panel button
           (arm → sample → end); watch the device screen.</li>
       </ul>
+    </section>
+
+    <section id="library">
+      <h2>Library mode (no hardware)</h2>
+      <p>You don't need a microSAMPLER to browse and extract samples from bank backups — useful for
+        recovering audio from old backups saved by Korg's original editor. Start the bridge in
+        <strong>library mode</strong>:</p>
+      <pre><code>python3 native-tools/bridge.py --library</code></pre>
+      <p>It serves on <a href="http://localhost:8766">http://localhost:8766</a> — a separate port from
+        the device bridge's 8765, so the two never clash. On macOS you can double-click
+        <code>microSAMPLER&nbsp;Library.command</code> instead — no password is needed, since library
+        mode never touches USB.</p>
+      <ul>
+        <li><strong>Open a bank file</strong> — in the <strong>LIBRARY</strong> view, <strong>OPEN
+          BANK FILE…</strong> imports a Korg <code>.msmpl_bank</code> backup or a <code>.zip</code>
+          backup made by this app.</li>
+        <li><strong>Browse &amp; play</strong> — each imported bank shows its 36 pads; click a pad to
+          play that sample in the browser.</li>
+        <li><strong>Export</strong> — download any sample as a WAV, or grab the whole bank as a ZIP of
+          WAVs. Device-only features are hidden while in library mode.</li>
+      </ul>
+      <p>Prefer the command line? <code>python3 native-tools/msmpl_bank.py extract "bank.msmpl_bank"</code>
+        writes all the samples to WAVs without opening the app.</p>
     </section>
 
     <section id="rail">
