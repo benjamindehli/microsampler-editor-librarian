@@ -51,7 +51,8 @@ async function renderDetail() {
        <span>${samples.length} sample${samples.length !== 1 ? 's' : ''} — click a pad to play</span>
        <a class="hw-btn" href="${zip}" download="${encodeURIComponent(selDir)}.zip"><span class="hw-btn-cap">⇩ ALL (ZIP)</span></a>
      </div>
-     <div class="lib-grid" id="lib-grid"></div>`;
+     <div class="lib-grid" id="lib-grid"></div>
+     <div id="lib-patterns"></div>`;
   const grid = $('#lib-grid');
   for (let i = 0; i < 36; i++) {
     const s = bySlot[i];
@@ -74,6 +75,31 @@ async function renderDetail() {
     }
     grid.append(pad);
   }
+  renderPatterns();
+}
+
+// patterns (sequences) are recovered as MIDI — list the non-empty ones with a
+// per-pattern .mid download + an "all patterns" ZIP. Hidden if the bank has none.
+async function renderPatterns() {
+  const dir = selDir, box = $('#lib-patterns');
+  let pats;
+  try { pats = (await apiJson(`/api/backup/${encodeURIComponent(dir)}/patterns`)).patterns; }
+  catch { return; }
+  if (dir !== selDir || !pats.length) return;          // bank changed, or none
+  const zip = `/api/backup/${encodeURIComponent(dir)}/patterns.zip`;
+  box.innerHTML =
+    `<div class="lib-detail-head" style="margin-top:1.1rem">
+       <span>${pats.length} pattern${pats.length !== 1 ? 's' : ''} — download as MIDI</span>
+       <a class="hw-btn" href="${zip}" download="${encodeURIComponent(dir)}-patterns.zip"><span class="hw-btn-cap">⇩ ALL (.mid ZIP)</span></a>
+     </div>
+     <div class="lib-pats">` +
+    pats.map(p => {
+      const f = `${String(p.pattern + 1).padStart(2, '0')}_${(p.name || 'pattern').replace(/[^\w.-]/g, '_')}.mid`;
+      return `<a class="lib-pat" download="${f}" href="/api/backup/${encodeURIComponent(dir)}/pattern/${p.pattern}.mid">
+                <span class="lib-pat-name">P${String(p.pattern + 1).padStart(2, '0')} · ${esc(p.name || '—')}</span>
+                <span class="lib-pat-meta">${p.note_count} notes ⇩</span>
+              </a>`;
+    }).join('') + '</div>';
 }
 
 function paint() {

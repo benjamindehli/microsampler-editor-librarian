@@ -28,6 +28,7 @@ import struct
 import sys
 
 import download as DL
+import protocol as P
 
 RATES = {0: 48000, 1: 24000, 2: 12000, 3: 6000}
 CHUNK_HDR = 32
@@ -60,7 +61,7 @@ def parse_bank(data):
     if not top or top[0][0] != 'BnkD':
         raise ValueError('not a .msmpl_bank file (missing 6150BnkD chunk)')
     _, bbody, bsize = top[0]
-    bank = {'name': '', 'bpm': None, 'samples': []}
+    bank = {'name': '', 'bpm': None, 'samples': [], 'patterns': []}
     for tag, body, size in _walk(data, bbody, bbody + bsize):
         if tag == 'BnkP' and size >= 10:
             bp = data[body:body + size]
@@ -80,9 +81,26 @@ def parse_bank(data):
                              tempo_bpm=tempo10 / 10.0,
                              pcm=data[sb + 72:sb + 72 + data_size])
                 bank['samples'].append(s)
+        elif tag == 'SeqS':                              # 16 SEQP pattern blobs
+            for q, (st, sb, ss) in enumerate(_walk(data, body, body + size)):
+                if st != 'SeqD':
+                    continue
+                blob = data[sb:sb + ss]
+                try:
+                    p = P.parse_pattern(blob)
+                    notes = len(p['notes']) if p else 0
+                    pname = p['name'] if p else ''
+                except Exception:
+                    notes, pname = 0, ''
+                bank['patterns'].append({'pattern': q, 'name': pname,
+                                         'note_count': notes, 'empty': notes == 0,
+                                         'blob': blob})
     while len(bank['samples']) < 36:                     # pad to a full 36-slot bank
         bank['samples'].append({'slot': len(bank['samples']), 'name': '',
                                 'long_name': '', 'empty': True})
+    while len(bank['patterns']) < 16:                    # pad to 16 patterns
+        bank['patterns'].append({'pattern': len(bank['patterns']), 'name': '',
+                                 'note_count': 0, 'empty': True, 'blob': b''})
     return bank
 
 
@@ -111,6 +129,17 @@ def extract_bytes(data, outdir, source_name=None):
                          long_name=s['long_name'])
             n += 1
         manifest['samples'].append(entry)
+    # patterns → sequences/qNN.bin (raw SEQP blob) for non-empty ones; the bridge
+    # converts these to .mid on demand (protocol.pattern_to_smf).
+    if any(not p['empty'] for p in bank['patterns']):
+        os.makedirs(os.path.join(outdir, 'sequences'), exist_ok=True)
+    for p in bank['patterns']:
+        entry = {'pattern': p['pattern'], 'empty': p['empty'],
+                 'name': p['name'], 'note_count': p['note_count']}
+        if not p['empty']:
+            with open(os.path.join(outdir, 'sequences', 'q%02d.bin' % p['pattern']), 'wb') as f:
+                f.write(p['blob'])
+        manifest['sequences'].append(entry)
     with open(os.path.join(outdir, 'manifest.json'), 'w') as f:
         json.dump(manifest, f, indent=2)
     return n, bank
@@ -137,11 +166,17 @@ def main(argv=None):
                   % (s['slot'], s['name'], s['long_name'], s['rate_hz'],
                      'stereo' if s['stereo'] else 'mono', s['tempo_bpm'],
                      s['data_size']))
+        for p in bank['patterns']:
+            if p['empty']:
+                continue
+            print("  q%02d  '%s'  %d notes" % (p['pattern'], p['name'], p['note_count']))
         return 0
 
     outdir = args.outdir or os.path.splitext(os.path.basename(args.file))[0]
     n, bank = extract(args.file, outdir)
-    print("extracted %d samples from '%s' → %s/" % (n, bank['name'], outdir))
+    pats = sum(1 for p in bank['patterns'] if not p['empty'])
+    print("extracted %d samples + %d patterns from '%s' → %s/"
+          % (n, pats, bank['name'], outdir))
     return 0
 
 

@@ -85,3 +85,15 @@
 .lib-pad:hover .lib-dl { opacity: 1; }
 .lib-dl:hover { color: var(--amber-hi); }
 @media (max-width: 760px) { .lib-cols { grid-template-columns: 1fr; } }
+
+/* library: pattern (MIDI) download list */
+.lib-pats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.lib-pat {
+  display: flex; align-items: center; justify-content: space-between; gap: .6rem;
+  text-decoration: none; padding: .5rem .7rem;
+  background: var(--steel-1); border: 1px solid var(--line); border-radius: 4px;
+}
+.lib-pat:hover { border-color: var(--amber-dk); box-shadow: 0 0 12px rgba(var(--amber-rgb),.12); }
+.lib-pat-name { font-family: "Share Tech Mono", monospace; color: var(--amber-hi); font-size: .76rem; }
+.lib-pat-meta { font-size: .58rem; color: var(--ink-dim); letter-spacing: .04em; white-space: nowrap; }
+@media (max-width: 760px) { .lib-pats { grid-template-columns: 1fr; } }

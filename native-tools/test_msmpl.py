@@ -9,6 +9,27 @@ import tempfile
 import wave
 
 import msmpl_bank as M
+import protocol as P
+
+
+def _varlen(n):
+    out = bytearray([n & 0x7f]); n >>= 7
+    while n:
+        out.insert(0, 0x80 | (n & 0x7f)); n >>= 7
+    return bytes(out)
+
+
+def recorded_pattern_blob(note=60, name='GROOVE'):
+    """A real, non-empty SEQP pattern blob (built from a 1-note SMF via the
+    proven smf_to_pattern), for exercising the pattern-export path. Reused by
+    test_bridge.py."""
+    div = 96
+    trk = (_varlen(0) + bytes([0x90, note, 100])          # note on (sample ch 0)
+           + _varlen(div // 2) + bytes([0x80, note, 0])   # note off
+           + _varlen(0) + bytes([0xFF, 0x2F, 0x00]))      # end of track
+    smf = (b'MThd' + struct.pack('>IHHH', 6, 0, 1, div)
+           + b'MTrk' + struct.pack('>I', len(trk)) + trk)
+    return P.smf_to_pattern(smf, sample_channel=0, name=name)
 
 
 def chunk(tag, payload, count=1):
@@ -44,7 +65,8 @@ def build_bank(name='TESTBNK'):
     empty = chunk(b'SmpD', b'\xff' * 64 + smp_header(0, 1200, False, 0))   # empty slot
     bnkp = chunk(b'BnkP', name.encode().ljust(8, b' ') + struct.pack('<H', 1200) + b'\xff' * 54)
     smps = chunk(b'SmpS', smpd + empty, count=2)
-    return chunk(b'BnkD', bnkp + smps), pcm
+    seqs = chunk(b'SeqS', chunk(b'SeqD', recorded_pattern_blob(name='GROOVE')), count=1)
+    return chunk(b'BnkD', bnkp + smps + seqs), pcm
 
 
 def main():
@@ -59,7 +81,11 @@ def main():
     assert s0['stereo'] and s0['rate_hz'] == 48000 and not s0['empty']
     assert s0['pcm'] == pcm, 'PCM round-trips byte-exact'
     assert bank['samples'][1]['empty']
-    print('parse_bank: OK')
+    assert len(bank['patterns']) == 16               # padded to 16 patterns
+    p0 = bank['patterns'][0]
+    assert not p0['empty'] and p0['name'] == 'GROOVE' and p0['note_count'] >= 1, p0
+    assert bank['patterns'][1]['empty']
+    print('parse_bank: OK (samples + patterns)')
 
     # not-a-bank input is rejected
     try:
@@ -79,7 +105,13 @@ def main():
         # WAV is little-endian: first sample 1234 → bytes 0xd2 0x04
         assert w.readframes(1)[:2] == struct.pack('<h', 1234)
     assert os.path.isfile(os.path.join(out, 'manifest.json'))
-    print('extract_bytes: OK (WAV byte-swapped LE, manifest written)')
+    # the recorded pattern is written as sequences/q00.bin + a non-empty manifest entry
+    assert os.path.isfile(os.path.join(out, 'sequences', 'q00.bin')), 'pattern blob written'
+    import json
+    seqs = json.load(open(os.path.join(out, 'manifest.json')))['sequences']
+    nonempty = [s for s in seqs if not s['empty']]
+    assert len(nonempty) == 1 and nonempty[0]['name'] == 'GROOVE', nonempty
+    print('extract_bytes: OK (WAV byte-swapped LE, pattern + manifest written)')
     print('msmpl offline test: OK')
     return 0
 

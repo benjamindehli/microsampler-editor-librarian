@@ -464,6 +464,32 @@ if hasattr(os, 'geteuid') and os.geteuid() != 0:   # (root ignores perms; skip t
 B._own_backups_to_invoker()                      # no-op here (not root) — must not raise
 print('backups writability/ownership guard: OK')
 
+# pattern export: a backup with one recorded pattern → list / MIDI / zip
+from test_msmpl import recorded_pattern_blob
+_pat_root, _pat_saved = tempfile.mkdtemp(), B.BACKUP_ROOT
+B.BACKUP_ROOT = _pat_root
+try:
+    os.makedirs(os.path.join(_pat_root, 'GROOVY', 'sequences'))
+    with open(os.path.join(_pat_root, 'GROOVY', 'sequences', 'q03.bin'), 'wb') as f:
+        f.write(recorded_pattern_blob(name='GROOVE'))
+    with open(os.path.join(_pat_root, 'GROOVY', 'manifest.json'), 'w') as f:
+        json.dump({'name': 'GROOVY', 'samples': [],
+                   'sequences': [{'pattern': 3, 'empty': False, 'name': 'GROOVE', 'note_count': 1}]}, f)
+    pl = B.backup_pattern_list('GROOVY')
+    assert len(pl) == 1 and pl[0]['pattern'] == 3 and pl[0]['name'] == 'GROOVE', pl
+    assert B.backup_pattern_smf('GROOVY', 3)[:4] == b'MThd', 'pattern → SMF'
+    import zipfile as _zf_pat
+    names = _zf_pat.ZipFile(io.BytesIO(B.backup_patterns_zip('GROOVY'))).namelist()
+    assert names and all(n.endswith('.mid') for n in names), names
+    try:
+        B.backup_pattern_smf('GROOVY', 0)            # empty/missing → clear error
+        raise AssertionError('expected missing-pattern error')
+    except RuntimeError:
+        pass
+finally:
+    B.BACKUP_ROOT = _pat_saved
+print('pattern export (list / MIDI / zip): OK')
+
 # --- backup zip export + import round-trip (direct calls; server is down) --------
 import zipfile as _zf
 zdata = B.backup_zip(res['dir'])

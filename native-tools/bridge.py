@@ -1136,6 +1136,54 @@ def backup_sample_wav(dirname, frm):
     return wav, name, tempo
 
 
+def backup_pattern_list(dirname):
+    """Non-empty patterns in a backup (for the library pattern list)."""
+    src = backup_dir(dirname)
+    mf = os.path.join(src, 'manifest.json')
+    if not os.path.isfile(mf):
+        raise RuntimeError('unknown backup: %s' % dirname)
+    with open(mf) as f:
+        m = json.load(f)
+    return [{'pattern': s['pattern'], 'name': s.get('name') or '',
+             'note_count': s.get('note_count')}
+            for s in m.get('sequences', [])
+            if not s.get('empty')
+            and os.path.isfile(os.path.join(src, 'sequences', 'q%02d.bin' % s['pattern']))]
+
+
+def backup_pattern_smf(dirname, q):
+    """A Standard MIDI File for one backup pattern (raw SEQP blob → SMF)."""
+    if not 0 <= q <= 15:
+        raise RuntimeError('pattern 0..15')
+    path = os.path.join(backup_dir(dirname), 'sequences', 'q%02d.bin' % q)
+    if not os.path.isfile(path):
+        raise RuntimeError('pattern %d not in this backup' % q)
+    import protocol as P
+    with open(path, 'rb') as f:
+        mid = P.pattern_to_smf(f.read())
+    if not mid:
+        raise RuntimeError('pattern %d is empty' % q)
+    return mid
+
+
+def backup_patterns_zip(dirname):
+    """All non-empty patterns of a backup, zipped as .mid files."""
+    import zipfile
+
+    import protocol as P
+    src = backup_dir(dirname)
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as z:
+        for p in backup_pattern_list(dirname):
+            with open(os.path.join(src, 'sequences', 'q%02d.bin' % p['pattern']), 'rb') as f:
+                mid = P.pattern_to_smf(f.read())
+            if not mid:
+                continue
+            nm = re.sub(r'[^A-Za-z0-9._-]+', '_', (p['name'] or '').strip()) or 'pattern'
+            z.writestr('%02d_%s.mid' % (p['pattern'] + 1, nm), mid)
+    return buf.getvalue()
+
+
 def _check_backup_writable():
     """Friendly error when BACKUP_ROOT exists but isn't writable — happens when a
     sudo (device) run made it root-owned and a non-root (library) run now writes."""
@@ -1275,17 +1323,26 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(DEVICE.bank_summary())
             if path == '/api/backups':
                 return self._json({'backups': list_backups()})
-            m = re.match(r'^/api/backup/(.+)\.zip$', path)
+            m = re.match(r'^/api/backup/([^/]+)\.zip$', path)   # whole-bank zip
             if m:
                 return self._bytes(backup_zip(m.group(1)), 'application/zip')
+            m = re.match(r'^/api/backup/(.+)/patterns\.zip$', path)
+            if m:
+                return self._bytes(backup_patterns_zip(m.group(1)), 'application/zip')
             m = re.match(r'^/api/backup/(.+)/samples$', path)
             if m:
                 return self._json({'samples': backup_sample_list(m.group(1))})
+            m = re.match(r'^/api/backup/(.+)/patterns$', path)
+            if m:
+                return self._json({'patterns': backup_pattern_list(m.group(1))})
             m = re.match(r'^/api/backup/(.+)/sample/(\d+)\.wav$', path)
             if m:
                 wav, name, _tempo = backup_sample_wav(m.group(1), int(m.group(2)))
-                return self._bytes(wav, 'audio/wav',
-                                   {'X-Sample-Name': name})
+                return self._bytes(wav, 'audio/wav', {'X-Sample-Name': name})
+            m = re.match(r'^/api/backup/(.+)/pattern/(\d+)\.mid$', path)
+            if m:
+                return self._bytes(backup_pattern_smf(m.group(1), int(m.group(2))),
+                                   'audio/midi')
             if path == '/api/op':
                 return self._json(DEVICE.op_status())
             if path == '/api/patterns':
