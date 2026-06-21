@@ -99,6 +99,27 @@ can't packet-capture. So:
 - The `tools/re/` reverse-engineering toolkit needs Korg's original `.pkg`
   (gitignored, not distributed) and isn't required for most contributions.
 
+## Regenerating docs assets
+
+The screenshots and demo video under `docs/assets/` are generated from the live
+app — don't hand-edit them. After a UI change, regenerate with:
+
+```bash
+pip install playwright pillow imageio-ffmpeg && playwright install chromium
+python3 tools/capture_assets.py            # all screenshots + demo + Library shot
+python3 tools/capture_assets.py --only samples   # or a subset: samples/screenshots/demo/library
+```
+
+It drives the mock bridge headless, so it needs no hardware. Screenshots depend on
+headless Chromium's font rendering, so this is a regenerate-on-demand tool, not a CI
+gate. (`og-cover.jpg` is a real photo and isn't regenerated.)
+
+The author/copyright/location metadata (XMP + IPTC on the PNGs; Exif/GPS + XMP + IPTC
+on the JPG) is **carried forward automatically** — the script copies the existing
+stamp from the already-tagged assets, so you don't need to re-tag after a regen. To
+change it, retag the assets once with any tool and the next run picks it up; pass
+`--no-metadata` to skip stamping.
+
 ## Dependencies
 
 The shipped app has **no runtime npm dependencies** and only **pyusb (BSD) +
