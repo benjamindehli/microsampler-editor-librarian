@@ -119,10 +119,15 @@ def extract_bytes(data, outdir, source_name=None):
                 'name': bank['name'], 'bpm': bank['bpm'],
                 'samples': [], 'sequences': []}
     n = 0
-    for s in bank['samples']:
-        entry = {'slot': s['slot'], 'name': s['name'], 'empty': s['empty']}
+    # use the loop index (not the parsed dict value) for the filename, bounded to
+    # the device's 36 pads — keeps the path provably inside outdir (no traversal
+    # from a malformed bank) regardless of how many chunks the file declares.
+    for i, s in enumerate(bank['samples']):
+        if i > 35:
+            break
+        entry = {'slot': i, 'name': s['name'], 'empty': s['empty']}
         if not s['empty']:
-            DL.write_wav(os.path.join(outdir, 'samples', 's%02d.wav' % s['slot']),
+            DL.write_wav(os.path.join(outdir, 'samples', 's%02d.wav' % i),
                          s['pcm'], s['rate_hz'], s['stereo'])
             entry.update(rate_hz=s['rate_hz'], stereo=s['stereo'],
                          data_size=s['data_size'], tempo_bpm=s['tempo_bpm'],
@@ -133,11 +138,13 @@ def extract_bytes(data, outdir, source_name=None):
     # converts these to .mid on demand (protocol.pattern_to_smf).
     if any(not p['empty'] for p in bank['patterns']):
         os.makedirs(os.path.join(outdir, 'sequences'), exist_ok=True)
-    for p in bank['patterns']:
-        entry = {'pattern': p['pattern'], 'empty': p['empty'],
+    for i, p in enumerate(bank['patterns']):     # index bounded to the 16 patterns
+        if i > 15:
+            break
+        entry = {'pattern': i, 'empty': p['empty'],
                  'name': p['name'], 'note_count': p['note_count']}
         if not p['empty']:
-            with open(os.path.join(outdir, 'sequences', 'q%02d.bin' % p['pattern']), 'wb') as f:
+            with open(os.path.join(outdir, 'sequences', 'q%02d.bin' % i), 'wb') as f:
                 f.write(p['blob'])
         manifest['sequences'].append(entry)
     with open(os.path.join(outdir, 'manifest.json'), 'w') as f:

@@ -1310,6 +1310,14 @@ class Handler(BaseHTTPRequestHandler):
     def _err(self, msg, code=500):
         self._json({'error': str(msg)}, code)
 
+    def _body(self):
+        """The raw request body (Content-Length bytes)."""
+        return self.rfile.read(int(self.headers.get('Content-Length', 0)))
+
+    def _json_body(self):
+        """The request body parsed as JSON ({} when empty)."""
+        return json.loads(self._body() or b'{}')
+
     def log_message(self, fmt, *args):
         sys.stderr.write("  %s  %s\n" % (time.strftime('%H:%M:%S'), fmt % args))
 
@@ -1393,14 +1401,12 @@ class Handler(BaseHTTPRequestHandler):
                     DEVICE.open_error = str(e)
                 return self._json(DEVICE.status())
             if path == '/api/param':
-                n = int(self.headers.get('Content-Length', 0))
-                body = json.loads(self.rfile.read(n) or b'{}')
+                body = self._json_body()
                 DEVICE.send_param(int(body['obj']), int(body['param']),
                                   int(body['value']))
                 return self._json({'ok': True})
             if path == '/api/bank/settings':
-                n = int(self.headers.get('Content-Length', 0))
-                body = json.loads(self.rfile.read(n) or b'{}')
+                body = self._json_body()
                 name = str(body.get('name', '')).strip()[:8]
                 if not name or not all(0x20 <= ord(c) <= 0x7e for c in name):
                     return self._err('name: 1..8 printable ASCII chars', 400)
@@ -1409,8 +1415,7 @@ class Handler(BaseHTTPRequestHandler):
                     return self._err('bpm 20..300', 400)
                 return self._json(DEVICE.set_bank_settings(name, bpm))
             if path in ('/api/sample/copy', '/api/sample/swap'):
-                n = int(self.headers.get('Content-Length', 0))
-                body = json.loads(self.rfile.read(n) or b'{}')
+                body = self._json_body()
                 if path.endswith('copy'):
                     frm, to = int(body['from']), int(body['to'])
                     if not (0 <= frm <= 35 and 0 <= to <= 35) or frm == to:
@@ -1427,16 +1432,14 @@ class Handler(BaseHTTPRequestHandler):
                     return self._err('slot 0..35', 400)
                 return self._json(DEVICE.clear_sample(slot))
             if path == '/api/effect':
-                n = int(self.headers.get('Content-Length', 0))
-                body = json.loads(self.rfile.read(n) or b'{}')
+                body = self._json_body()
                 knobs = body.get('knobs', [0, 0])
                 params = body.get('params', [])
                 if len(params) != 32 or len(knobs) != 2:
                     return self._err('need knobs[2] + params[32]', 400)
                 return self._json(DEVICE.set_effect(int(body['type']), knobs, params))
             if path == '/api/note':
-                n = int(self.headers.get('Content-Length', 0))
-                body = json.loads(self.rfile.read(n) or b'{}')
+                body = self._json_body()
                 slot = int(body['slot'])
                 if not 0 <= slot <= 35:
                     return self._err('slot 0..35', 400)
@@ -1444,8 +1447,7 @@ class Handler(BaseHTTPRequestHandler):
                                  int(body.get('velocity', 100)))
                 return self._json({'ok': True})
             if path == '/api/master-volume':
-                n = int(self.headers.get('Content-Length', 0))
-                body = json.loads(self.rfile.read(n) or b'{}')
+                body = self._json_body()
                 try:
                     value = int(body.get('value', 127))
                 except (TypeError, ValueError):
@@ -1454,8 +1456,7 @@ class Handler(BaseHTTPRequestHandler):
             if path == '/api/sampling/button':
                 return self._json(DEVICE.sampling_button())
             if path == '/api/sampling/input':
-                n = int(self.headers.get('Content-Length', 0))
-                body = json.loads(self.rfile.read(n) or b'{}')
+                body = self._json_body()
                 return self._json(DEVICE.set_input_source(bool(body.get('resample'))))
             if path == '/api/pattern/rec':
                 return self._json(DEVICE.rec_button())
@@ -1468,22 +1469,18 @@ class Handler(BaseHTTPRequestHandler):
                 q = int(m.group(1))
                 if not 0 <= q <= 15:
                     return self._err('pattern 0..15', 400)
-                n = int(self.headers.get('Content-Length', 0))
-                body = json.loads(self.rfile.read(n) or b'{}') if n else {}
+                body = self._json_body()
                 return self._json(DEVICE.play_pattern(q, float(body.get('bpm', 120))))
             if path == '/api/backup':
                 return self._json(DEVICE.start_backup())
             if path == '/api/backup/import':
-                n = int(self.headers.get('Content-Length', 0))
-                name = import_backup_zip(self.rfile.read(n))
+                name = import_backup_zip(self._body())
                 return self._json({'dir': name})
             if path == '/api/backup/import-msmpl':       # original Korg .msmpl_bank
-                n = int(self.headers.get('Content-Length', 0))
-                name = import_msmpl_bank(self.rfile.read(n))
+                name = import_msmpl_bank(self._body())
                 return self._json({'dir': name})
             if path == '/api/restore':
-                n = int(self.headers.get('Content-Length', 0))
-                body = json.loads(self.rfile.read(n) or b'{}')
+                body = self._json_body()
                 bank = body.get('bank')          # null = current, 0..7 = user
                 if bank is not None:
                     bank = int(bank)
@@ -1492,8 +1489,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(DEVICE.start_restore(str(body['dir']), bank))
             m = re.match(r'^/api/backup/(.+)/restore-sample$', path)
             if m:
-                n = int(self.headers.get('Content-Length', 0))
-                body = json.loads(self.rfile.read(n) or b'{}')
+                body = self._json_body()
                 to = int(body['to'])
                 if not 0 <= to <= 35:
                     return self._err('slot 0..35', 400)
@@ -1510,17 +1506,14 @@ class Handler(BaseHTTPRequestHandler):
                     blob = bytearray(P.build_init_pattern())
                     blob[0x1e0] = 0xff if keep is None else keep
                     return self._json(DEVICE.pattern_write(q, bytes(blob)))
-                n = int(self.headers.get('Content-Length', 0))
-                smf = self.rfile.read(n)
-                blob = P.smf_to_pattern(smf)
+                blob = P.smf_to_pattern(self._body())
                 return self._json(DEVICE.pattern_write(q, blob))
             m = re.match(r'^/api/sample/(\d+)/name$', path)
             if m:
                 slot = int(m.group(1))
                 if not 0 <= slot <= 35:
                     return self._err('slot 0..35', 400)
-                n = int(self.headers.get('Content-Length', 0))
-                body = json.loads(self.rfile.read(n) or b'{}')
+                body = self._json_body()
                 name = str(body.get('name', '')).strip()
                 if not name:
                     return self._err('name required', 400)
@@ -1531,8 +1524,7 @@ class Handler(BaseHTTPRequestHandler):
                 slot = int(m.group(1))
                 if not 0 <= slot <= 35:
                     return self._err('slot 0..35', 400)
-                n = int(self.headers.get('Content-Length', 0))
-                body = json.loads(self.rfile.read(n) or b'{}')
+                body = self._json_body()
                 start, end = int(body['start']), int(body['end'])
                 if not 0 <= start < end:
                     return self._err('need 0 <= start < end', 400)
@@ -1542,8 +1534,7 @@ class Handler(BaseHTTPRequestHandler):
                 slot = int(m.group(1))
                 if not 0 <= slot <= 35:
                     return self._err('slot 0..35', 400)
-                n = int(self.headers.get('Content-Length', 0))
-                wav = self.rfile.read(n)
+                wav = self._body()
                 name = params.get('name', 'SAMPLE')[:8].upper()
                 tempo = float(params.get('tempo', '120'))
                 return self._json(DEVICE.upload_wav(slot, wav, name, tempo))
