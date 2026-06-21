@@ -5,31 +5,22 @@
 // row = black keys; Z / X or the ◀ ▶ buttons shift the octave). The piano always
 // shows which computer key maps to which note, lit brighter while armed. Off by
 // default so the letter keys stay free for the normal shortcuts (ux.js).
-import { noteName } from './notes.js';
+import { noteName, QWERTY_KEYMAP, QWERTY_OCTAVES, qwertySlot } from './notes.js';
 import { state } from './state.js';
 import { tick } from './ticker.js';
 import { $, api, jsonBody } from './util.js';
 
-// DAW-style layout (Ableton/GarageBand). e.code → semitone offset from the base C:
-//   white keys  A S D F G H J K L ;  → C  D  E  F  G  A  B  C  D  E
-//   black keys   W E   T Y U   O P   → C# D#    F# G# A#    C# D#
-const KEYMAP = {
-  KeyA: 0, KeyW: 1, KeyS: 2, KeyE: 3, KeyD: 4, KeyF: 5, KeyT: 6, KeyG: 7,
-  KeyY: 8, KeyH: 9, KeyU: 10, KeyJ: 11, KeyK: 12, KeyO: 13, KeyL: 14,
-  KeyP: 15, Semicolon: 16,
-};
+// the on-screen caption letter for each mapped computer key (see QWERTY_KEYMAP)
 const KEYLABEL = {
   KeyA: 'A', KeyW: 'W', KeyS: 'S', KeyE: 'E', KeyD: 'D', KeyF: 'F', KeyT: 'T',
   KeyG: 'G', KeyY: 'Y', KeyH: 'H', KeyU: 'U', KeyJ: 'J', KeyK: 'K', KeyO: 'O',
   KeyL: 'L', KeyP: 'P', Semicolon: ';',
 };
-const BASES = [48, 60, 72];          // C3 / C4 / C5 — the three pad octaves (notes 48..83)
-const OCTNAME = ['C3', 'C4', 'C5'];
 const WHITE = [0, 2, 4, 5, 7, 9, 11];          // white-key semitones within an octave
 const BLACK_AFTER = { 0: 1, 1: 3, 3: 6, 4: 8, 5: 10 };  // white-index → black-key semitone
 
 let enabled = false;
-let octave = 1;                      // index into BASES (default C4, the middle)
+let octave = 1;                      // index into QWERTY_OCTAVES (default C4, the middle)
 const held = new Map();              // e.code → slot currently sounding (keyboard)
 let clickSlot = null;                // slot currently held by the mouse on the piano
 
@@ -89,14 +80,13 @@ function buildPiano() {
 export function syncKeybed() {
   const piano = $('#piano');
   if (!piano || !piano.children.length) return;
-  $('#kb-oct-val').textContent = OCTNAME[octave];
+  $('#kb-oct-val').textContent = QWERTY_OCTAVES[octave];
   $('#keybed').classList.toggle('armed', enabled);
 
-  const base = BASES[octave] - 48;
   const labelBySlot = {};
-  for (const code in KEYMAP) {
-    const slot = base + KEYMAP[code];
-    if (slot <= 35) labelBySlot[slot] = KEYLABEL[code];
+  for (const code in QWERTY_KEYMAP) {
+    const slot = qwertySlot(code, octave);
+    if (slot != null) labelBySlot[slot] = KEYLABEL[code];
   }
   const slots = state.bank && state.bank.slots;
   for (const key of piano.children) {
@@ -111,11 +101,11 @@ export function syncKeybed() {
 }
 
 function setOctave(next) {
-  next = Math.max(0, Math.min(BASES.length - 1, next));
+  next = Math.max(0, Math.min(QWERTY_OCTAVES.length - 1, next));
   if (next === octave) return;
   octave = next;
   try { localStorage.setItem('msmpl.qwerty.oct', String(octave)); } catch { /* ignore */ }
-  tick(`octave: ${OCTNAME[octave]}`);
+  tick(`octave: ${QWERTY_OCTAVES[octave]}`);
   syncKeybed();
 }
 
@@ -124,7 +114,7 @@ function setEnabled(on) {
   if (!on) releaseKeys();
   syncKeybed();
   try { localStorage.setItem('msmpl.qwerty', on ? '1' : '0'); } catch { /* ignore */ }
-  tick(`type to play: ${on ? `ON (${OCTNAME[octave]})` : 'OFF'}`);
+  tick(`type to play: ${on ? `ON (${QWERTY_OCTAVES[octave]})` : 'OFF'}`);
 }
 
 // ── computer-keyboard input ───────────────────────────────────────────────────
@@ -147,12 +137,11 @@ addEventListener('keydown', e => {
     if (!e.repeat) setOctave(octave + (e.code === 'KeyX' ? 1 : -1));
     return;
   }
-  const off = KEYMAP[e.code];
-  if (off == null) return;
-  e.preventDefault(); e.stopPropagation();
+  if (QWERTY_KEYMAP[e.code] == null) return;    // not a piano key → leave for shortcuts
+  e.preventDefault(); e.stopPropagation();      // a piano key is ours, even if out of range
   if (e.repeat || held.has(e.code)) return;
-  const slot = BASES[octave] - 48 + off;
-  if (slot < 0 || slot > 35) return;            // above B5 → no pad
+  const slot = qwertySlot(e.code, octave);
+  if (slot == null) return;                     // mapped but above B5 → consumed, silent
   held.set(e.code, slot);
   paint(slot, true);
   note(slot, true);
