@@ -136,3 +136,22 @@ test('sliceBuffer does not mutate its input', () => {
   sliceBuffer(src, { mode: 'equal', count: 3 });
   assert.deepEqual([...src.channels[0]], before);
 });
+
+test('sliceBuffer equal mode clamps the count to at least 1', () => {
+  const src = { channels: [Float32Array.from({ length: 1000 }, () => 0.5)], rate: RATE };
+  assert.equal(sliceBuffer(src, { mode: 'equal', count: 0 }).length, 1);
+  assert.equal(sliceBuffer(src, { mode: 'equal', count: -3 }).length, 1);
+});
+
+test('sliceBuffer transient: higher sensitivity never finds fewer onsets', () => {
+  const N = RATE;
+  const a = new Float32Array(N);
+  // graded bursts: the weak ones only clear the threshold at higher sensitivity
+  for (const [at, amp] of [[4800, 0.9], [12000, 0.22], [19200, 0.9], [26400, 0.13]])
+    for (let i = 0; i < 600; i++) a[at + i] = amp * Math.sin(2 * Math.PI * 300 * i / RATE);
+  const src = { channels: [a], rate: RATE };
+  const low = sliceBuffer(src, { mode: 'transient', sensitivity: 0.05 }).length;
+  const high = sliceBuffer(src, { mode: 'transient', sensitivity: 0.95 }).length;
+  assert.ok(high >= low, `monotonic in sensitivity: high ${high} >= low ${low}`);
+  assert.ok(low >= 1, 'always at least the leading segment');
+});
