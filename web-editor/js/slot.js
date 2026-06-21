@@ -1,7 +1,7 @@
 // Slot editor header: name LCD, info chips, start/end readout, control init.
 import { fmtLevel, fmtPan, setFader, setSeg, setSwitch, tuneDisplay }
   from './controls.js';
-import { noteName } from './pads.js';
+import { noteName } from './notes.js';
 import { slotData } from './state.js';
 import { $, fmtSigned } from './util.js';
 import { loadWave } from './waveform.js';

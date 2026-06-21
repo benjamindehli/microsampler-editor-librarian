@@ -1,7 +1,7 @@
 // Slot operations: copy / swap (pad drag-and-drop) + clear (editor button).
 // All run device-side in the bridge (no audio round-trips through the browser).
 import { refreshBank } from './app.js';
-import { noteName } from './pads.js';
+import { noteName } from './notes.js';
 import { forgetSample } from './sampleLoad.js';
 import { showSlot } from './slot.js';
 import { slotData, state } from './state.js';

@@ -1,7 +1,7 @@
 // UTILITY view: backup list, restore dialog, background-op console.
 import { refreshBank } from './app.js';
 import { loadAllSamples } from './meter.js';
-import { noteName } from './pads.js';
+import { noteName } from './notes.js';
 import { forgetSample } from './sampleLoad.js';
 import { state } from './state.js';
 import { tick } from './ticker.js';

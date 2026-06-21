@@ -5,15 +5,10 @@
 // row = black keys; Z / X or the ◀ ▶ buttons shift the octave). The piano always
 // shows which computer key maps to which note, lit brighter while armed. Off by
 // default so the letter keys stay free for the normal shortcuts (ux.js).
+import { noteName } from './notes.js';
 import { state } from './state.js';
 import { tick } from './ticker.js';
 import { $, api, jsonBody } from './util.js';
-
-// pads are C3..B5 (MIDI C3 = 48, Korg octave). Inlined rather than imported from
-// pads.js — pads.js imports syncKeybed from here, and a back-import would hit
-// NOTE_NAMES in its temporal dead zone while this module initialises the piano.
-const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-const noteName = slot => NOTE_NAMES[(48 + slot) % 12] + (Math.floor((48 + slot) / 12) - 1);
 
 // DAW-style layout (Ableton/GarageBand). e.code → semitone offset from the base C:
 //   white keys  A S D F G H J K L ;  → C  D  E  F  G  A  B  C  D  E

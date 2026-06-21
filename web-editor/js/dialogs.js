@@ -4,7 +4,8 @@ import { refreshBank } from './app.js';
 import { decodeWavPcm, encodeWav, processBuffer, toolsActive } from './audioTools.js';
 import { fmtMem, loadAllSamples, MEM_SMPL_TOTAL, memBlk, sampleMemUsage, slotDevBytes }
   from './meter.js';
-import { noteName, renderPads } from './pads.js';
+import { noteName } from './notes.js';
+import { renderPads } from './pads.js';
 import { forgetSample } from './sampleLoad.js';
 import { openSlice } from './slice.js';
 import { showSlot } from './slot.js';

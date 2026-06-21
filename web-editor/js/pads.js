@@ -1,18 +1,12 @@
 // 36-slot pad grid: rendering, selection, device note-play, WAV drop.
 import { openUpload, uploadBatch } from './dialogs.js';
+import { noteName } from './notes.js';
 import { syncKeybed } from './qwerty.js';
 import { showSlot } from './slot.js';
 import { openSlotOp } from './slotops.js';
 import { state } from './state.js';
 import { tick } from './ticker.js';
 import { $, api, esc, jsonBody } from './util.js';
-
-const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-
-export function noteName(slot) {                   // pads are C3..B5 (36 keys)
-  const n = 48 + slot;                             // MIDI C3 = 48 (Korg octave)
-  return NOTE_NAMES[n % 12] + (Math.floor(n / 12) - 1);
-}
 
 export function selectSlot(i) {
   state.sel = i;
