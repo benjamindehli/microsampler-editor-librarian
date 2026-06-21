@@ -83,6 +83,15 @@ def wait_ready(timeout=20):
     return False
 
 
+def stub_github(pg):
+    """Stub the update-check (api.github.com) so the smoke is deterministic offline
+    — an unreachable GitHub otherwise logs CORS/network console errors. The tag is
+    older than any real release, so no update toast appears."""
+    pg.route('**api.github.com**', lambda r: r.fulfill(
+        status=200, content_type='application/json',
+        body='{"tag_name": "v0.0.0", "html_url": ""}'))
+
+
 def run_checks(wav_path):
     errors = []
     with sync_playwright() as p:
@@ -92,6 +101,7 @@ def run_checks(wav_path):
         page.on('console', lambda m: errors.append('console.error: %s' % m.text)
                 if m.type == 'error' else None)
 
+        stub_github(page)
         page.goto(BASE, wait_until='load')
         page.wait_for_timeout(1200)
 
@@ -212,6 +222,7 @@ def run_checks(wav_path):
             status=200, content_type='application/json', body=wedged))
         pg2.route('**/api/connect', lambda r: r.fulfill(
             status=200, content_type='application/json', body=ok))
+        stub_github(pg2)
         pg2.goto(BASE, wait_until='load')
         pg2.locator('#device-help').wait_for(state='visible', timeout=5000)
         assert pg2.is_hidden('#offline'), 'device-help is a distinct state from offline'
@@ -234,6 +245,7 @@ def run_checks(wav_path):
             status=200, content_type='application/json',
             body=json.dumps({'connected': True, 'library': True, 'mock': True,
                              'version': '0', 'error': None})))
+        stub_github(pg3)
         pg3.goto(BASE, wait_until='load')
         pg3.locator('#view-library').wait_for(state='visible', timeout=5000)
         assert pg3.is_hidden('.view-btn[data-view="samples"]'), 'device tabs hidden in library'
