@@ -43,9 +43,10 @@
   border: 1px solid #000;
   box-shadow: inset 0 2px 8px rgba(0,0,0,.85);
 }
-.pattern-card .p-actions { display: flex; gap: .3rem; flex-wrap: wrap; }
-/* compact caps so PLAY/STOP + ⇩.MID + ⇧.MID + INIT fit on one row */
-.pattern-card .p-actions .hw-btn-cap { padding: .5rem .5rem; letter-spacing: .05em; }
+/* two rows (PLAY·EDIT·INIT / IMPORT·EXPORT), buttons stretch to fill their row */
+.pattern-card .p-actions { display: flex; flex-direction: column; gap: .35rem; }
+.pattern-card .p-row { display: flex; gap: .35rem; }
+.pattern-card .p-row > .hw-btn { flex: 1; justify-content: center; }
 .pattern-card.is-empty .pattern-roll { opacity: .45; }
 
 /* track legend dots in pattern cards */

@@ -222,7 +222,8 @@ def _prep_page(pg, base):
 
 
 def capture_device(base, wav_path, tmp):
-    """Set every device view up, screenshot all 5 at 1540x940. Returns {view: png}."""
+    """Set every device view up, screenshot each (incl. the upload dialog + pattern
+    editor) at 1540x940. Returns {view: png}."""
     frames = {}
     with sync_playwright() as p:
         b = p.chromium.launch()
@@ -262,6 +263,16 @@ def capture_device(base, wav_path, tmp):
             f = os.path.join(tmp, view + '.png')
             pg.screenshot(path=f)
             frames[view] = f
+        # PATTERN EDITOR: open a recorded pattern's piano roll
+        pg.locator('.view-btn[data-view="patterns"]').click()
+        pg.locator('.pattern-card .hw-btn:has-text("EDIT")').first.click()
+        pg.wait_for_selector('#pattern-editor[open]')
+        pg.wait_for_timeout(450)
+        f = os.path.join(tmp, 'editor.png')
+        pg.screenshot(path=f)
+        frames['editor'] = f
+        pg.evaluate("() => document.querySelector('#pe-cancel').click()")
+        pg.wait_for_timeout(200)
         # UPLOAD: open the dialog over the SAMPLES view with a WAV loaded (SLICE on)
         pg.locator('.view-btn[data-view="samples"]').click()
         pg.locator('.pad[data-slot="0"]').click()
@@ -408,10 +419,12 @@ def main():
                      os.path.join(args.out, 'screenshots', 'samples.png'))
             written.append('screenshots/samples.png')
         if 'screenshots' in want:
-            for v in ('effect', 'patterns', 'utility', 'upload'):
+            for v, name in [('effect', 'effect'), ('patterns', 'patterns'),
+                            ('utility', 'utility'), ('upload', 'upload'),
+                            ('editor', 'pattern-editor')]:
                 save_png(lanczos(frames[v], SHOT),
-                         os.path.join(args.out, 'screenshots', v + '.png'))
-                written.append('screenshots/%s.png' % v)
+                         os.path.join(args.out, 'screenshots', name + '.png'))
+                written.append('screenshots/%s.png' % name)
         if 'demo' in want:
             build_demo(frames, args.out)
             written += ['demo-poster.jpg', 'demo.gif', 'demo.mp4', 'demo.webm']

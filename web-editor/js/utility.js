@@ -26,7 +26,7 @@ export async function loadBackups() {
     zip.className = 'hw-btn';
     zip.href = `/api/backup/${encodeURIComponent(b.dir)}.zip`;
     zip.download = `${b.dir}.zip`;
-    zip.innerHTML = '<span class="hw-btn-cap">⇩ ZIP</span>';
+    zip.innerHTML = '<span class="hw-btn-cap"><span class="ico ico-dn"></span>ZIP</span>';
     const btn = document.createElement('button');
     btn.className = 'hw-btn';
     btn.innerHTML = '<span class="hw-btn-cap">RESTORE…</span>';

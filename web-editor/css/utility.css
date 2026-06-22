@@ -82,6 +82,7 @@
 .lib-pad.sounding .pad-name { color: var(--amber); }
 .lib-dl { position: absolute; bottom: 2px; right: 5px; color: var(--ink-dim);
   font-size: .95rem; line-height: 1; text-decoration: none; opacity: .5; }
+.lib-dl .ico { margin-right: 0; }          /* icon-only — no trailing gap */
 .lib-pad:hover .lib-dl { opacity: 1; }
 .lib-dl:hover { color: var(--amber-hi); }
 @media (max-width: 760px) { .lib-cols { grid-template-columns: 1fr; } }

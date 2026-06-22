@@ -1,0 +1,69 @@
+/* ── pattern editor (piano roll) ──────────────────────────────────────────── */
+.pe-dialog {
+  width: min(96vw, 1200px);
+  max-width: 96vw;
+  padding: 1rem 1.1rem 1.1rem;
+}
+.pe-dialog::backdrop { background: rgba(0, 0, 0, .6); }
+
+.pe-head {
+  display: flex; align-items: center; flex-wrap: wrap; gap: .55rem .8rem;
+  margin-bottom: .7rem; font-size: .58rem; letter-spacing: .14em; color: var(--ink-dim);
+}
+.pe-title { color: var(--amber); font-weight: 600; letter-spacing: .18em; }
+.pe-head label { display: inline-flex; align-items: center; gap: .35rem; }
+.pe-head input[type="text"] { width: 5.5em; }
+.pe-head input[type="number"] { width: 3.4em; }
+.pe-head input[type="range"] { width: 84px; }
+.pe-head select { max-width: 12em; }
+.pe-head .spacer { flex: 1; }
+#pe-vel-val { min-width: 2.2em; color: var(--amber); }
+#pe-play.playing .hw-btn-cap { color: var(--amber); }    /* previewing on the device */
+
+/* active-track toggle */
+.pe-track { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.pe-track button {
+  background: var(--steel-2); border: 0; color: var(--ink-dim);
+  padding: .3rem .6rem; cursor: pointer; font: inherit; letter-spacing: .12em;
+}
+.pe-track button + button { border-left: 1px solid var(--line); }
+.pe-track button.on { background: rgba(var(--amber-rgb), .22); color: var(--amber); }
+
+/* the roll: a fixed note gutter + the lanes, scrolling vertically together */
+.pe-roll-wrap {
+  display: flex; align-items: flex-start;
+  height: min(62vh, 620px); overflow-y: auto; overflow-x: hidden;
+  background: var(--phos-bg); border: 1px solid var(--line); border-radius: 4px;
+}
+.pe-gutter { position: sticky; left: 0; z-index: 3; flex: 0 0 52px; background: var(--steel-1); }
+/* absolutely positioned by row (top set inline) so labels can't drift out of step
+   with the lanes — block flow distorted the pad-range rows */
+.pe-key {
+  position: absolute; left: 0; right: 0;
+  display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 5px; font-size: .5rem; color: var(--ink-dim);
+  border-bottom: 1px solid rgba(255, 255, 255, .03); box-sizing: border-box;
+}
+.pe-key.black { background: rgba(0, 0, 0, .35); color: #555; }
+.pe-key.pe-pad { color: var(--ink); }      /* notes in this range trigger pads */
+
+.pe-roll { position: relative; flex: 1; min-width: 0; cursor: crosshair; }
+.pe-bar { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(var(--amber-rgb), .22); }
+.pe-rowbg { position: absolute; left: 0; right: 0; background: rgba(0, 0, 0, .28); }
+
+.pe-note {
+  position: absolute; border-radius: 2px; box-sizing: border-box; min-width: 3px;
+  border: 1px solid rgba(0, 0, 0, .5); cursor: grab; touch-action: none;
+}
+.pe-note.smp { background: rgb(var(--amber-rgb)); }
+.pe-note.kbd { background: #ffe9c9; }
+.pe-note.sel { outline: 2px solid #fff; outline-offset: -1px; z-index: 2; }
+.pe-resize { position: absolute; right: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; }
+
+.pe-foot {
+  margin-top: .6rem; font-size: .54rem; letter-spacing: .1em; color: var(--ink-dim);
+  display: flex; align-items: center; flex-wrap: wrap;
+}
+.pe-foot .dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: .3rem; }
+.pe-foot .dot.smp { background: rgb(var(--amber-rgb)); }
+.pe-foot .dot.kbd { background: #ffe9c9; }

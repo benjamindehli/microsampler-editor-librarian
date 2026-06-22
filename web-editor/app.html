@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="css/dialogs.css">
 <link rel="stylesheet" href="css/utility.css">
 <link rel="stylesheet" href="css/patterns.css">
+<link rel="stylesheet" href="css/patternEdit.css">
 <link rel="stylesheet" href="css/effect.css">
 <link rel="stylesheet" href="css/meter.css">
 </head>
@@ -131,8 +132,8 @@
       </div>
       <div class="fx-presets">
         <span class="ctl-label">PRESET</span>
-        <button class="hw-btn" id="fx-save"><span class="hw-btn-cap">⇩ SAVE</span></button>
-        <button class="hw-btn" id="fx-load"><span class="hw-btn-cap">⇧ LOAD</span></button>
+        <button class="hw-btn" id="fx-save"><span class="hw-btn-cap"><span class="ico ico-dn"></span>SAVE</span></button>
+        <button class="hw-btn" id="fx-load"><span class="hw-btn-cap"><span class="ico ico-up"></span>LOAD</span></button>
         <input type="file" id="fx-file" accept=".json,application/json" hidden>
       </div>
     </div>
@@ -197,7 +198,7 @@
         <div id="backup-list" class="backup-list"></div>
         <div class="backup-import">
           <button class="hw-btn" id="import-btn">
-            <span class="hw-btn-cap">⇧ IMPORT .ZIP</span></button>
+            <span class="hw-btn-cap"><span class="ico ico-up"></span>IMPORT .ZIP</span></button>
           <input type="file" id="import-file" accept=".zip,application/zip" hidden>
           <span class="util-note">share banks between machines</span>
         </div>
@@ -327,8 +328,8 @@
             <svg class="ai-ico ai-play" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5 11 6 3 10.5Z"/></svg>
             <svg class="ai-ico ai-stop" viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="2" width="8" height="8" rx="1"/></svg>
             <span class="ai-lbl">PLAY</span></span></button>
-          <a class="hw-btn" id="download-btn" download><span class="hw-btn-cap">⇩ WAV</span></a>
-          <button class="hw-btn accent" id="upload-btn"><span class="hw-btn-cap">⇧ LOAD…</span></button>
+          <a class="hw-btn" id="download-btn" download><span class="hw-btn-cap"><span class="ico ico-dn"></span>WAV</span></a>
+          <button class="hw-btn accent" id="upload-btn"><span class="hw-btn-cap"><span class="ico ico-up"></span>LOAD…</span></button>
         </div>
       </div>
 
@@ -511,6 +512,11 @@
         on the hardware (panel edits only reach the app while the device is on
         its sample-edit page). The app also auto-receives when you refocus the
         window.</p>
+      <p><b>Pattern editor</b> — on the PATTERNS view, <b>✎ EDIT</b> opens a piano
+        roll: click to add a note, drag to move it, drag its right edge to resize,
+        scroll over it for velocity, <kbd>Del</kbd> to remove. Switch the <b>SMP</b>
+        (pad) / <b>KBD</b> (pitched) track, set bars and the keyboard track's sample,
+        then <b>SAVE TO DEVICE</b>. Works on an empty pattern to build one from scratch.</p>
       <p><b>RAM vs flash</b> — all edits/transfers target the device's CURRENT
         bank (RAM); they're lost on power-off. Save on the device, or restore a
         backup to a USER bank (UTILITY) to persist.</p>
@@ -637,6 +643,46 @@
       <button value="ok" id="confirm-ok" class="hw-btn accent"><span class="hw-btn-cap">OK</span></button>
     </menu>
   </form>
+</dialog>
+
+<!-- ── pattern editor (piano roll) ──────────────────────────────────────── -->
+<dialog id="pattern-editor" class="hw-dialog pe-dialog" aria-label="Pattern editor">
+  <div class="pe-head">
+    <span class="pe-title" id="pe-title">EDIT</span>
+    <label>NAME <input type="text" id="pe-name" maxlength="8" spellcheck="false"></label>
+    <label>BARS <input type="number" id="pe-bars" min="1" max="99" value="1"></label>
+    <label>GRID
+      <select id="pe-grid" title="Snap-to-grid resolution (OFF = place freely)">
+        <option value="96">1/4</option>
+        <option value="48">1/8</option>
+        <option value="24" selected>1/16</option>
+        <option value="12">1/32</option>
+        <option value="0">OFF</option>
+      </select>
+    </label>
+    <div class="pe-track" role="radiogroup" aria-label="Active track">
+      <button id="pe-track-smp" class="on" type="button" title="Edit the sample-mode (pad) track">SMP</button>
+      <button id="pe-track-kbd" type="button" title="Edit the keyboard-mode (pitched) track">KBD</button>
+    </div>
+    <label class="pe-kbd-sample" title="Sample played by the keyboard-mode track">KBD SAMPLE
+      <select id="pe-sample"></select></label>
+    <label>VEL <input type="range" id="pe-vel" min="1" max="127" value="100">
+      <span id="pe-vel-val">100</span></label>
+    <span class="spacer"></span>
+    <button class="hw-btn" id="pe-play" type="button"
+            title="Write this edit to the device (RAM) and play it — CANCEL restores the slot">
+      <span class="hw-btn-cap" id="pe-play-cap">▶ PLAY</span></button>
+    <button class="hw-btn" id="pe-cancel" type="button"><span class="hw-btn-cap">CANCEL</span></button>
+    <button class="hw-btn accent" id="pe-save" type="button"><span class="hw-btn-cap"><span class="ico ico-up"></span>SAVE TO DEVICE</span></button>
+  </div>
+  <div class="pe-roll-wrap" id="pe-roll-wrap">
+    <div class="pe-gutter" id="pe-gutter"></div>
+    <div class="pe-roll" id="pe-roll"></div>
+  </div>
+  <div class="pe-foot">
+    <span class="dot smp"></span>SAMPLE&nbsp;(PAD) &nbsp;·&nbsp; <span class="dot kbd"></span>KEYBOARD&nbsp;(PITCH)
+    &nbsp;—&nbsp; click to add · drag to move · drag the right edge to resize · scroll a note for velocity · Del removes
+  </div>
 </dialog>
 
 <div class="grain"></div>

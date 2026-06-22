@@ -49,7 +49,7 @@ async function renderDetail() {
   el.innerHTML =
     `<div class="lib-detail-head">
        <span>${samples.length} sample${samples.length !== 1 ? 's' : ''} — click a pad to play</span>
-       <a class="hw-btn" href="${zip}" download="${encodeURIComponent(selDir)}.zip"><span class="hw-btn-cap">⇩ ALL (ZIP)</span></a>
+       <a class="hw-btn" href="${zip}" download="${encodeURIComponent(selDir)}.zip"><span class="hw-btn-cap"><span class="ico ico-dn"></span>ALL (ZIP)</span></a>
      </div>
      <div class="lib-grid" id="lib-grid"></div>
      <div id="lib-patterns"></div>`;
@@ -68,7 +68,7 @@ async function renderDetail() {
       dl.href = `/api/backup/${encodeURIComponent(selDir)}/sample/${i}.wav`;
       dl.download = `${(s.name || ('s' + i)).replace(/[^\w.-]/g, '_')}.wav`;
       dl.title = 'Download WAV';
-      dl.textContent = '⇩';
+      dl.innerHTML = '<span class="ico ico-dn"></span>';
       dl.onclick = e => e.stopPropagation();      // don't trigger play
       pad.append(dl);
       pad.onclick = () => toggle(i, s);
@@ -90,14 +90,14 @@ async function renderPatterns() {
   box.innerHTML =
     `<div class="lib-detail-head" style="margin-top:1.1rem">
        <span>${pats.length} pattern${pats.length !== 1 ? 's' : ''} — download as MIDI</span>
-       <a class="hw-btn" href="${zip}" download="${encodeURIComponent(dir)}-patterns.zip"><span class="hw-btn-cap">⇩ ALL (.mid ZIP)</span></a>
+       <a class="hw-btn" href="${zip}" download="${encodeURIComponent(dir)}-patterns.zip"><span class="hw-btn-cap"><span class="ico ico-dn"></span>ALL (.mid ZIP)</span></a>
      </div>
      <div class="lib-pats">` +
     pats.map(p => {
       const f = `${String(p.pattern + 1).padStart(2, '0')}_${(p.name || 'pattern').replace(/[^\w.-]/g, '_')}.mid`;
       return `<a class="lib-pat" download="${f}" href="/api/backup/${encodeURIComponent(dir)}/pattern/${p.pattern}.mid">
                 <span class="lib-pat-name">P${String(p.pattern + 1).padStart(2, '0')} · ${esc(p.name || '—')}</span>
-                <span class="lib-pat-meta">${p.note_count} notes ⇩</span>
+                <span class="lib-pat-meta">${p.note_count} notes <span class="ico ico-dn"></span></span>
               </a>`;
     }).join('') + '</div>';
 }

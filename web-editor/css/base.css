@@ -131,3 +131,22 @@ body {
 .playing .ai-play { display: none; }
 .playing .ai-stop { display: inline-block; }
 
+/* inline button icons (CSS-masked SVG) — for the up/down/reset glyphs the fonts
+   render inconsistently (⇧ wider than ⇩, ↺ undersized). Same idea as the SVG
+   play/stop; recolours via currentColor, so theming + hover just work. */
+.ico {
+  display: inline-block; width: .92em; height: .92em; vertical-align: -.16em;
+  margin-right: .42em; flex: none; background-color: currentColor;
+  -webkit-mask: center / contain no-repeat var(--ico);
+          mask: center / contain no-repeat var(--ico);
+}
+.ico-up {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 19V5M5 12l7-7 7 7'/%3E%3C/svg%3E");
+}
+.ico-dn {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 5v14M5 12l7 7 7-7'/%3E%3C/svg%3E");
+}
+.ico-reset {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='1 4 1 10 7 10'/%3E%3Cpath d='M3.51 15a9 9 0 1 0 2.13-9.36L1 10'/%3E%3C/svg%3E");
+}
+

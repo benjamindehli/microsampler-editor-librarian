@@ -1,4 +1,5 @@
-// PATTERNS view: receive, piano-roll cards, .mid export/import, init.
+// PATTERNS view: receive, piano-roll cards, .mid export/import, init, in-app edit.
+import { openPatternEditor } from './patternEdit.js';
 import { state } from './state.js';
 import { tick } from './ticker.js';
 import { $, apiJson, confirmDialog, esc, jsonBody } from './util.js';
@@ -8,6 +9,9 @@ let lastPatterns = null;            // for recolouring the rolls on theme change
 
 // repaint the piano-roll cards when the accent theme changes
 addEventListener('msmpl-theme', () => { if (lastPatterns) renderPatterns(lastPatterns); });
+// the pattern editor reports the one changed pattern after a save (detail = the
+// updated pattern JSON) — update just that card, no full re-receive
+addEventListener('msmpl-pattern-changed', e => applyPattern(e.detail));
 
 // live progress from the bridge (one SSE event per pattern read)
 export function onPatternsProgress(done, total) {
@@ -49,6 +53,14 @@ function renderPatterns(patterns) {
   const grid = $('#pattern-grid');
   grid.innerHTML = '';
   for (const p of patterns) {
+    const card = buildCard(p);
+    grid.append(card);
+    if (p.valid) drawRoll(card.querySelector('.pattern-roll'), p);
+  }
+}
+
+// build one pattern card's DOM (the caller inserts it and draws its roll)
+function buildCard(p) {
     const card = document.createElement('div');
     const recorded = p.valid && p.note_count > 0;
     card.className = 'pattern-card' + (recorded ? '' : ' is-empty');
@@ -77,7 +89,7 @@ function renderPatterns(patterns) {
       </div>`;
     const actions = document.createElement('div');
     actions.className = 'p-actions';
-    // PLAY/STOP on the device — always shown, disabled when there's no data
+    // PLAY/STOP on the device — icon + label both toggle via the .playing class
     const play = document.createElement('button');
     play.className = 'hw-btn';
     play.disabled = !recorded;
@@ -86,27 +98,53 @@ function renderPatterns(patterns) {
       `<span class="hw-btn-cap ai-cap">
          <svg class="ai-ico ai-play" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5 11 6 3 10.5Z"/></svg>
          <svg class="ai-ico ai-stop" viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="2" width="8" height="8" rx="1"/></svg>
+         <span class="ai-lbl ai-play">PLAY</span><span class="ai-lbl ai-stop">STOP</span>
        </span>`;
     if (recorded) play.onclick = () => playPattern(p, play);
-    actions.append(play);
-    const dl = document.createElement('a');
-    dl.className = 'hw-btn';
-    dl.href = `/api/pattern/${p.pattern}.mid`;
-    dl.download = `pattern${String(p.pattern + 1).padStart(2, '0')}.mid`;
-    dl.innerHTML = '<span class="hw-btn-cap">⇩ .MID</span>';
-    const up = document.createElement('button');
-    up.className = 'hw-btn accent';
-    up.innerHTML = '<span class="hw-btn-cap">⇧ .MID</span>';
-    up.onclick = () => importPatternSmf(p.pattern);
+    const imp = document.createElement('button');
+    imp.className = 'hw-btn';
+    imp.title = 'Import a .mid file into this pattern';
+    imp.innerHTML = '<span class="hw-btn-cap"><span class="ico ico-up"></span>IMPORT</span>';
+    imp.onclick = () => importPatternSmf(p.pattern);
+    const exp = document.createElement('a');
+    exp.className = 'hw-btn';
+    exp.href = `/api/pattern/${p.pattern}.mid`;
+    exp.download = `pattern${String(p.pattern + 1).padStart(2, '0')}.mid`;
+    exp.title = 'Export this pattern as a .mid file';
+    exp.innerHTML = '<span class="hw-btn-cap"><span class="ico ico-dn"></span>EXPORT</span>';
+    // EDIT — in-app piano roll (works on empty patterns too, to build from scratch)
+    const ed = document.createElement('button');
+    ed.className = 'hw-btn';
+    ed.disabled = !p.valid;
+    ed.title = p.valid ? 'Edit this pattern in the piano roll' : 'Pattern data unreadable';
+    ed.innerHTML = '<span class="hw-btn-cap">✎ EDIT</span>';
+    if (p.valid) ed.onclick = () => openPatternEditor(p);
     const ini = document.createElement('button');
     ini.className = 'hw-btn';
-    ini.innerHTML = '<span class="hw-btn-cap">INIT</span>';
+    ini.title = 'Reset this pattern to the factory INIT';
+    ini.innerHTML = '<span class="hw-btn-cap"><span class="ico ico-reset"></span>INIT</span>';
     ini.onclick = () => initPattern(p.pattern, recorded);
-    actions.append(dl, up, ini);
+    const row1 = document.createElement('div'); row1.className = 'p-row';
+    row1.append(play, ed, ini);                  // PLAY · EDIT · INIT
+    const row2 = document.createElement('div'); row2.className = 'p-row';
+    row2.append(imp, exp);                         // IMPORT · EXPORT
+    actions.append(row1, row2);
     card.append(actions);
-    grid.append(card);
-    if (p.valid) drawRoll(card.querySelector('.pattern-roll'), p);
-  }
+    return card;
+}
+
+// Update a single card in place after a save / INIT / import — avoids re-receiving
+// all 16 patterns from the device (slow + stops the sequencer). The write's POST
+// response already carries the changed pattern (bridge pattern_write → _pattern_json).
+export function applyPattern(p) {
+  if (!p || !lastPatterns) return;
+  lastPatterns[p.pattern] = p;
+  if (playing && playing.pattern === p.pattern) stopTransport();   // DOM swap orphans the btn
+  const grid = $('#pattern-grid');
+  const card = buildCard(p);
+  const old = grid.children[p.pattern];
+  if (old) grid.replaceChild(card, old); else grid.append(card);
+  if (p.valid) drawRoll(card.querySelector('.pattern-roll'), p);
 }
 
 function sampleLabel(idx) {
@@ -203,7 +241,7 @@ function importPatternSmf(q) {
         method: 'POST', body: await f.arrayBuffer(),
       });
       tick(`⇧ pattern ${q + 1}: ${r.note_count} notes, ${r.bars} bars written`);
-      await loadPatterns();
+      applyPattern(r);                   // single-card update (no full re-receive)
     } catch (e) {
       tick(`⚠ pattern import failed: ${e.message}`);
       alert('Pattern import failed: ' + e.message);
@@ -217,9 +255,9 @@ async function initPattern(q, recorded) {
       `Reset to the factory INIT pattern` +
       (recorded ? ' — its recorded notes will be LOST (RAM)?' : '?'), 'INIT')) return;
   try {
-    await apiJson(`/api/pattern/${q}/init`, { method: 'POST' });
+    const r = await apiJson(`/api/pattern/${q}/init`, { method: 'POST' });
     tick(`pattern ${q + 1} initialized`);
-    await loadPatterns();
+    applyPattern(r);                     // single-card update (no full re-receive)
   } catch (e) { tick(`⚠ init failed: ${e.message}`); }
 }
 
