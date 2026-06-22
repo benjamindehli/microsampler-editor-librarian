@@ -70,7 +70,7 @@
                 "Full sample parameter editing and waveform trimming",
                 "On-screen and computer-keyboard piano to play samples on the device",
                 "All 22 effect types with their complete parameter sets",
-                "Pattern receive, playback, record and MIDI file import/export",
+                "Pattern receive, playback, record, in-app piano-roll editing, and MIDI file import/export",
                 "Full bank backup and restore, including persistent user banks"
             ],
             "sameAs": "https://github.com/benjamindehli/microsampler-editor-librarian"
@@ -398,10 +398,18 @@ cd microsampler-editor-librarian</code></pre>
       <ul>
         <li><strong>RECEIVE PATTERNS</strong> reads all 16 patterns from the current bank.</li>
         <li><strong>Play</strong> a pattern on the device (the ▶ on each recorded card).</li>
+        <li><strong>✎ EDIT</strong> opens an in-app <strong>piano-roll editor</strong> — draw, move,
+          resize and delete notes on both the sample-mode (pad) and keyboard-mode (pitched) tracks,
+          set per-note velocity, the bar count and the keyboard track's sample, then save it back to
+          the device. Works on an empty slot too, so you can build a pattern from scratch.</li>
         <li><strong>● REC</strong> presses the device's record button over MIDI — arm → start → end —
           to record into its current pattern.</li>
         <li><strong>Import / export MIDI</strong> — export any pattern as a Standard MIDI File, or import one.</li>
       </ul>
+      <figure>
+        <img src="assets/screenshots/pattern-editor.png" alt="The pattern editor: a piano roll over the two tracks, with sample-mode notes in amber and keyboard-mode notes in cream, and controls for name, bars, grid snap, track, keyboard sample and velocity" loading="lazy">
+        <figcaption>The pattern editor — a piano roll over both tracks (amber = sample/pad, cream = keyboard/pitch); ▶ PLAY previews on the device, SAVE writes it back.</figcaption>
+      </figure>
       <div class="note warn">
         <b class="label">FOR PLAYBACK &amp; RECORD</b>
         <p>The device must have <strong>GLOBAL → MIDI CLK = AUTO</strong> (or EXT&nbsp;MIDI) so its

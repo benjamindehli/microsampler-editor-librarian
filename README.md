@@ -42,6 +42,10 @@ This app covers everything the original did, plus a few things it didn't.
 - **PATTERNS**:
   - Receive all 16 patterns
   - Mini piano-roll preview + play patterns on the device (per-pattern ▶)
+  - In-app **piano-roll editor** — draw/move/resize/delete notes on both the
+    sample-mode (pad) and keyboard-mode (pitched) tracks, set velocity, bars and
+    the keyboard track's sample, then save back to the device (build a pattern
+    from scratch on an empty slot, too)
   - Import and Export MIDI files
   - Remote record trigger (presses the device's [REC] over MIDI; watch the
     device screen)
