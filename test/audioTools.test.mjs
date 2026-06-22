@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { decodeWavPcm, encodeWav, processBuffer, sliceBuffer, toolsActive }
+import { decodeWavPcm, encodeWav, nearestZeroCrossing, processBuffer, sliceBuffer, toolsActive }
   from '../web-editor/js/audioTools.js';
 
 const RATE = 48000;
@@ -141,6 +141,30 @@ test('sliceBuffer equal mode clamps the count to at least 1', () => {
   const src = { channels: [Float32Array.from({ length: 1000 }, () => 0.5)], rate: RATE };
   assert.equal(sliceBuffer(src, { mode: 'equal', count: 0 }).length, 1);
   assert.equal(sliceBuffer(src, { mode: 'equal', count: -3 }).length, 1);
+});
+
+test('nearestZeroCrossing finds the closest sign change and prefers the nearer side', () => {
+  // a sine: zero crossings at multiples of half-period
+  const n = 2000, period = 100;
+  const sig = Float32Array.from({ length: n }, (_, i) => Math.sin(2 * Math.PI * i / period));
+  // crossings near 0, 50, 100, 150 ... ; from target 60 the nearest is ~50
+  const zc = nearestZeroCrossing([sig], 60, 200);
+  assert.ok(Math.abs(zc - 50) <= 1, `got ${zc}`);
+  // exactly on a crossing region returns that index
+  assert.ok(Math.abs(nearestZeroCrossing([sig], 100, 50) - 100) <= 1);
+});
+
+test('nearestZeroCrossing returns -1 when no crossing within the window', () => {
+  const flat = new Float32Array(500).fill(0.5);          // DC, never crosses
+  assert.equal(nearestZeroCrossing([flat], 250, 100), -1);
+});
+
+test('nearestZeroCrossing sums channels (stereo handled together)', () => {
+  // left positive, right negative → sum stays >0 except where it flips
+  const L = Float32Array.from({ length: 200 }, (_, i) => (i < 100 ? 0.8 : -0.8));
+  const R = Float32Array.from({ length: 200 }, () => 0.1);
+  const zc = nearestZeroCrossing([L, R], 90, 50);        // sum flips around i=100
+  assert.ok(zc >= 99 && zc <= 101, `got ${zc}`);
 });
 
 test('sliceBuffer transient: higher sensitivity never finds fewer onsets', () => {
