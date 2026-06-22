@@ -144,6 +144,32 @@ def run_checks(wav_path):
             " return b && b.classList.contains('playing'); }", timeout=6000)
         play.click()                               # stop
 
+        # pattern editor: open an empty pattern, draw a note on the piano roll,
+        # save it to the device, and confirm it round-trips back as recorded.
+        empty_idx = page.evaluate(
+            "() => { const cs = [...document.querySelectorAll('.pattern-card')];"
+            " for (let i = 0; i < cs.length; i++) { const ed = [...cs[i].querySelectorAll('.hw-btn')]"
+            ".find(b => /EDIT/.test(b.textContent));"
+            " if (cs[i].classList.contains('is-empty') && ed && !ed.disabled) return i; } return -1; }")
+        assert empty_idx >= 0, 'an empty, editable pattern card'
+        page.locator('.pattern-card').nth(empty_idx).locator('.hw-btn:has-text("EDIT")').click()
+        page.wait_for_selector('#pattern-editor[open]')
+        assert page.eval_on_selector_all('#pe-roll .pe-note', 'e => e.length') == 0, 'starts empty'
+        page.eval_on_selector('#pe-roll-wrap', 'el => { el.scrollTop = 0; }')  # predictable coords
+        box = page.eval_on_selector(
+            '#pe-roll', 'el => { const r = el.getBoundingClientRect();'
+            ' return { x: r.left, y: r.top, w: r.width }; }')
+        page.mouse.click(box['x'] + box['w'] * 0.25, box['y'] + 28)     # add a note
+        page.wait_for_function(
+            "() => document.querySelectorAll('#pe-roll .pe-note').length === 1", timeout=3000)
+        page.locator('#pe-save').click()
+        page.wait_for_function("() => !document.querySelector('#pattern-editor').open", timeout=6000)
+        # the edited pattern is no longer empty after the save round-trips
+        page.wait_for_function(
+            "(i) => { const c = document.querySelectorAll('.pattern-card')[i];"
+            " return c && !c.classList.contains('is-empty'); }",
+            arg=empty_idx, timeout=8000)
+
         # auto-slice: chop a WAV across 4 consecutive pads, which then auto-load
         page.locator('.view-btn[data-view="samples"]').click()
         page.locator('.pad[data-slot="10"]').click()
