@@ -103,9 +103,15 @@
   color: var(--amber); letter-spacing: .04em;
 }
 .screen-meta {
-  display: flex; justify-content: space-between;
+  display: flex; justify-content: space-between; align-items: center;
   font-family: "Share Tech Mono", monospace;
   font-size: .66rem; color: var(--amber-dk);
   letter-spacing: .12em; margin-top: .35rem;
 }
+.zsnap-toggle {
+  display: inline-flex; align-items: center; gap: .3em; cursor: pointer;
+  color: var(--ink-dim); white-space: nowrap; letter-spacing: .1em;
+}
+.zsnap-toggle input { accent-color: var(--amber); cursor: pointer; margin: 0; }
+.zsnap-toggle:hover { color: var(--ink); }
 

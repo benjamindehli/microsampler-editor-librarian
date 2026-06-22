@@ -185,6 +185,23 @@ function detectOnsets(src, sensitivity, minMs) {
   return starts;
 }
 
+// Nearest index to `target` where the summed channels cross zero (between i-1 and
+// i), within ±win samples; -1 if none. The waveform's zero-crossing snap uses this
+// so trim points land on a zero crossing and don't click. Pure.
+export function nearestZeroCrossing(channels, target, win) {
+  const n = channels[0].length;
+  const at = k => { let s = 0; for (const c of channels) s += c[k]; return s; };
+  target = Math.max(1, Math.min(n - 1, Math.round(target)));
+  for (let d = 0; d <= win; d++) {
+    for (const i of (d === 0 ? [target] : [target - d, target + d])) {
+      if (i < 1 || i >= n) continue;
+      const a = at(i - 1), b = at(i);
+      if (b === 0 || (a <= 0 && b > 0) || (a >= 0 && b < 0)) return i;
+    }
+  }
+  return -1;
+}
+
 // Cut a decoded buffer into segments. spec:
 //   { mode:'equal', count:N }                       → N equal-length pieces
 //   { mode:'transient', sensitivity:0..1, minMs }   → cut at detected onsets

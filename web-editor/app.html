@@ -348,6 +348,10 @@
       </div>
       <div class="screen-meta">
         <span id="meta-points">START 0 · END 0</span>
+        <label class="zsnap-toggle"
+               title="Snap dragged START/END markers to the nearest zero crossing (avoids clicks)">
+          <input type="checkbox" id="zero-snap" checked> ZERO-SNAP
+        </label>
         <span id="meta-fmt"></span>
       </div>
 
@@ -505,9 +509,11 @@
         audition); dim LED = used but not loaded yet. Hold <b>▶</b> (lower-right)
         to play the sample <i>on the device</i>. Drag a pad onto another to
         <b>copy / swap</b>; drop a <b>.wav</b> onto a pad to load it.</p>
-      <p><b>Waveform</b> — drag the <b>S</b>/<b>E</b> edges to set start/end.
-        <b>Scroll</b> to zoom, <b>drag</b> the body to pan, and
-        <b>double-click</b> (or <b>FIT</b>) to see the whole sample.</p>
+      <p><b>Waveform</b> — drag the <b>S</b>/<b>E</b> edges to set start/end (with
+        <b>ZERO-SNAP</b> on, a dragged point snaps to the nearest zero crossing so the
+        cut doesn't click; type a value for an exact frame). <b>Scroll</b> to zoom,
+        <b>drag</b> the body to pan, and <b>double-click</b> (or <b>FIT</b>) to see the
+        whole sample.</p>
       <p><b>RECEIVE</b> re-reads the bank from the device — use it after editing
         on the hardware (panel edits only reach the app while the device is on
         its sample-edit page). The app also auto-receives when you refocus the

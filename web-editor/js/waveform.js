@@ -1,5 +1,6 @@
 // Waveform screen: lazy WAV load, peak rendering, zoom/pan, start/end marker
 // dragging, device audition + approximate playhead.
+import { nearestZeroCrossing } from './audioTools.js';
 import { tuneCents } from './controls.js';
 import { renderMeter } from './meter.js';
 import { selectSlot } from './pads.js';
@@ -17,6 +18,22 @@ let view = { v0: 0, vlen: 0 };
 
 const wave = $('#wave');
 const curBuf = () => (state.sel != null ? state.buffers.get(state.sel) : null);
+
+// ── zero-crossing snap (start/end) ───────────────────────────────────────────
+// Cutting a sample mid-cycle clicks; snapping the trim points to the nearest
+// zero crossing avoids it. Points are in DEVICE frames but the decoded buffer may
+// be resampled (decodeAudioData → context rate), so map frame⇄buffer-sample.
+const zeroSnapOn = () => { const t = $('#zero-snap'); return !t || t.checked; };
+
+// snap a device-frame point to the nearest zero crossing in the (maybe-resampled)
+// buffer: map frame→buffer-sample, find the crossing, map back to a device frame
+function snapZeroFrame(frame, s, buf) {
+  const n = buf.length, total = s.frames || n;
+  const win = Math.max(64, Math.round(buf.sampleRate * 0.012));   // ~12 ms search window
+  const chans = Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c));
+  const zc = nearestZeroCrossing(chans, (frame / total) * n, win);
+  return zc < 0 ? frame : Math.round((zc / n) * total);
+}
 
 export async function loadWave(i) {
   stopAudition();                  // end any held audition note before switching
@@ -262,10 +279,25 @@ wave.addEventListener('dblclick', () => { fitView(); redrawZoom(); });
     wave.style.cursor = '';
     if (mode === 'pan') return;                   // panning sends nothing
     const s = slotData(state.sel);
+    const buf = curBuf();
+    // snap the just-dragged marker to the nearest zero crossing (numeric inputs
+    // stay exact — they commit straight through commitPoints)
+    if (buf && zeroSnapOn()) {
+      if (mode === 'start') s.start = snapZeroFrame(s.start, s, buf);
+      else s.end = snapZeroFrame(s.end, s, buf);
+    }
     await commitPoints(s.start, s.end);
   };
   wave.addEventListener('pointerup', endDrag);
   wave.addEventListener('pointercancel', () => { drag = null; wave.style.cursor = ''; });
+
+  // zero-snap toggle (persisted; default on)
+  const zt = $('#zero-snap');
+  try { zt.checked = localStorage.getItem('msmpl.zerosnap') !== '0'; } catch { /* ignore */ }
+  zt.addEventListener('change', () => {
+    try { localStorage.setItem('msmpl.zerosnap', zt.checked ? '1' : '0'); } catch { /* ignore */ }
+    tick(`zero-crossing snap: ${zt.checked ? 'ON' : 'OFF'}`);
+  });
 }
 
 // Commit START/END points to the device — shared by the marker drag and the
