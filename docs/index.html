@@ -499,7 +499,10 @@ cd microsampler-editor-librarian</code></pre>
         <tr><td><kbd>Space</kbd></td><td>Audition the selected pad</td></tr>
         <tr><td><kbd>+</kbd> / <kbd>−</kbd> / <kbd>0</kbd></td><td>Waveform zoom in / out / fit</td></tr>
         <tr><td><kbd>R</kbd></td><td>Receive bank from device</td></tr>
-        <tr><td><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Z</kbd></td><td>Undo / redo parameter edits</td></tr>
+        <tr><td><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Z</kbd></td><td>Undo a parameter edit</td></tr>
+        <tr><td><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>⇧</kbd> + <kbd>Z</kbd></td><td>Redo</td></tr>
+        <tr><td><kbd>Z</kbd> / <kbd>X</kbd></td><td>On-screen keyboard: octave down / up (when “type to play” is on)</td></tr>
+        <tr><td><kbd>Del</kbd></td><td>Pattern editor: delete the selected note</td></tr>
         <tr><td><kbd>?</kbd></td><td>Help overlay</td></tr>
       </table>
     </section>
@@ -577,6 +580,8 @@ cd microsampler-editor-librarian</code></pre>
   </main>
 </div>
 
+<a class="to-top" href="#top" aria-label="Back to top" title="Back to top">↑</a>
+
 <script>
   // mobile menu toggle
   const nav = document.querySelector('.side nav');
@@ -594,6 +599,20 @@ cd microsampler-editor-librarian</code></pre>
     });
   }, { rootMargin: '-10% 0px -80% 0px' });
   document.querySelectorAll('main section[id]').forEach(s => obs.observe(s));
+
+  // back-to-top button — appears once you've scrolled down a bit
+  const toTop = document.querySelector('.to-top');
+  addEventListener('scroll', () => toTop.classList.toggle('show', scrollY > 600), { passive: true });
+
+  // hover permalink (#) on each section heading, for linking straight to a topic
+  document.querySelectorAll('main section[id] > h2').forEach(h => {
+    const a = document.createElement('a');
+    a.className = 'anchor';
+    a.href = '#' + h.parentElement.id;
+    a.setAttribute('aria-label', 'Link to this section');
+    a.textContent = '#';
+    h.appendChild(a);
+  });
 </script>
 </body>
 </html>

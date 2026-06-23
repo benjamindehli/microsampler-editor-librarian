@@ -144,3 +144,25 @@ footer .logo { height: 26px; margin-bottom: .6rem; opacity: .85; }
   .content { padding: 1.6rem 0 4rem; }
   .hero h1 { font-size: 1.6rem; }
 }
+
+/* back-to-top button (shown after scrolling; href="#top" works without JS too) */
+.to-top {
+  position: fixed; right: 1.1rem; bottom: 1.1rem; z-index: 50;
+  width: 40px; height: 40px; border-radius: 9px;
+  display: grid; place-items: center; font-size: 1.2rem; line-height: 1;
+  text-decoration: none; color: var(--amber);
+  background: var(--steel-3); border: 1px solid var(--line-hi);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .45);
+  opacity: 0; transform: translateY(10px); pointer-events: none;
+  transition: opacity .18s, transform .18s, color .12s, border-color .12s;
+}
+.to-top.show { opacity: 1; transform: none; pointer-events: auto; }
+.to-top:hover { color: var(--amber-hi); border-color: var(--amber); }
+
+/* hover permalink on section headings */
+h2 .anchor {
+  margin-left: .45em; font-weight: 400; text-decoration: none;
+  color: var(--ink-dim); opacity: 0; transition: opacity .12s, color .12s;
+}
+h2:hover .anchor, h2 .anchor:focus { opacity: 1; }
+h2 .anchor:hover { color: var(--amber); }
