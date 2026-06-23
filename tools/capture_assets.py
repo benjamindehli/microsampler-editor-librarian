@@ -271,7 +271,7 @@ def capture_device(base, wav_path, tmp):
         f = os.path.join(tmp, 'editor.png')
         pg.screenshot(path=f)
         frames['editor'] = f
-        pg.evaluate("() => document.querySelector('#pe-cancel').click()")
+        pg.keyboard.press('Escape')   # Esc discards + closes (the CANCEL button is gone)
         pg.wait_for_timeout(200)
         # UPLOAD: open the dialog over the SAMPLES view with a WAV loaded (SLICE on)
         pg.locator('.view-btn[data-view="samples"]').click()
