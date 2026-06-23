@@ -191,7 +191,12 @@
   font: 600 .6rem/1 "Chakra Petch", sans-serif; letter-spacing: .14em; color: var(--ink);
 }
 .theme-trigger:hover { color: var(--amber-hi); }
-.theme-name { min-width: 4.6em; text-align: left; }   /* steady width so the caret doesn't jump */
+/* reserve the width of the longest name (a hidden ghost sizer stacked under the
+   current one) so the trigger never resizes between themes — and it adapts to
+   the web font automatically once it loads */
+.theme-name { display: inline-grid; justify-items: start; }
+.theme-name > * { grid-area: 1 / 1; white-space: nowrap; }
+.theme-name-ghost { visibility: hidden; pointer-events: none; }
 .theme-caret {
   width: 0; height: 0; flex: none;
   border-left: 3px solid transparent; border-right: 3px solid transparent;

@@ -26,6 +26,8 @@ const THEMES = [
 const themeTrigger = $('#theme-trigger');
 const themeMenu = $('#theme-menu');
 const themeName = $('#theme-name');
+// size the trigger to the longest name so it never jumps when switching themes
+$('#theme-name-ghost').textContent = THEMES.reduce((a, t) => t.name.length > a.length ? t.name : a, '');
 themeMenu.innerHTML = THEMES.map((t, i) =>
   `<li class="theme-opt" role="option" data-i="${i}" tabindex="-1" aria-selected="false">`
   + `<span class="theme-sw" style="background:rgb(${t.rgb});box-shadow:0 0 6px rgb(${t.rgb}),inset 0 0 2px rgba(255,255,255,.5)"></span>`
