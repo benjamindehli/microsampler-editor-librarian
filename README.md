@@ -215,10 +215,17 @@ To produce a lean, minified `dist/` for publishing (JS bundled + minified, CSS m
 npm install      # one dev-only dependency: esbuild (MIT)
 npm run build    # -> dist/
 sudo python3 dist/native-tools/bridge.py
+
+npm run pack     # -> dist/ + release/microsampler-editor-librarian-vX.Y.Z.zip
 ```
 
 `dist/` mirrors the run layout (`web-editor/` + `native-tools/` + launcher) and runs exactly like the source.
 `esbuild` is build-time only — the app ships no runtime npm dependencies.
+
+`npm run pack` builds `dist/` and packages it into the release ZIP under `release/`,
+named to match the version (`<name>-vX.Y.Z.zip`) and the docs download link, with a
+single top-level folder and the launchers kept executable. Upload that ZIP to the
+GitHub release. The packer is plain Node (no `zip` binary needed).
 
 Bumping the version with `npm version <new>` automatically stamps it into the
 docs download link and structured data (the `version` lifecycle runs
