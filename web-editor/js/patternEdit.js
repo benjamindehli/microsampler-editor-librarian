@@ -53,8 +53,16 @@ function buildGutter() {
   }
 }
 
+// screen-reader label for a note
+const noteLabel = nt =>
+  `${nt.track ? 'Keyboard' : 'Sample'} ${midiLabel(nt.note)}, bar ${Math.floor(nt.start / TPB) + 1}, velocity ${nt.vel}`;
+
 function renderRoll() {
   const roll = $('#pe-roll');
+  // the rebuild below replaces every note element, which would drop keyboard
+  // focus — remember which note was focused and restore it afterwards
+  const af = document.activeElement;
+  const refocus = af && af.classList && af.classList.contains('pe-note') ? af.dataset.i : null;
   roll.style.height = ROWS * ROWH + 'px';
   const tot = total();
   let html = '';
@@ -67,11 +75,13 @@ function renderRoll() {
     if (nt.start >= tot) return;
     const w = nt.dur / tot * 100;                 // actual length — independent of the grid setting
     html += `<div class="pe-note ${nt.track ? 'kbd' : 'smp'}${i === cur.sel ? ' sel' : ''}"
-        data-i="${i}" title="${midiLabel(nt.note)} · vel ${nt.vel}"
+        data-i="${i}" tabindex="0" role="button" aria-label="${noteLabel(nt)}"
+        title="${midiLabel(nt.note)} · vel ${nt.vel}"
         style="left:${nt.start / tot * 100}%;width:${w}%;top:${rowTop(nt.note) + 1}px;height:${ROWH - 2}px">
         <span class="pe-resize"></span></div>`;
   });
   roll.innerHTML = html;
+  if (refocus != null) roll.querySelector(`.pe-note[data-i="${refocus}"]`)?.focus();
 }
 
 function setVelUI() {
@@ -133,13 +143,43 @@ function onWheel(e) {                                 // scroll over a note → 
   setVelUI(); renderRoll();
 }
 
+// keyboard editing — only when a note is focused (so form fields keep their keys):
+// arrows move / transpose, Shift+arrows resize, Delete removes
 function onKey(e) {
-  if ((e.key === 'Delete' || e.key === 'Backspace') && cur.sel != null) {
+  const el = document.activeElement;
+  if (!el || !el.classList || !el.classList.contains('pe-note')) return;
+  const idx = +el.dataset.i;
+  const nt = cur.notes[idx];
+  if (!nt) return;
+  cur.sel = idx;
+  const s = step();
+  if (e.key === 'Delete' || e.key === 'Backspace') {
     e.preventDefault();
-    cur.notes.splice(cur.sel, 1);
+    cur.notes.splice(idx, 1);
     cur.sel = null;
-    setVelUI(); renderRoll();
+    renderRoll(); setVelUI();
+    const nextEl = $('#pe-roll').querySelector('.pe-note');   // focus a remaining note, if any
+    (nextEl || $('#pe-add')).focus();
+    return;
   }
+  if (e.key === 'ArrowLeft') nt[e.shiftKey ? 'dur' : 'start'] =
+    e.shiftKey ? Math.max(s, nt.dur - s) : Math.max(0, nt.start - s);
+  else if (e.key === 'ArrowRight') nt[e.shiftKey ? 'dur' : 'start'] =
+    e.shiftKey ? Math.min(total() - nt.start, nt.dur + s) : Math.min(total() - s, nt.start + s);
+  else if (e.key === 'ArrowUp') nt.note = clampNote(nt.note + 1, nt.track);
+  else if (e.key === 'ArrowDown') nt.note = clampNote(nt.note - 1, nt.track);
+  else return;
+  e.preventDefault();
+  setVelUI(); renderRoll();      // renderRoll restores focus to this note
+}
+
+// add a note at the start of the active track (keyboard-friendly: focus it to nudge)
+function addNote() {
+  cur.notes.push({ start: 0, dur: snap() || 24, note: clampNote(60, cur.track),
+                   vel: +$('#pe-vel').value, track: cur.track });
+  cur.sel = cur.notes.length - 1;
+  setVelUI(); renderRoll();
+  $('#pe-roll').querySelector(`.pe-note[data-i="${cur.sel}"]`)?.focus();
 }
 
 // ── open / save ────────────────────────────────────────────────────────────────
@@ -283,6 +323,7 @@ async function cancel() {
     $('#pe-vel-val').textContent = v;
     if (cur.sel != null) { cur.notes[cur.sel].vel = v; renderRoll(); }
   };
+  $('#pe-add').onclick = addNote;
   $('#pe-play').onclick = () => { preview(); };
   $('#pe-cancel').onclick = () => { cancel(); };
   $('#pe-save').onclick = () => { save(); };

@@ -482,7 +482,7 @@
 <!-- ── activity ticker ─────────────────────────────────────────────────── -->
 <footer class="ticker reveal" style="--d:.24s">
   <span class="ticker-led" id="ticker-led"></span>
-  <div class="ticker-log" id="ticker-log">— device event monitor —</div>
+  <div class="ticker-log" id="ticker-log" role="log" aria-live="polite" aria-label="Activity log">— device event monitor —</div>
   <span class="ticker-note">TRANSFERS TARGET THE CURRENT BANK (RAM) — SAVE TO A USER BANK ON THE DEVICE TO KEEP</span>
 </footer>
 
@@ -674,6 +674,9 @@
       <select id="pe-sample"></select></label>
     <label>VEL <input type="range" id="pe-vel" min="1" max="127" value="100">
       <span id="pe-vel-val">100</span></label>
+    <button class="hw-btn" id="pe-add" type="button"
+            title="Add a note to the active track (then drag it, or use the arrow keys)">
+      <span class="hw-btn-cap">＋ NOTE</span></button>
     <span class="spacer"></span>
     <button class="hw-btn" id="pe-play" type="button"
             title="Write this edit to the device (RAM) and play it — CANCEL restores the slot">
@@ -683,11 +686,13 @@
   </div>
   <div class="pe-roll-wrap" id="pe-roll-wrap">
     <div class="pe-gutter" id="pe-gutter"></div>
-    <div class="pe-roll" id="pe-roll"></div>
+    <div class="pe-roll" id="pe-roll" role="group"
+         aria-label="Piano roll — click to add a note; Tab to a note, then arrow keys move it, Shift+arrows resize, Delete removes"></div>
   </div>
   <div class="pe-foot">
     <span class="dot smp"></span>SAMPLE&nbsp;(PAD) &nbsp;·&nbsp; <span class="dot kbd"></span>KEYBOARD&nbsp;(PITCH)
     &nbsp;—&nbsp; click to add · drag to move · drag the right edge to resize · scroll a note for velocity · Del removes
+    &nbsp;·&nbsp; keyboard: Tab to a note, arrow keys move / transpose, Shift+arrows resize
   </div>
 </dialog>
 

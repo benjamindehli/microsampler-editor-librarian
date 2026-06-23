@@ -131,6 +131,11 @@ body {
 .playing .ai-play { display: none; }
 .playing .ai-stop { display: inline-block; }
 
+/* keyboard focus ring — only for keyboard focus (mouse clicks don't trigger
+   :focus-visible), so it never shows on click but is clear when tabbing. Field
+   :focus rules (inputs) are more specific and keep their own ring. */
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
 /* inline button icons (CSS-masked SVG) — for the up/down/reset glyphs the fonts
    render inconsistently (⇧ wider than ⇩, ↺ undersized). Same idea as the SVG
    play/stop; recolours via currentColor, so theming + hover just work. */

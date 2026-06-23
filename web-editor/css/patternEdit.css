@@ -58,6 +58,7 @@
 .pe-note.smp { background: rgb(var(--amber-rgb)); }
 .pe-note.kbd { background: #ffe9c9; }
 .pe-note.sel { outline: 2px solid #fff; outline-offset: -1px; z-index: 2; }
+.pe-note:focus-visible { outline: 2px solid #fff; outline-offset: 2px; z-index: 4; }   /* white ring reads on amber/cream notes */
 .pe-resize { position: absolute; right: 0; top: 0; bottom: 0; width: 6px; cursor: ew-resize; }
 
 .pe-foot {
