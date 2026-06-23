@@ -230,10 +230,12 @@ def capture_device(base, wav_path, tmp):
         pg = b.new_page(viewport={'width': CAP[0], 'height': CAP[1]}, device_scale_factor=1)
         _prep_page(pg, base)
 
-        # SAMPLES: select the first pad + arm the keyboard so its key map shows
+        # SAMPLES: select the first pad + arm the keyboard so its key map shows,
+        # in KEYBOARD play mode (every key plays the selected sample pitched)
         pg.locator('.pad[data-slot="0"]').click()
         pg.wait_for_timeout(700)
         pg.check('#qwerty-play')
+        pg.locator('#kb-mode-kbd').click()
         # EFFECT: pick Filter (matches the published screenshot)
         pg.locator('.view-btn[data-view="effect"]').click()
         pg.wait_for_timeout(300)
