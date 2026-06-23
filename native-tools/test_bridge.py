@@ -176,7 +176,10 @@ assert st == 400                                   # wrong-length guard
 # --- play note (mock HTTP) -------------------------------------------------------
 st, _, data = req('POST', '/api/note', body=json.dumps({'slot': 5, 'on': True}))
 assert st == 200 and json.loads(data)['ok'] is True
-assert B.DEVICE._last_note == (5, True, 100)
+assert B.DEVICE._last_note == (5, True, 100, False)
+st, _, data = req('POST', '/api/note',                 # keyboard mode flag carried through
+                  body=json.dumps({'slot': 7, 'on': True, 'keyboard': True}))
+assert st == 200 and B.DEVICE._last_note == (7, True, 100, True)
 st, _, _ = req('POST', '/api/note', body=json.dumps({'slot': 99}))
 assert st == 400
 
