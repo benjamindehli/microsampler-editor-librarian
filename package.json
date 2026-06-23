@@ -18,6 +18,6 @@
     "esbuild": "^0.28.1",
     "eslint": "^10.5.0",
     "eslint-plugin-simple-import-sort": "^13.0.0",
-    "globals": "^17.6.0"
+    "globals": "^17.7.0"
   }
 }
