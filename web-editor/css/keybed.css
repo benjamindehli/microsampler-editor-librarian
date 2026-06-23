@@ -72,9 +72,13 @@
 .pkey:hover.white { background: linear-gradient(#f3f0e8, #d4cfc2); }
 .pkey:hover.black { background: linear-gradient(#37373d, #131316); }
 
-/* a sounding key (typed, clicked, or device-follow) lights amber */
-.pkey.white.sounding { background: linear-gradient(#ffd79a, #ffb454); }
-.pkey.black.sounding { background: linear-gradient(#b9690f, #7c4500); color: #1a1a1e; }
+/* a sounding key (typed, clicked, or device-follow) lights in the accent colour
+   (derived from the theme tokens so it tracks the selected theme) */
+.pkey.white.sounding { background: linear-gradient(rgb(var(--amber-hi-rgb)), rgb(var(--amber-rgb))); }
+.pkey.black.sounding {
+  background: linear-gradient(rgb(var(--amber-rgb)), rgb(var(--amber-dk-rgb)));
+  color: #1a1a1e;
+}
 /* selection outline. A white key keeps its z-index (below the black keys) so its
    full rectangle doesn't cover the overlapping blacks; only a selected black key
    rises above. */
@@ -101,7 +105,7 @@
 .keybed.armed .pkey.mapped.white { background: linear-gradient(#fff6e6, #ecdfc6); }
 .keybed.armed .pkey.mapped.white .pk-q { color: #2a2620; }
 .keybed.armed .pkey.mapped.black .pk-q { color: var(--amber-hi); }
-.keybed.armed .pkey.mapped.white.sounding { background: linear-gradient(#ffd79a, #ffb454); }
+.keybed.armed .pkey.mapped.white.sounding { background: linear-gradient(rgb(var(--amber-hi-rgb)), rgb(var(--amber-rgb))); }
 
 /* ── play-mode emphasis ──────────────────────────────────────────────────── */
 /* SAMPLE mode: each key triggers its own pad, so recolour the keys with no
