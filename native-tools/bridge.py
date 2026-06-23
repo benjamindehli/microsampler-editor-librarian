@@ -47,7 +47,7 @@ from msusb import MicroSampler, from_usb_midi
 import download as DL
 import upload as UL
 
-VERSION = '1.11.0'   # current app version; kept in sync by tools/stamp-docs-version.mjs
+VERSION = '1.12.0'   # current app version; kept in sync by tools/stamp-docs-version.mjs
 WEB_ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                          '..', 'web-editor'))
 # where bank backups live; override with MSMPL_BACKUP_DIR (e.g. an external drive)
