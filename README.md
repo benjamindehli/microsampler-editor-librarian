@@ -88,6 +88,11 @@ Open the folder for your platform — **`macOS/`**, **`Linux/`**, or **`Windows/
 (Each folder also has a **`microSAMPLER Library`** launcher — see
 [Library mode](#library-mode-no-hardware) below.)
 
+- **macOS:** the launcher is unsigned, so the first run is blocked ("unidentified
+  developer"). Approve it once: right-click (Control-click) the launcher →
+  **Open** → **Open**. On newer macOS without an *Open* option, double-click once,
+  then **System Settings → Privacy & Security → Open Anyway**. (Or clear the
+  quarantine in a terminal: `xattr -dr com.apple.quarantine "<unzipped folder>"`.)
 - **Linux:** mark the `.sh` executable / "Allow launching" first, or run
   `./'Linux/microSAMPLER Editor Librarian.sh'` from a terminal.
 - **Windows:** **experimental/untested** — the device's USB driver must first be

@@ -270,6 +270,23 @@ cd microsampler-editor-librarian</code></pre>
           USB connection from macOS.</li>
         <li>The editor opens in your browser automatically.</li>
       </ol>
+      <div class="note warn">
+        <b class="label">FIRST RUN: "UNIDENTIFIED DEVELOPER"</b>
+        <p>The launcher is unsigned (it's a free, open-source project), so the first time you open
+          it macOS blocks it with <em>"cannot be opened because it is from an unidentified
+          developer"</em>. Approve it once:</p>
+        <ul>
+          <li><strong>Right-click</strong> (or Control-click) the launcher → <strong>Open</strong>,
+            then <strong>Open</strong> again in the dialog.</li>
+          <li>On newer macOS, if there's no <em>Open</em> option: double-click it once (it gets
+            blocked), then go to <strong>System Settings → Privacy &amp; Security</strong>, find the
+            message about the blocked launcher, and click <strong>Open Anyway</strong>.</li>
+        </ul>
+        <p>Comfortable with Terminal? Clear the download quarantine on the whole folder instead, then
+          double-click as normal:</p>
+        <pre><code>xattr -dr com.apple.quarantine "microsampler-editor-librarian-v1.10.0"</code></pre>
+        <p>You only need to do this once.</p>
+      </div>
 
       <h3>Linux</h3>
       <p>pyusb and libusb are bundled (x86-64 and ARM64) — just use the launcher:</p>
@@ -536,8 +553,10 @@ cd microsampler-editor-librarian</code></pre>
             <td>The local bridge isn't running — start it with the launcher (or
                 <code>sudo python3 native-tools/bridge.py</code>); the page reconnects by itself.</td></tr>
         <tr><td>macOS won't open the launcher ("unidentified developer")</td>
-            <td>Right-click (or Control-click) the launcher → <strong>Open</strong> the first time. It's
-                unsigned; this approves it.</td></tr>
+            <td>It's unsigned — approve it once: right-click (Control-click) → <strong>Open</strong> →
+                <strong>Open</strong>. On newer macOS without that option, double-click once, then
+                <strong>System Settings → Privacy &amp; Security → Open Anyway</strong>. See
+                <a href="#install">Installation</a> for the Terminal alternative.</td></tr>
         <tr><td>Device not found / permission error</td>
             <td>Run with administrator rights (the launcher does this), check the cable, and close any other
                 MIDI app holding the device. On Windows, switch the driver to WinUSB with
