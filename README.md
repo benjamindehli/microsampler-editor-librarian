@@ -234,6 +234,18 @@ the **Download vX.Y.Z (ZIP)** button on the site always points at the matching
 release asset. Run `npm run stamp-version` manually if you bump the version some
 other way.
 
+### Cutting a release
+
+1. `npm version <new>` (stamps the docs/bridge version, commits, tags `vX.Y.Z`).
+2. Push the commit and the tag.
+3. Publish a GitHub release for that tag (write the notes).
+
+Publishing triggers the **Release** workflow
+(`.github/workflows/release.yml`), which verifies the tag matches `package.json`,
+runs `npm run pack`, and attaches `microsampler-editor-librarian-vX.Y.Z.zip` to the
+release. (You can also run `npm run pack` locally and upload the ZIP from
+`release/` by hand.)
+
 ## Disclaimer
 
 This is an **independent, unofficial project**. It is not affiliated with, endorsed, sponsored, or supported by Korg Inc.
