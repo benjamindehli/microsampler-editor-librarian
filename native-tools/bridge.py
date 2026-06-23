@@ -475,12 +475,17 @@ class Device:
                 self.ms.send_sysex(P.parameter_change(ch, 80, 16 + i, int(v)))
         return {'type': int(fx_type)}
 
-    def play_note(self, slot, on, velocity=100):
-        """Trigger a sample pad on the DEVICE via MIDI note. Sample-mode note
-        map (same numbering the pattern engine uses for sample-mode tracks):
-        note = 48 (C3) + slot, on the device's global channel, cable 1."""
+    def play_note(self, slot, on, velocity=100, keyboard=False):
+        """Trigger a note on the DEVICE via MIDI, cable 1. Two modes:
+        - SAMPLE mode (keyboard=False): note 48 (C3) + slot on the global
+          channel triggers that pad's sample (the numbering the pattern engine
+          uses for sample-mode tracks).
+        - KEYBOARD mode (keyboard=True): the same note one channel above the
+          global channel plays the device's currently SELECTED sample pitched
+          (the microSAMPLER's keyboard-mode track sits on global channel + 1)."""
         note = 48 + max(0, min(35, int(slot)))
-        status = (0x90 if on else 0x80) | (self.channel & 0x0f)
+        ch = (self.channel + (1 if keyboard else 0)) & 0x0f
+        status = (0x90 if on else 0x80) | ch
         with self.lock:
             self.ms.send_short(status, note, max(1, min(127, int(velocity))),
                                cable=self.cable)
@@ -784,8 +789,8 @@ class MockDevice(Device):
         return {'connected': True, 'inquiry': self.inquiry, 'mock': True,
                 'version': VERSION, 'error': self.open_error}
 
-    def play_note(self, slot, on, velocity=100):
-        self._last_note = (int(slot), bool(on), int(velocity))
+    def play_note(self, slot, on, velocity=100, keyboard=False):
+        self._last_note = (int(slot), bool(on), int(velocity), bool(keyboard))
 
     def play_pattern(self, q, bpm=120):
         self._transport = ('play', int(q), float(bpm))
@@ -1448,7 +1453,8 @@ class Handler(BaseHTTPRequestHandler):
                 if not 0 <= slot <= 35:
                     return self._err('slot 0..35', 400)
                 DEVICE.play_note(slot, bool(body.get('on', True)),
-                                 int(body.get('velocity', 100)))
+                                 int(body.get('velocity', 100)),
+                                 bool(body.get('keyboard', False)))
                 return self._json({'ok': True})
             if path == '/api/master-volume':
                 body = self._json_body()
