@@ -69,24 +69,34 @@ function renderRoll() {
   const refocus = af && af.classList && af.classList.contains('pe-note') ? af.dataset.i : null;
   roll.style.height = ROWS * ROWH + 'px';
   const tot = total();
+  // bar lines + black-key row shading: numeric-only markup, safe as an HTML string
   let html = '';
-  for (let b = 0; b <= cur.bars; b++)                 // bar lines
+  for (let b = 0; b <= cur.bars; b++)
     html += `<div class="pe-bar" style="left:${b / cur.bars * 100}%"></div>`;
-  for (let n = LO; n <= HI; n++)                       // black-key row shading
+  for (let n = LO; n <= HI; n++)
     if (BLACK.has(n % 12))
       html += `<div class="pe-rowbg" style="top:${rowTop(n)}px;height:${ROWH}px"></div>`;
+  roll.innerHTML = html;
+  // notes carry text (aria-label/title) — build them with DOM APIs so the text
+  // is set as data, never parsed as HTML (avoids any text-to-HTML injection path)
   cur.notes.forEach((nt, i) => {
     if (nt.start >= tot) return;
     const w = nt.dur / tot * 100;                 // actual length — independent of the grid setting
     const a = (0.4 + nt.vel / 127 * 0.6).toFixed(3);   // velocity → fill opacity
     const bg = nt.track ? `rgba(255,233,201,${a})` : `rgba(var(--amber-rgb),${a})`;
-    html += `<div class="pe-note ${nt.track ? 'kbd' : 'smp'}${cur.sel.has(i) ? ' sel' : ''}"
-        data-i="${i}" tabindex="0" role="button" aria-label="${noteLabel(nt)}"
-        title="${midiLabel(nt.note)} · vel ${nt.vel}"
-        style="left:${nt.start / tot * 100}%;width:${w}%;top:${rowTop(nt.note) + 1}px;height:${ROWH - 2}px;background:${bg}">
-        <span class="pe-resize"></span></div>`;
+    const d = document.createElement('div');
+    d.className = `pe-note ${nt.track ? 'kbd' : 'smp'}${cur.sel.has(i) ? ' sel' : ''}`;
+    d.dataset.i = i;
+    d.tabIndex = 0;
+    d.setAttribute('role', 'button');
+    d.setAttribute('aria-label', noteLabel(nt));
+    d.title = `${midiLabel(nt.note)} · vel ${nt.vel}`;
+    d.style.cssText = `left:${nt.start / tot * 100}%;width:${w}%;top:${rowTop(nt.note) + 1}px;height:${ROWH - 2}px;background:${bg}`;
+    const grip = document.createElement('span');
+    grip.className = 'pe-resize';
+    d.append(grip);
+    roll.append(d);
   });
-  roll.innerHTML = html;
   if (refocus != null) roll.querySelector(`.pe-note[data-i="${refocus}"]`)?.focus();
 }
 
