@@ -323,6 +323,10 @@ class Device:
     def pattern_write(self, q, blob):
         """Write a pattern blob (standalone SequenceWrite flow), update cache."""
         from bank import send_sequence
+        # the device errs 0x29 on a write while its sequencer is playing (same as
+        # the dumps) — stop it (no-op if idle) and let it settle first
+        self.stop_pattern()
+        time.sleep(0.06)
         with self.lock:
             self._inquire()
             send_sequence(self.ms, self.channel, q, blob)
