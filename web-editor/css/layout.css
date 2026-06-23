@@ -7,6 +7,10 @@
   background: linear-gradient(180deg, #1c1c21, var(--steel-1));
   border-bottom: 1px solid #000;
   box-shadow: 0 1px 0 var(--line-hi) inset, 0 6px 18px rgba(0,0,0,.5);
+  /* sit above the deck so the theme dropdown (and the rail's shadow) overlay the
+     content below — the .reveal transform makes the rail a stacking context, so
+     its absolutely-positioned menu can't otherwise escape above main */
+  position: relative; z-index: 50;
 }
 .org-logo {
   height: 38px; width: auto; display: block;
@@ -165,31 +169,55 @@
 }
 
 /* accent-theme picker (swatch + named select) */
+/* theme picker — a custom dropdown (native <select> options can't show colour
+   swatches: macOS Chrome renders the popup with the OS menu, ignoring option
+   styling), so the list previews each accent with a real colour swatch. */
 .theme-pick {
-  display: inline-flex; align-items: center; gap: .4rem;
+  position: relative;
   background: var(--steel-3); border: 1px solid var(--line-hi);
-  border-radius: 13px; padding: .15rem .5rem .15rem .45rem;
+  border-radius: 13px;
   transition: box-shadow .15s;
 }
 .theme-pick:hover { box-shadow: 0 0 0 1px var(--amber-dk); }
 .theme-dot {
   width: 11px; height: 11px; border-radius: 50%; flex: none;
   background: var(--amber);
-  box-shadow: 0 0 7px var(--amber), inset 0 0 2px rgba(255,255,255,.5);
+  box-shadow: 0 0 7px var(--amber), inset 0 0 2px rgba(255, 255, 255, .5);
 }
-.theme-select {
-  appearance: none; border: 0; background: none; cursor: pointer;
-  font: 600 .6rem/1 "Chakra Petch", sans-serif; letter-spacing: .14em;
-  color: var(--ink); padding-right: .9rem;
-  background-image:
-    linear-gradient(45deg, transparent 50%, var(--ink-dim) 50%),
-    linear-gradient(135deg, var(--ink-dim) 50%, transparent 50%);
-  background-position: calc(100% - 5px) 55%, calc(100% - 1px) 55%;
-  background-size: 4px 4px; background-repeat: no-repeat;
+.theme-trigger {
+  display: inline-flex; align-items: center; gap: .4rem; cursor: pointer;
+  background: none; border: 0; border-radius: 13px;
+  padding: .2rem .5rem .2rem .55rem;
+  font: 600 .6rem/1 "Chakra Petch", sans-serif; letter-spacing: .14em; color: var(--ink);
 }
-.theme-select:hover { color: var(--amber-hi); }
-.theme-select:focus { outline: none; }
-.theme-select option { background: var(--steel-1); color: var(--ink); }
+.theme-trigger:hover { color: var(--amber-hi); }
+.theme-name { min-width: 4.6em; text-align: left; }   /* steady width so the caret doesn't jump */
+.theme-caret {
+  width: 0; height: 0; flex: none;
+  border-left: 3px solid transparent; border-right: 3px solid transparent;
+  border-top: 4px solid var(--ink-dim);
+  transition: transform .15s;
+}
+.theme-trigger[aria-expanded="true"] .theme-caret { transform: rotate(180deg); }
+
+.theme-menu {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 80;
+  margin: 0; padding: .25rem; list-style: none;
+  min-width: 100%;
+  background: var(--steel-1); border: 1px solid var(--line-hi); border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
+}
+.theme-opt {
+  display: flex; align-items: center; gap: .5rem; cursor: pointer;
+  padding: .35rem .55rem; border-radius: 5px; white-space: nowrap;
+  font: 600 .6rem/1 "Chakra Petch", sans-serif; letter-spacing: .14em; color: var(--ink);
+}
+.theme-opt:hover, .theme-opt:focus { background: var(--steel-3); outline: none; }
+.theme-opt[aria-selected="true"] { color: var(--amber-hi); }
+.theme-sw {
+  width: 12px; height: 12px; border-radius: 50%; flex: none;
+  box-shadow: inset 0 0 2px rgba(255, 255, 255, .5);   /* the accent fill is set inline per theme */
+}
 
 /* ── sample-preload progress (prominent toast above the ticker) ─────────── */
 .preload {

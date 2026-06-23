@@ -20,24 +20,64 @@ const THEMES = [
   { name: 'MAGENTA', rgb: '255, 79, 208',  hi: '255, 167, 236', dk: '138, 30, 110' },
   { name: 'RED',     rgb: '255, 74, 61',   hi: '255, 150, 140', dk: '138, 28, 22' },
 ];
-const themeSelect = $('#theme-select');
-themeSelect.innerHTML = THEMES.map((t, i) => `<option value="${i}">${t.name}</option>`).join('');
+// custom dropdown: each row previews its accent with a real colour swatch (a
+// native <select> can't — macOS Chrome draws the popup with the OS menu and
+// ignores option colours)
+const themeTrigger = $('#theme-trigger');
+const themeMenu = $('#theme-menu');
+const themeName = $('#theme-name');
+themeMenu.innerHTML = THEMES.map((t, i) =>
+  `<li class="theme-opt" role="option" data-i="${i}" tabindex="-1" aria-selected="false">`
+  + `<span class="theme-sw" style="background:rgb(${t.rgb});box-shadow:0 0 6px rgb(${t.rgb}),inset 0 0 2px rgba(255,255,255,.5)"></span>`
+  + `${t.name}</li>`).join('');
+const themeOpts = [...themeMenu.children];
 
 function applyTheme(i) {
   i = ((i % THEMES.length) + THEMES.length) % THEMES.length;
   const t = THEMES[i];
+  themeIdx = i;
   const r = document.documentElement.style;
   r.setProperty('--amber-rgb', t.rgb);
   r.setProperty('--amber-hi-rgb', t.hi);
   r.setProperty('--amber-dk-rgb', t.dk);
   try { localStorage.setItem('msmpl.theme', String(i)); } catch { /* ignore */ }
-  themeSelect.value = String(i);
+  themeName.textContent = t.name;
+  themeOpts.forEach((li, j) => li.setAttribute('aria-selected', String(j === i)));
   dispatchEvent(new Event('msmpl-theme'));   // recolour the canvas waveform
 }
+
+function openThemeMenu(open) {
+  themeMenu.hidden = !open;
+  themeTrigger.setAttribute('aria-expanded', String(open));
+  if (open) (themeOpts[themeIdx] || themeOpts[0]).focus();
+}
+function closeThemeMenu(focusTrigger) {
+  if (themeMenu.hidden) return;
+  openThemeMenu(false);
+  if (focusTrigger) themeTrigger.focus();
+}
+themeTrigger.addEventListener('click', () => openThemeMenu(themeMenu.hidden));
+themeTrigger.addEventListener('keydown', e => {
+  if (['ArrowDown', 'Enter', ' '].includes(e.key)) { e.preventDefault(); openThemeMenu(true); }
+});
+themeMenu.addEventListener('click', e => {
+  const li = e.target.closest('.theme-opt');
+  if (li) { applyTheme(+li.dataset.i); closeThemeMenu(true); }
+});
+themeMenu.addEventListener('keydown', e => {
+  const i = themeOpts.indexOf(document.activeElement);
+  if (e.key === 'ArrowDown') { e.preventDefault(); themeOpts[Math.min(themeOpts.length - 1, i + 1)].focus(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); themeOpts[Math.max(0, i - 1)].focus(); }
+  else if (e.key === 'Home') { e.preventDefault(); themeOpts[0].focus(); }
+  else if (e.key === 'End') { e.preventDefault(); themeOpts[themeOpts.length - 1].focus(); }
+  else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (i >= 0) { applyTheme(i); closeThemeMenu(true); } }
+  else if (e.key === 'Escape') { e.preventDefault(); closeThemeMenu(true); }
+});
+document.addEventListener('click', e => { if (!$('#theme-pick').contains(e.target)) closeThemeMenu(false); });
+
 let themeIdx = (() => { try { return +localStorage.getItem('msmpl.theme') || 0; }
                        catch { return 0; } })();
 applyTheme(themeIdx);
-themeSelect.onchange = () => applyTheme(+themeSelect.value);
 
 // ── help overlay ─────────────────────────────────────────────────────────
 $('#help-btn').onclick = () => $('#help-dialog').showModal();
