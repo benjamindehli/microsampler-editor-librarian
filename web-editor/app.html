@@ -450,6 +450,11 @@
   <section class="keybed reveal" id="keybed" style="--d:.24s">
     <div class="keybed-head">
       <span class="keybed-title">KEYBOARD</span>
+      <div class="keybed-mode" role="group" aria-label="Play mode"
+           title="SAMPLE: each key triggers a different pad's sample. KEYBOARD: every key plays the currently selected sample, pitched (the device's keyboard mode).">
+        <button class="kb-mode on" id="kb-mode-sample" aria-pressed="true">SAMPLE</button>
+        <button class="kb-mode" id="kb-mode-kbd" aria-pressed="false">KEYBOARD</button>
+      </div>
       <div class="keybed-oct" role="group" aria-label="Octave">
         <button class="kb-oct" id="kb-oct-down" title="Octave down (Z)" aria-label="Octave down">◀</button>
         <span class="kb-oct-val" id="kb-oct-val">C4</span>
@@ -531,7 +536,10 @@
       <p><b>Panic</b> (<b>⏻</b>, top-right) — all-sound-off + stop, if a note
         ever sticks.</p>
       <p><b>Keyboard</b> (below the editor) — an on-screen piano mirrors the 36 pads;
-        click any key to play it through the device (real envelope/FX). Tick
+        click any key to play it through the device (real envelope/FX). The
+        <b>SAMPLE / KEYBOARD</b> toggle picks how the keys play: <b>SAMPLE</b> triggers
+        a different pad per key (keys with no sample are dimmed), while <b>KEYBOARD</b>
+        plays the currently selected sample across the keyboard, pitched. Tick
         <b>⌨ TYPE TO PLAY</b> to play from your computer keyboard too: home row
         <kbd>A S D F G H J K</kbd> = white keys, top row <kbd>W E · T Y U</kbd> = black
         keys (the piano shows which key is which), and <kbd>Z</kbd> / <kbd>X</kbd> — or

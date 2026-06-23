@@ -21,16 +21,25 @@ const BLACK_AFTER = { 0: 1, 1: 3, 3: 6, 4: 8, 5: 10 };  // white-index → black
 
 let enabled = false;
 let octave = 1;                      // index into QWERTY_OCTAVES (default C4, the middle)
+let mode = 'sample';                 // 'sample' = one sample per key; 'kbd' = selected sample, pitched
 const held = new Map();              // e.code → slot currently sounding (keyboard)
 let clickSlot = null;                // slot currently held by the mouse on the piano
 
 // ── device note + visual paint ───────────────────────────────────────────────
+// SAMPLE mode plays note 48+slot on the global channel (triggers that pad);
+// KEYBOARD mode sends the same note one channel up, so the device plays its
+// currently selected sample pitched (its keyboard-mode track) — the bridge maps
+// the `keyboard` flag onto the channel.
 function note(slot, on) {
-  api('/api/note', jsonBody({ slot, on, velocity: 100 }))
+  api('/api/note', jsonBody({ slot, on, velocity: 100, keyboard: mode === 'kbd' }))
     .catch(err => { if (on) tick(`⚠ note failed: ${err.message}`); });
 }
 function paint(slot, sounding) {
-  for (const sel of [`#pad-grid .pad[data-slot="${slot}"]`, `#piano .pkey[data-slot="${slot}"]`]) {
+  // always light the piano key; in KEYBOARD mode the pad isn't what's triggered
+  // (the selected sample plays pitched), so don't light the pad grid there
+  const sels = [`#piano .pkey[data-slot="${slot}"]`];
+  if (mode !== 'kbd') sels.push(`#pad-grid .pad[data-slot="${slot}"]`);
+  for (const sel of sels) {
     const el = document.querySelector(sel);
     if (el) el.classList.toggle('sounding', sounding);
   }
@@ -82,6 +91,10 @@ export function syncKeybed() {
   if (!piano || !piano.children.length) return;
   $('#kb-oct-val').textContent = QWERTY_OCTAVES[octave];
   $('#keybed').classList.toggle('armed', enabled);
+  // SAMPLE mode dims keys with no sample; KEYBOARD mode plays the selected
+  // sample across all keys (so the per-key sample state is irrelevant)
+  $('#keybed').classList.toggle('mode-sample', mode === 'sample');
+  $('#keybed').classList.toggle('mode-kbd', mode === 'kbd');
 
   const labelBySlot = {};
   for (const code in QWERTY_KEYMAP) {
@@ -107,6 +120,22 @@ function setOctave(next) {
   try { localStorage.setItem('msmpl.qwerty.oct', String(octave)); } catch { /* ignore */ }
   tick(`octave: ${QWERTY_OCTAVES[octave]}`);
   syncKeybed();
+}
+
+function setMode(next) {
+  if (next === mode) return;
+  releaseKeys(); clickRelease();     // release held notes on the OLD channel first
+  mode = next;
+  for (const [id, m] of [['#kb-mode-sample', 'sample'], ['#kb-mode-kbd', 'kbd']]) {
+    const b = $(id);
+    b.classList.toggle('on', mode === m);
+    b.setAttribute('aria-pressed', String(mode === m));
+  }
+  try { localStorage.setItem('msmpl.qwerty.mode', mode); } catch { /* ignore */ }
+  syncKeybed();
+  tick(mode === 'kbd'
+    ? 'keyboard: KEYBOARD mode (selected sample, pitched)'
+    : 'keyboard: SAMPLE mode (one sample per key)');
 }
 
 function setEnabled(on) {
@@ -184,10 +213,18 @@ function clickRelease() {
 // ── controls (octave buttons + arm toggle), persisted ─────────────────────────
 $('#kb-oct-down').onclick = () => setOctave(octave - 1);
 $('#kb-oct-up').onclick = () => setOctave(octave + 1);
+$('#kb-mode-sample').onclick = () => setMode('sample');
+$('#kb-mode-kbd').onclick = () => setMode('kbd');
 {
   const raw = (() => { try { return localStorage.getItem('msmpl.qwerty.oct'); } catch { return null; } })();
   const n = raw == null ? 1 : +raw;
   octave = Number.isInteger(n) && n >= 0 && n <= 2 ? n : 1;
+  try { if (localStorage.getItem('msmpl.qwerty.mode') === 'kbd') mode = 'kbd'; } catch { /* ignore */ }
+  for (const [id, m] of [['#kb-mode-sample', 'sample'], ['#kb-mode-kbd', 'kbd']]) {
+    const b = $(id);
+    b.classList.toggle('on', mode === m);
+    b.setAttribute('aria-pressed', String(mode === m));
+  }
   const t = $('#qwerty-play');
   try { t.checked = localStorage.getItem('msmpl.qwerty') === '1'; } catch { /* ignore */ }
   enabled = t.checked;

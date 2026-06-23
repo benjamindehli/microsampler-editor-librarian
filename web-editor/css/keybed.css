@@ -17,6 +17,17 @@
 }
 .keybed-title { color: var(--ink); font-weight: 600; }
 
+/* SAMPLE / KEYBOARD play-mode toggle (segmented, like the pattern editor's) */
+.keybed-mode { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.kb-mode {
+  background: var(--steel-2); border: 0; color: var(--ink-dim); cursor: pointer;
+  font: inherit; font-size: .55rem; letter-spacing: .12em; padding: .3rem .55rem;
+  transition: background .12s, color .12s;
+}
+.kb-mode + .kb-mode { border-left: 1px solid var(--line); }
+.kb-mode:hover { color: var(--amber); }
+.kb-mode.on { background: rgba(var(--amber-rgb), .22); color: var(--amber); }
+
 .keybed-oct { display: inline-flex; align-items: center; gap: .5rem; }
 .kb-oct {
   width: 22px; height: 22px; border-radius: 4px; cursor: pointer;
@@ -91,3 +102,22 @@
 .keybed.armed .pkey.mapped.white .pk-q { color: #2a2620; }
 .keybed.armed .pkey.mapped.black .pk-q { color: var(--amber-hi); }
 .keybed.armed .pkey.mapped.white.sounding { background: linear-gradient(#ffd79a, #ffb454); }
+
+/* ── play-mode emphasis ──────────────────────────────────────────────────── */
+/* SAMPLE mode: each key triggers its own pad, so recolour the keys with no
+   sample to a dark, recessed tone (opaque — opacity made the black keys
+   translucent, letting the white-key seams bleed through) so the loaded ones
+   stand out. A sounding key still lights amber via the rule above. */
+.keybed.mode-sample .pkey.white:not(.used):not(.sounding) {
+  background: linear-gradient(#2e2e35, #202026);
+  border-color: #131317; color: #57534c;
+  box-shadow: inset 0 -3px 5px rgba(0, 0, 0, .3);
+}
+.keybed.mode-sample .pkey.white:not(.used):not(.sounding) .pk-q { color: #57534c; }
+.keybed.mode-sample .pkey.black:not(.used):not(.sounding) {
+  background: linear-gradient(#161619, #0a0a0c);
+  box-shadow: 0 3px 4px rgba(0, 0, 0, .5);
+}
+/* KEYBOARD mode: every key plays the one selected sample pitched, so the
+   per-key sample dots are meaningless here — hide them. */
+.keybed.mode-kbd .pkey.used::before { display: none; }
