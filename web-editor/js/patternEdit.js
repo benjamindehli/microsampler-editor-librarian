@@ -78,10 +78,12 @@ function renderRoll() {
   cur.notes.forEach((nt, i) => {
     if (nt.start >= tot) return;
     const w = nt.dur / tot * 100;                 // actual length — independent of the grid setting
+    const a = (0.4 + nt.vel / 127 * 0.6).toFixed(3);   // velocity → fill opacity
+    const bg = nt.track ? `rgba(255,233,201,${a})` : `rgba(var(--amber-rgb),${a})`;
     html += `<div class="pe-note ${nt.track ? 'kbd' : 'smp'}${cur.sel.has(i) ? ' sel' : ''}"
         data-i="${i}" tabindex="0" role="button" aria-label="${noteLabel(nt)}"
         title="${midiLabel(nt.note)} · vel ${nt.vel}"
-        style="left:${nt.start / tot * 100}%;width:${w}%;top:${rowTop(nt.note) + 1}px;height:${ROWH - 2}px">
+        style="left:${nt.start / tot * 100}%;width:${w}%;top:${rowTop(nt.note) + 1}px;height:${ROWH - 2}px;background:${bg}">
         <span class="pe-resize"></span></div>`;
   });
   roll.innerHTML = html;
@@ -151,15 +153,31 @@ function paste() {
 }
 
 // ── interactions ──────────────────────────────────────────────────────────────
+function eraseNote(i) {
+  if (cur.notes[i] == null) return;
+  cur.notes.splice(i, 1);
+  cur.sel = new Set(); cur.primary = null;
+  renderRoll();
+}
+
 function onPointerDown(e) {
   const roll = $('#pe-roll');
   const noteEl = e.target.closest('.pe-note');
-  if (noteEl) {
+
+  if (cur.tool === 'eraser') {                        // click/drag over notes to remove
+    drag = { mode: 'erase' };
+    roll.setPointerCapture(e.pointerId);
+    if (noteEl) { drag.erased = true; eraseNote(+noteEl.dataset.i); }
+    e.preventDefault();
+    return;
+  }
+
+  if (noteEl) {                                       // select + move/resize (pencil & select)
     const i = +noteEl.dataset.i;
-    if (e.shiftKey || e.metaKey || e.ctrlKey) {        // toggle into the multi-selection
+    if (e.shiftKey || e.metaKey || e.ctrlKey) {
       if (cur.sel.has(i)) cur.sel.delete(i); else cur.sel.add(i);
     } else if (!cur.sel.has(i)) {
-      cur.sel = new Set([i]);                          // plain click on an unselected note → just it
+      cur.sel = new Set([i]);
     }
     cur.primary = i;
     if (e.target.classList.contains('pe-resize')) {
@@ -170,25 +188,51 @@ function onPointerDown(e) {
                orig: new Map(selArr().map(j => [j, { start: cur.notes[j].start, note: cur.notes[j].note }])) };
     }
     roll.setPointerCapture(e.pointerId);
-  } else {                                            // empty grid → add a note
-    const r = roll.getBoundingClientRect();
-    cur.notes.push({ start: tickAtX(roll, e.clientX), dur: snap() || 24,
-                     note: clampNote(noteAtY(e.clientY - r.top), cur.track),
-                     vel: +$('#pe-vel').value, track: cur.track });
-    const i = cur.notes.length - 1;
-    cur.sel = new Set([i]); cur.primary = i;
-    drag = { mode: 'move', idx: i, grabTick: cur.notes[i].start, origNote: cur.notes[i].note,
-             orig: new Map([[i, { start: cur.notes[i].start, note: cur.notes[i].note }]]) };
-    roll.setPointerCapture(e.pointerId);
+    setVelUI(); renderRoll();
+    roll.querySelector(`.pe-note[data-i="${cur.primary}"]`)?.focus();   // so arrow keys work after a click
+    return;
   }
-  setVelUI();
-  renderRoll();
-  roll.querySelector(`.pe-note[data-i="${cur.primary}"]`)?.focus();   // so arrow keys work after a click
+
+  // empty grid
+  if (cur.tool === 'select') {                        // rubber-band marquee
+    const r = roll.getBoundingClientRect();
+    const m = document.createElement('div'); m.className = 'pe-marquee'; roll.append(m);
+    drag = { mode: 'marquee', x0: e.clientX - r.left, y0: e.clientY - r.top, add: e.shiftKey, el: m };
+    roll.setPointerCapture(e.pointerId); e.preventDefault();
+    return;
+  }
+  // pencil → add a note and drag it
+  const r = roll.getBoundingClientRect();
+  cur.notes.push({ start: tickAtX(roll, e.clientX), dur: snap() || 24,
+                   note: clampNote(noteAtY(e.clientY - r.top), cur.track),
+                   vel: +$('#pe-vel').value, track: cur.track });
+  const i = cur.notes.length - 1;
+  cur.sel = new Set([i]); cur.primary = i;
+  drag = { mode: 'move', idx: i, grabTick: cur.notes[i].start, origNote: cur.notes[i].note,
+           orig: new Map([[i, { start: cur.notes[i].start, note: cur.notes[i].note }]]) };
+  roll.setPointerCapture(e.pointerId);
+  setVelUI(); renderRoll();
+  roll.querySelector(`.pe-note[data-i="${i}"]`)?.focus();
 }
 
 function onPointerMove(e) {
   if (!drag) return;
   const roll = $('#pe-roll');
+  if (drag.mode === 'erase') {
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const ne = el && el.closest && el.closest('.pe-note');
+    if (ne) { drag.erased = true; eraseNote(+ne.dataset.i); }
+    return;
+  }
+  if (drag.mode === 'marquee') {
+    const r = roll.getBoundingClientRect();
+    const x = e.clientX - r.left, y = e.clientY - r.top;
+    Object.assign(drag.el.style, {
+      left: Math.min(drag.x0, x) + 'px', top: Math.min(drag.y0, y) + 'px',
+      width: Math.abs(x - drag.x0) + 'px', height: Math.abs(y - drag.y0) + 'px',
+    });
+    return;
+  }
   const t = tickAtX(roll, e.clientX);
   const s = step();
   if (drag.mode === 'resize') {
@@ -198,7 +242,6 @@ function onPointerMove(e) {
     const r = roll.getBoundingClientRect();
     let dStart = t - drag.grabTick;
     let dNote = clampNote(noteAtY(e.clientY - r.top), cur.notes[drag.idx].track) - drag.origNote;
-    // clamp the deltas so every moved note stays in range (preserves the shape)
     const tot = total();
     let loS = -1e9, hiS = 1e9, loN = -1e9, hiN = 1e9;
     for (const [j, o] of drag.orig) {
@@ -216,7 +259,33 @@ function onPointerMove(e) {
   renderRoll();
 }
 
-function onPointerUp() { if (drag) { drag = null; pushHistory(); } }
+// select all notes intersecting the dragged box (content-px → tick/row ranges)
+function finishMarquee() {
+  const roll = $('#pe-roll'), W = roll.clientWidth, tot = total(), st = drag.el.style;
+  const L = parseFloat(st.left) || 0, T = parseFloat(st.top) || 0;
+  const w = parseFloat(st.width) || 0, h = parseFloat(st.height) || 0;
+  drag.el.remove();
+  if (w < 3 && h < 3) {                               // a click, not a drag → clear (unless shift)
+    if (!drag.add) { cur.sel = new Set(); cur.primary = null; setVelUI(); renderRoll(); }
+    return;
+  }
+  const tickLo = L / W * tot, tickHi = (L + w) / W * tot;
+  const noteHi = HI - Math.floor(T / ROWH), noteLo = HI - Math.floor((T + h) / ROWH);
+  const sel = drag.add ? new Set(cur.sel) : new Set();
+  cur.notes.forEach((n, i) => {
+    if (n.start < tickHi && n.start + n.dur > tickLo && n.note >= noteLo && n.note <= noteHi) sel.add(i);
+  });
+  cur.sel = sel; cur.primary = sel.size ? Math.max(...sel) : null;
+  setVelUI(); renderRoll();
+}
+
+function onPointerUp() {
+  if (!drag) return;
+  if (drag.mode === 'marquee') finishMarquee();
+  else if (drag.mode === 'erase') { if (drag.erased) pushHistory(); }
+  else pushHistory();                                 // move / resize / pencil-add
+  drag = null;
+}
 
 function onWheel(e) {                                 // scroll over a note → velocity
   const noteEl = e.target.closest('.pe-note');
@@ -242,11 +311,17 @@ function onFocusIn(e) {
 const inField = el => el && (
   (el.tagName === 'INPUT' && ['text', 'number', 'search', 'range'].includes(el.type))
   || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA');
+// a real text-entry field — where Space must type a space (so it can't be a shortcut)
+const isText = el => el && (el.tagName === 'TEXTAREA'
+  || (el.tagName === 'INPUT' && ['text', 'search', 'email', 'url', 'tel', 'password'].includes(el.type)));
 
 function onKey(e) {
   if (!$('#pattern-editor').open) return;   // editor closed → ignore (document-level listener)
   const ae = document.activeElement;
-  if (inField(ae)) return;              // typing in name/bars/sample/vel → keep keys native
+  // Spacebar = play/stop anywhere in the editor (even on a button/select/slider),
+  // except an actual text field so the NAME can still take a space
+  if (e.key === ' ' && !isText(ae)) { e.preventDefault(); preview(); return; }
+  if (inField(ae)) return;              // other keys: keep native in inputs/selects/range
   // edit shortcuts (work anywhere in the editor that isn't a text field)
   if (e.ctrlKey || e.metaKey) {
     const k = e.key.toLowerCase();
@@ -265,7 +340,7 @@ function onKey(e) {
     cur.notes = cur.notes.filter((_, i) => !kill.has(i));
     cur.sel = new Set(); cur.primary = null;
     renderRoll(); setVelUI(); pushHistory();
-    ($('#pe-roll').querySelector('.pe-note') || $('#pe-add')).focus();
+    ($('#pe-roll').querySelector('.pe-note') || $('#pe-roll')).focus();
     return;
   }
   // arrows nudge the FOCUSED note (single)
@@ -285,14 +360,12 @@ function onKey(e) {
   setVelUI(); renderRoll(); pushHistory();      // renderRoll restores focus to this note
 }
 
-// add a note at the start of the active track (keyboard-friendly: focus it to nudge)
-function addNote() {
-  cur.notes.push({ start: 0, dur: snap() || 24, note: clampNote(60, cur.track),
-                   vel: +$('#pe-vel').value, track: cur.track });
-  const i = cur.notes.length - 1;
-  cur.sel = new Set([i]); cur.primary = i;
-  setVelUI(); renderRoll(); pushHistory();
-  $('#pe-roll').querySelector(`.pe-note[data-i="${i}"]`)?.focus();
+function setTool(t) {
+  cur.tool = t;
+  for (const x of ['pencil', 'eraser', 'select']) $('#pe-tool-' + x).classList.toggle('on', x === t);
+  const roll = $('#pe-roll');
+  roll.classList.toggle('erasing', t === 'eraser');
+  roll.classList.toggle('selecting', t === 'select');
 }
 
 // ── open / save ────────────────────────────────────────────────────────────────
@@ -316,7 +389,7 @@ export function openPatternEditor(p) {
     bars: Math.max(1, Math.min(99, p.bars || 1)),
     sample: p.sample == null ? null : p.sample,
     name: p.name || 'PATTERN',
-    track: 0, sel: new Set(), primary: null,
+    track: 0, tool: 'pencil', sel: new Set(), primary: null,
   };
   $('#pe-title').textContent = `EDIT P${String(p.pattern + 1).padStart(2, '0')}`;
   $('#pe-name').value = cur.name;
@@ -324,6 +397,7 @@ export function openPatternEditor(p) {
   fillSampleSelect();
   $('#pe-sample').value = cur.sample == null ? '' : String(cur.sample);
   setTrack(0);
+  setTool('pencil');
   buildGutter();
   renderRoll();
   setVelUI();
@@ -423,6 +497,9 @@ async function cancel() {
   // document-level so the edit shortcuts work wherever focus is inside the open
   // editor (a click can land focus outside the note that was clicked)
   document.addEventListener('keydown', onKey);
+  $('#pe-tool-pencil').onclick = () => setTool('pencil');
+  $('#pe-tool-eraser').onclick = () => setTool('eraser');
+  $('#pe-tool-select').onclick = () => setTool('select');
   $('#pe-track-smp').onclick = () => setTrack(0);
   $('#pe-track-kbd').onclick = () => setTrack(1);
   $('#pe-grid').onchange = renderRoll;
@@ -444,10 +521,14 @@ async function cancel() {
     if (idxs.length) { for (const i of idxs) cur.notes[i].vel = v; renderRoll(); }
   };
   $('#pe-vel').onchange = () => { if (selArr().length) pushHistory(); };
-  $('#pe-add').onclick = addNote;
   $('#pe-play').onclick = () => { preview(); };
-  $('#pe-cancel').onclick = () => { cancel(); };
   $('#pe-save').onclick = () => { save(); };
-  // Esc → treat as cancel (stop preview + restore the slot if a preview wrote to it)
+  // Esc → discard (stop preview + restore the slot if a preview wrote to it)
   $('#pattern-editor').addEventListener('cancel', e => { e.preventDefault(); cancel(); });
+  // click outside the dialog (on the backdrop) → save and close
+  $('#pattern-editor').addEventListener('click', e => {
+    if (e.target !== $('#pattern-editor')) return;           // a backdrop click targets the dialog itself
+    const r = $('#pattern-editor').getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) save();
+  });
 }

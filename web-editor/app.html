@@ -654,46 +654,50 @@
 <!-- ── pattern editor (piano roll) ──────────────────────────────────────── -->
 <dialog id="pattern-editor" class="hw-dialog pe-dialog" aria-label="Pattern editor">
   <div class="pe-head">
-    <span class="pe-title" id="pe-title">EDIT</span>
-    <label>NAME <input type="text" id="pe-name" maxlength="8" spellcheck="false"></label>
-    <label>BARS <input type="number" id="pe-bars" min="1" max="99" value="1"></label>
-    <label>GRID
-      <select id="pe-grid" title="Snap-to-grid resolution (OFF = place freely)">
-        <option value="96">1/4</option>
-        <option value="48">1/8</option>
-        <option value="24" selected>1/16</option>
-        <option value="12">1/32</option>
-        <option value="0">OFF</option>
-      </select>
-    </label>
-    <div class="pe-track" role="radiogroup" aria-label="Active track">
-      <button id="pe-track-smp" class="on" type="button" title="Edit the sample-mode (pad) track">SMP</button>
-      <button id="pe-track-kbd" type="button" title="Edit the keyboard-mode (pitched) track">KBD</button>
+    <div class="pe-head-row">
+      <span class="pe-title" id="pe-title">EDIT</span>
+      <label>NAME <input type="text" id="pe-name" maxlength="8" spellcheck="false"></label>
+      <label>BARS <input type="number" id="pe-bars" min="1" max="99" value="1"></label>
+      <label>GRID
+        <select id="pe-grid" title="Snap-to-grid resolution (OFF = place freely)">
+          <option value="96">1/4</option>
+          <option value="48">1/8</option>
+          <option value="24" selected>1/16</option>
+          <option value="12">1/32</option>
+          <option value="0">OFF</option>
+        </select>
+      </label>
+      <label class="pe-kbd-sample" title="Sample played by the keyboard-mode track">KBD SAMPLE
+        <select id="pe-sample"></select></label>
+      <label>VEL <input type="range" id="pe-vel" min="1" max="127" value="100">
+        <span id="pe-vel-val">100</span></label>
+      <span class="spacer"></span>
+      <button class="hw-btn" id="pe-play" type="button"
+              title="Write this edit to the device (RAM) and play it — Spacebar; Esc discards">
+        <span class="hw-btn-cap" id="pe-play-cap">▶ PLAY</span></button>
+      <button class="hw-btn accent" id="pe-save" type="button"><span class="hw-btn-cap"><span class="ico ico-up"></span>SAVE TO DEVICE</span></button>
     </div>
-    <label class="pe-kbd-sample" title="Sample played by the keyboard-mode track">KBD SAMPLE
-      <select id="pe-sample"></select></label>
-    <label>VEL <input type="range" id="pe-vel" min="1" max="127" value="100">
-      <span id="pe-vel-val">100</span></label>
-    <button class="hw-btn" id="pe-add" type="button"
-            title="Add a note to the active track (then drag it, or use the arrow keys)">
-      <span class="hw-btn-cap">＋ NOTE</span></button>
-    <span class="spacer"></span>
-    <button class="hw-btn" id="pe-play" type="button"
-            title="Write this edit to the device (RAM) and play it — CANCEL restores the slot">
-      <span class="hw-btn-cap" id="pe-play-cap">▶ PLAY</span></button>
-    <button class="hw-btn" id="pe-cancel" type="button"><span class="hw-btn-cap">CANCEL</span></button>
-    <button class="hw-btn accent" id="pe-save" type="button"><span class="hw-btn-cap"><span class="ico ico-up"></span>SAVE TO DEVICE</span></button>
+    <div class="pe-head-row">
+      <div class="pe-track pe-tool" role="radiogroup" aria-label="Tool">
+        <button id="pe-tool-pencil" class="on" type="button" title="Pencil — click to add, drag to move, drag the right edge to resize">✎ DRAW</button>
+        <button id="pe-tool-eraser" type="button" title="Eraser — click or drag over notes to remove them">⌫ ERASE</button>
+        <button id="pe-tool-select" type="button" title="Select — click a note, or drag a box to select several">▭ SELECT</button>
+      </div>
+      <div class="pe-track" role="radiogroup" aria-label="Active track">
+        <button id="pe-track-smp" class="on" type="button" title="New notes go on the sample-mode (pad) track">SMP</button>
+        <button id="pe-track-kbd" type="button" title="New notes go on the keyboard-mode (pitched) track">KBD</button>
+      </div>
+    </div>
   </div>
   <div class="pe-roll-wrap" id="pe-roll-wrap">
     <div class="pe-gutter" id="pe-gutter"></div>
     <div class="pe-roll" id="pe-roll" role="group" tabindex="-1"
-         aria-label="Piano roll — click to add a note; Tab to a note, then arrow keys move it, Shift+arrows resize, Delete removes"></div>
+         aria-label="Piano roll. DRAW: click to add, drag to move, drag the right edge to resize. ERASE: click notes to remove. SELECT: drag a box to select several. Tab to a note then arrow keys move it, Shift+arrows resize, Delete removes."></div>
   </div>
   <div class="pe-foot">
     <span class="dot smp"></span>SAMPLE&nbsp;(PAD) &nbsp;·&nbsp; <span class="dot kbd"></span>KEYBOARD&nbsp;(PITCH)
-    &nbsp;—&nbsp; click to add · drag to move · drag the right edge to resize · scroll a note for velocity · Del removes
-    &nbsp;·&nbsp; Shift+click multi-selects · ⌘/Ctrl+A all · ⌘/Ctrl+C/V copy/paste · ⌘/Ctrl+Z undo
-    &nbsp;·&nbsp; keyboard: Tab to a note, arrows move / transpose, Shift+arrows resize
+    &nbsp;—&nbsp; DRAW add/move/resize · ERASE click to remove · SELECT drag a box · scroll a note for velocity
+    &nbsp;·&nbsp; ⌘/Ctrl+A all · ⌘/Ctrl+C/V copy/paste · ⌘/Ctrl+Z undo · Space play · Esc discards
   </div>
 </dialog>
 

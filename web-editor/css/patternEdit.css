@@ -7,9 +7,12 @@
 .pe-dialog::backdrop { background: rgba(0, 0, 0, .6); }
 
 .pe-head {
-  display: flex; align-items: center; flex-wrap: wrap; gap: .55rem .8rem;
+  display: flex; flex-direction: column; gap: .5rem;
   margin-bottom: .7rem; font-size: .58rem; letter-spacing: .14em; color: var(--ink-dim);
 }
+/* row 1 = name/bars/grid/sample/vel + PLAY/SAVE (SAVE pinned right via the spacer);
+   row 2 = tool + track selectors, sitting just above the roll */
+.pe-head-row { display: flex; align-items: center; flex-wrap: wrap; gap: .55rem .8rem; }
 .pe-title { color: var(--amber); font-weight: 600; letter-spacing: .18em; }
 .pe-head label { display: inline-flex; align-items: center; gap: .35rem; }
 .pe-head input[type="text"] { width: 5.5em; }
@@ -47,7 +50,21 @@
 .pe-key.black { background: rgba(0, 0, 0, .35); color: #555; }
 .pe-key.pe-pad { color: var(--ink); }      /* notes in this range trigger pads */
 
-.pe-roll { position: relative; flex: 1; min-width: 0; cursor: crosshair; }
+.pe-roll { position: relative; flex: 1; min-width: 0; }
+/* cursor reflects the active tool (pencil / eraser custom SVGs, crosshair for marquee) */
+.pe-roll {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24'%3E%3Cpath d='M4 20l4-1L18 8l-3-3L5 16z' fill='%23ffd79a' stroke='%23000' stroke-width='1.4'/%3E%3Cpath d='M15 5l3 3 2-2-3-3z' fill='%23ff8a1e' stroke='%23000' stroke-width='1.4'/%3E%3C/svg%3E") 2 18, crosshair;
+}
+.pe-roll.selecting { cursor: crosshair; }
+.pe-roll.erasing {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24'%3E%3Crect x='3' y='9' width='13' height='8' rx='1.5' transform='rotate(-40 9.5 13)' fill='%23ffe9c9' stroke='%23000' stroke-width='1.4'/%3E%3C/svg%3E") 4 14, cell;
+}
+.pe-roll.selecting .pe-note { cursor: move; }
+.pe-roll.erasing .pe-note, .pe-roll.erasing .pe-resize { cursor: inherit; }
+.pe-marquee {
+  position: absolute; z-index: 5; pointer-events: none;
+  border: 1px solid var(--amber); background: rgba(var(--amber-rgb), .12);
+}
 .pe-bar { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(var(--amber-rgb), .22); }
 .pe-rowbg { position: absolute; left: 0; right: 0; background: rgba(0, 0, 0, .28); }
 
