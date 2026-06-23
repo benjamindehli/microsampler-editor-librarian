@@ -208,7 +208,7 @@
 .theme-menu {
   position: absolute; top: calc(100% + 6px); right: 0; z-index: 80;
   margin: 0; padding: .25rem; list-style: none;
-  min-width: 100%;
+  min-width: 100%; max-height: min(64vh, 420px); overflow-y: auto;
   background: var(--steel-1); border: 1px solid var(--line-hi); border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, .5);
 }

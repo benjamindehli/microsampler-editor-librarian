@@ -13,13 +13,24 @@ import { stopAudition } from './waveform.js';
 // Only the three RGB triplets are overridden — every accent surface (glows,
 // borders, the phosphor backgrounds, the canvas waveform) derives from them,
 // so switching theme recolours the whole app.
+// ordered around the colour wheel (red → pink); the saved theme is stored by
+// NAME (msmpl.theme), so this list can be reordered freely without disturbing a
+// user's selection. AMBER is the default when nothing valid is saved.
 const THEMES = [
-  { name: 'AMBER',   rgb: '255, 138, 30',  hi: '255, 192, 99',  dk: '138, 69, 0' },
-  { name: 'GREEN',   rgb: '54, 224, 122',  hi: '155, 255, 196', dk: '28, 122, 66' },
-  { name: 'CYAN',    rgb: '51, 198, 255',  hi: '159, 230, 255', dk: '26, 106, 138' },
-  { name: 'MAGENTA', rgb: '255, 79, 208',  hi: '255, 167, 236', dk: '138, 30, 110' },
   { name: 'RED',     rgb: '255, 74, 61',   hi: '255, 150, 140', dk: '138, 28, 22' },
+  { name: 'ORANGE',  rgb: '255, 106, 24',  hi: '255, 166, 110', dk: '140, 54, 8' },
+  { name: 'AMBER',   rgb: '255, 138, 30',  hi: '255, 192, 99',  dk: '138, 69, 0' },
+  { name: 'YELLOW',  rgb: '240, 214, 64',  hi: '255, 236, 150', dk: '128, 112, 22' },
+  { name: 'LIME',    rgb: '170, 224, 56',  hi: '212, 255, 150', dk: '92, 122, 28' },
+  { name: 'GREEN',   rgb: '54, 224, 122',  hi: '155, 255, 196', dk: '28, 122, 66' },
+  { name: 'TEAL',    rgb: '38, 214, 196',  hi: '150, 245, 236', dk: '20, 116, 106' },
+  { name: 'CYAN',    rgb: '51, 198, 255',  hi: '159, 230, 255', dk: '26, 106, 138' },
+  { name: 'BLUE',    rgb: '64, 132, 255',  hi: '150, 188, 255', dk: '32, 70, 150' },
+  { name: 'VIOLET',  rgb: '168, 108, 255', hi: '208, 178, 255', dk: '92, 52, 150' },
+  { name: 'MAGENTA', rgb: '255, 79, 208',  hi: '255, 167, 236', dk: '138, 30, 110' },
+  { name: 'PINK',    rgb: '255, 110, 152', hi: '255, 178, 200', dk: '140, 48, 78' },
 ];
+const DEFAULT_THEME = THEMES.findIndex(t => t.name === 'AMBER');
 // custom dropdown: each row previews its accent with a real colour swatch (a
 // native <select> can't — macOS Chrome draws the popup with the OS menu and
 // ignores option colours)
@@ -42,7 +53,7 @@ function applyTheme(i) {
   r.setProperty('--amber-rgb', t.rgb);
   r.setProperty('--amber-hi-rgb', t.hi);
   r.setProperty('--amber-dk-rgb', t.dk);
-  try { localStorage.setItem('msmpl.theme', String(i)); } catch { /* ignore */ }
+  try { localStorage.setItem('msmpl.theme', t.name); } catch { /* ignore */ }   // by name, so reordering can't shift it
   themeName.textContent = t.name;
   themeOpts.forEach((li, j) => li.setAttribute('aria-selected', String(j === i)));
   dispatchEvent(new Event('msmpl-theme'));   // recolour the canvas waveform
@@ -77,8 +88,12 @@ themeMenu.addEventListener('keydown', e => {
 });
 document.addEventListener('click', e => { if (!$('#theme-pick').contains(e.target)) closeThemeMenu(false); });
 
-let themeIdx = (() => { try { return +localStorage.getItem('msmpl.theme') || 0; }
-                       catch { return 0; } })();
+let themeIdx = (() => {
+  let saved = null;
+  try { saved = localStorage.getItem('msmpl.theme'); } catch { /* ignore */ }
+  const i = THEMES.findIndex(t => t.name === saved);
+  return i >= 0 ? i : DEFAULT_THEME;     // unknown / legacy numeric value → AMBER
+})();
 applyTheme(themeIdx);
 
 // ── help overlay ─────────────────────────────────────────────────────────
