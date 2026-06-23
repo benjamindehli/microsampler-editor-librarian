@@ -418,17 +418,23 @@ cd microsampler-editor-librarian</code></pre>
       <ul>
         <li><strong>RECEIVE PATTERNS</strong> reads all 16 patterns from the current bank.</li>
         <li><strong>Play</strong> a pattern on the device (the ▶ on each recorded card).</li>
-        <li><strong>✎ EDIT</strong> opens an in-app <strong>piano-roll editor</strong> — draw, move,
-          resize and delete notes on both the sample-mode (pad) and keyboard-mode (pitched) tracks,
-          set per-note velocity, the bar count and the keyboard track's sample, then save it back to
-          the device. Works on an empty slot too, so you can build a pattern from scratch.</li>
+        <li><strong>✎ EDIT</strong> opens an in-app <strong>piano-roll editor</strong> over both the
+          sample-mode (pad) and keyboard-mode (pitched) tracks. Switch between the
+          <strong>Draw</strong>, <strong>Erase</strong> and <strong>Select</strong> tools (the cursor
+          changes to match): draw, move and resize notes, drag to erase a run of them, or marquee-select
+          several at once. It supports <strong>multi-select</strong> (Shift/⌘-click), <strong>undo/redo</strong>
+          and <strong>copy/paste</strong> whose clipboard persists across patterns, so you can copy from one
+          pattern and paste into another. Per-note velocity shows as note brightness, the arrow keys nudge or
+          resize, and <kbd>Space</kbd> plays the pattern on the device. Set the bar count, grid snap and the
+          keyboard track's sample, then <strong>Save to Device</strong> (clicking outside the dialog saves and
+          closes). Works on an empty slot too, so you can build a pattern from scratch.</li>
         <li><strong>● REC</strong> presses the device's record button over MIDI — arm → start → end —
           to record into its current pattern.</li>
         <li><strong>Import / export MIDI</strong> — export any pattern as a Standard MIDI File, or import one.</li>
       </ul>
       <figure>
-        <img src="assets/screenshots/pattern-editor.png" alt="The pattern editor: a piano roll over the two tracks, with sample-mode notes in amber and keyboard-mode notes in cream, and controls for name, bars, grid snap, track, keyboard sample and velocity" loading="lazy">
-        <figcaption>The pattern editor — a piano roll over both tracks (amber = sample/pad, cream = keyboard/pitch); ▶ PLAY previews on the device, SAVE writes it back.</figcaption>
+        <img src="assets/screenshots/pattern-editor.png" alt="The pattern editor: a piano roll over the two tracks, with sample-mode notes in amber and keyboard-mode notes in cream, Draw/Erase/Select tools and a SMP/KBD track switch above the grid, and controls for name, bars, grid snap, keyboard sample and velocity, with Save to Device in the top-right" loading="lazy">
+        <figcaption>The pattern editor — a piano roll over both tracks (amber = sample/pad, cream = keyboard/pitch); Draw/Erase/Select tools sit above the grid, note brightness is velocity, ▶ PLAY previews on the device and SAVE TO DEVICE writes it back.</figcaption>
       </figure>
       <div class="note warn">
         <b class="label">FOR PLAYBACK &amp; RECORD</b>
@@ -519,7 +525,9 @@ cd microsampler-editor-librarian</code></pre>
         <tr><td><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Z</kbd></td><td>Undo a parameter edit</td></tr>
         <tr><td><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>⇧</kbd> + <kbd>Z</kbd></td><td>Redo</td></tr>
         <tr><td><kbd>Z</kbd> / <kbd>X</kbd></td><td>On-screen keyboard: octave down / up (when “type to play” is on)</td></tr>
-        <tr><td><kbd>Del</kbd></td><td>Pattern editor: delete the selected note</td></tr>
+        <tr><td><kbd>Space</kbd></td><td>Pattern editor: play / stop the pattern on the device</td></tr>
+        <tr><td><kbd>Del</kbd></td><td>Pattern editor: delete the selected note(s)</td></tr>
+        <tr><td><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>A</kbd> / <kbd>C</kbd> / <kbd>V</kbd></td><td>Pattern editor: select all / copy / paste notes</td></tr>
         <tr><td><kbd>?</kbd></td><td>Help overlay</td></tr>
       </table>
     </section>
