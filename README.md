@@ -16,7 +16,9 @@ This app covers everything the original did, plus a few things it didn't.
   - 36-slot bank overview
   - Audition on the device (honors start/end points) with a playhead on the waveform
   - On-screen keyboard mirroring the 36 pads — click to play, or tick **⌨ TYPE TO
-    PLAY** to play from your computer keyboard (Z/X shift octave)
+    PLAY** to play from your computer keyboard (Z/X shift octave). A **SAMPLE /
+    KEYBOARD** toggle switches between triggering one sample per key (empty keys
+    dimmed) and playing the selected sample pitched across the keyboard
   - WAV download/upload (auto-resample to 48/24/12/6 kHz); drop several WAVs
     onto the pads to bulk-fill consecutive slots
   - Auto-slice — chop one long sample across consecutive pads, by equal pieces
@@ -67,6 +69,8 @@ This app covers everything the original did, plus a few things it didn't.
   - Panel edits on the device show up in the app instantly
 - **Master volume** slider for the device output, and a **panic** button
   (all sound off / stop) for stuck notes
+- **12 accent themes** picked from a swatch dropdown — the whole interface
+  (buttons, LCD, waveform, keys) recolours to match
 - Remembers your last-open view across reloads
 - Tells you when a newer release is available (checks GitHub; dismissible)
 - **Library mode** (no hardware): import original Korg `.msmpl_bank` backups (or
