@@ -100,11 +100,11 @@ def to_device_pcm(chans, rate, target_rate):
 
 
 # --- upload phases ------------------------------------------------------------
-def upload(ms, channel, slot, pcm, rate, stereo, frames, blob, tempo):
+def upload(ms, channel, slot, pcm, rate, stereo, frames, blob, tempo, mode_bit=0):
     # phase 1: header
     _drain(ms)
     ms.send_sysex(P.sample_header(channel, slot, len(pcm), rate, stereo,
-                                  tempo_bpm=tempo))
+                                  tempo_bpm=tempo, mode_bit=mode_bit))
     _wait_korg_reply(ms, P.UPLOAD_HDR_OK, P.UPLOAD_HDR_ERR,
                      timeout_ms=8000, what='header ACK')
     print("  header ACKed")

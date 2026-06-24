@@ -402,7 +402,7 @@ class Device:
             par = DL.fetch_params(self.ms, self.channel, slot)
         return {'empty': False, 'pcm': pcm, 'rate': hdr['rate_hz'],
                 'stereo': hdr['stereo'], 'tempo': hdr['tempo_bpm'],
-                'blob': par['raw']}
+                'mode_bit': hdr['mode_bit'], 'blob': par['raw']}
 
     def write_sample(self, slot, d):
         """Write a sample read by receive_sample (proven upload.py flow:
@@ -417,7 +417,8 @@ class Device:
                                     timeout_ms=8000, what='clear header ACK')
             else:
                 UL.upload(self.ms, self.channel, slot, d['pcm'], d['rate'],
-                          d['stereo'], 0, d['blob'], d['tempo'])
+                          d['stereo'], 0, d['blob'], d['tempo'],
+                          mode_bit=d.get('mode_bit', 0))
         return {'slot': slot, 'empty': bool(d.get('empty'))}
 
     def copy_sample(self, frm, to):
@@ -769,6 +770,23 @@ class Device:
                                 what='param write ACK (func 0x44)')
         return {'slot': slot, 'start': int(start), 'end': int(end)}
 
+    def set_tempo(self, slot, bpm):
+        """Set a sample's ORIGINAL BPM (sample tempo). It lives ONLY in the
+        8-byte upload header — there is no live 0x41 param for it and it is not
+        in the 64-byte param blob — so the only way to change it on an existing
+        sample is to RE-UPLOAD it (exactly what the original editor did: it
+        flagged the sample and re-transmitted on TRANSMIT). We round-trip the
+        same audio + param blob through the proven receive/write flows (each its
+        own inquired session, like copy_sample) and change only the header
+        tempo, so START/END/name/knobs (incl. any panel edits) are preserved."""
+        bpm = max(20.0, min(300.0, float(bpm)))
+        d = self.receive_sample(slot)
+        if d.get('empty'):
+            raise RuntimeError('slot is empty')
+        d['tempo'] = bpm
+        self.write_sample(slot, d)
+        return {'slot': slot, 'tempo_bpm': round(bpm, 1)}
+
 
 class MockDevice(Device):
     """Hardware-free stand-in for UI development (--mock)."""
@@ -1033,6 +1051,13 @@ class MockDevice(Device):
             raise RuntimeError('slot is empty')
         s['points'] = (int(start), int(end))
         return {'slot': slot, 'start': int(start), 'end': int(end)}
+
+    def set_tempo(self, slot, bpm):
+        s = self._slots.get(slot)
+        if not s:
+            raise RuntimeError('slot is empty')
+        s['tempo'] = max(20.0, min(300.0, float(bpm)))
+        return {'slot': slot, 'tempo_bpm': round(s['tempo'], 1)}
 
     def rename(self, slot, name, long_name):
         s = self._slots.get(slot)
@@ -1571,6 +1596,22 @@ class Handler(BaseHTTPRequestHandler):
                 if not 0 <= start < end:
                     return self._err('need 0 <= start < end', 400)
                 return self._json(DEVICE.set_points(slot, start, end))
+            m = re.match(r'^/api/sample/(\d+)/tempo$', path)
+            if m:
+                slot = int(m.group(1))
+                if not 0 <= slot <= 35:
+                    return self._err('slot 0..35', 400)
+                body = self._json_body()
+                try:
+                    bpm = float(body['bpm'])
+                except (KeyError, TypeError, ValueError):
+                    return self._err('bpm required', 400)
+                if not 20.0 <= bpm <= 300.0:
+                    return self._err('bpm 20..300', 400)
+                try:
+                    return self._json(DEVICE.set_tempo(slot, bpm))
+                except RuntimeError as e:
+                    return self._err(str(e), 400)
             m = re.match(r'^/api/sample/(\d+)$', path)
             if m:
                 slot = int(m.group(1))
