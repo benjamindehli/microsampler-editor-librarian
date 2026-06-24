@@ -32,6 +32,8 @@ This app covers everything the original did, plus a few things it didn't.
   - Live editing of all sample parameters
   - Draggable START/END markers on the waveform (or type exact frame values),
     with optional zero-crossing snap so trims don't click
+  - Editable original BPM (the sample tempo used for BPM-sync) — re-uploads the
+    sample to apply, keeping its audio and other settings
   - Zoomable / pannable waveform (scroll to zoom, drag to pan) for
     sample-accurate trimming
   - Renaming banks and samples
