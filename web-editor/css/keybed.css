@@ -40,8 +40,10 @@
   min-width: 2.4em; text-align: center; color: var(--amber); font-weight: 600;
 }
 
-.keybed-arm { margin-left: auto; }              /* push the toggle to the right */
+.keybed-toggles { margin-left: auto; display: inline-flex; align-items: center; gap: 1rem; }
 .keybed.armed #qwerty-cap { color: var(--amber); }
+.keybed.midi-on #midi-cap { color: var(--amber); }   /* MIDI input active */
+.midi-ico { width: 11px; height: 11px; fill: currentColor; vertical-align: -2px; margin-right: .1em; }
 
 /* the keyboard itself: 21 white keys in flow, 15 black keys overlaid */
 .piano {

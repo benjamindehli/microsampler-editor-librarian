@@ -29,11 +29,13 @@ let clickSlot = null;                // slot currently held by the mouse on the 
 // SAMPLE mode plays note 48+slot on the global channel (triggers that pad);
 // KEYBOARD mode sends the same note one channel up, so the device plays its
 // currently selected sample pitched (its keyboard-mode track) — the bridge maps
-// the `keyboard` flag onto the channel.
-function note(slot, on) {
-  api('/api/note', jsonBody({ slot, on, velocity: 100, keyboard: mode === 'kbd' }))
-    .catch(err => { if (on) tick(`⚠ note failed: ${err.message}`); });
+// the `keyboard` flag onto the channel. `body` carries slot OR a raw note (the
+// latter for a real MIDI keyboard's full pitch range in keyboard mode).
+function send(body) {
+  api('/api/note', jsonBody({ velocity: 100, keyboard: mode === 'kbd', ...body }))
+    .catch(err => { if (body.on) tick(`⚠ note failed: ${err.message}`); });
 }
+function note(slot, on, velocity = 100) { send({ slot, on, velocity }); }
 function paint(slot, sounding) {
   // always light the piano key; in KEYBOARD mode the pad isn't what's triggered
   // (the selected sample plays pitched), so don't light the pad grid there
@@ -124,7 +126,7 @@ function setOctave(next) {
 
 function setMode(next) {
   if (next === mode) return;
-  releaseKeys(); clickRelease();     // release held notes on the OLD channel first
+  releaseKeys(); clickRelease(); releaseMidi();   // release held notes on the OLD channel first
   mode = next;
   for (const [id, m] of [['#kb-mode-sample', 'sample'], ['#kb-mode-kbd', 'kbd']]) {
     const b = $(id);
@@ -186,10 +188,112 @@ addEventListener('keyup', e => {
 }, true);
 
 // never leave a note stuck if focus or tab visibility changes mid-hold
-addEventListener('blur', () => { releaseKeys(); clickRelease(); });
+addEventListener('blur', () => { releaseKeys(); clickRelease(); releaseMidi(); });
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { releaseKeys(); clickRelease(); }
+  if (document.hidden) { releaseKeys(); clickRelease(); releaseMidi(); }
 });
+
+// ── real MIDI keyboard input (Web MIDI) ───────────────────────────────────────
+// Forward a connected MIDI controller's notes to the device, honoring the current
+// SAMPLE / KEYBOARD mode. The browser only READS the controller; the bridge still
+// solely owns the device's USB, so this never contends for the port.
+const MIDI_OK = typeof navigator !== 'undefined' && !!navigator.requestMIDIAccess;
+let midiAccess = null;
+const midiHeld = new Map();          // controller note physically down → on-screen slot (null = out of range)
+const sustainedOff = new Map();      // note whose key is UP but held sounding by the pedal → slot
+let sustainOn = false;               // CC#64 damper pedal state
+
+// resolve a controller note for the current mode: KEYBOARD = raw pitch (full
+// range), SAMPLE = a pad (note−48, ignoring notes outside C3..B5). null = not playable.
+function midiTarget(m) {
+  const slot = m - 48, inRange = slot >= 0 && slot <= 35;
+  if (mode === 'kbd') return { body: { note: m }, slot: inRange ? slot : null };
+  return inRange ? { body: { slot }, slot } : null;
+}
+function sendOff(m, slot) { send(mode === 'kbd' ? { note: m, on: false } : { slot, on: false }); }
+
+function midiNoteOn(m, vel) {
+  const t = midiTarget(m);
+  if (!t) return;
+  if (sustainedOff.has(m)) { sendOff(m, sustainedOff.get(m)); sustainedOff.delete(m); }   // clean re-attack
+  send({ ...t.body, on: true, velocity: vel });
+  if (t.slot != null) paint(t.slot, true);
+  midiHeld.set(m, t.slot);
+}
+function midiNoteOff(m) {
+  if (!midiHeld.has(m)) return;
+  const slot = midiHeld.get(m);
+  midiHeld.delete(m);
+  if (sustainOn) {                   // pedal down: keep it sounding (and lit) until the pedal lifts
+    sustainedOff.set(m, slot);
+  } else {
+    sendOff(m, slot);
+    if (slot != null) paint(slot, false);
+  }
+}
+function midiSustain(on) {            // CC#64 — app-side (the device may not honor the CC itself)
+  sustainOn = on;
+  if (!on) {                         // pedal up: release everything it was holding
+    for (const [m, slot] of sustainedOff) { sendOff(m, slot); if (slot != null) paint(slot, false); }
+    sustainedOff.clear();
+  }
+}
+let bentKbd = false;                 // a non-centre bend is currently applied (keyboard channel)
+function midiPitchBend(lsb, msb) {
+  if (mode !== 'kbd') return;        // the device pitch-bends only the keyboard-mode voice
+  const value = (msb << 7) | lsb;    // 14-bit, centre 8192
+  bentKbd = value !== 8192;
+  api('/api/pitch-bend', jsonBody({ value, keyboard: true })).catch(() => { /* ignore */ });
+}
+function resetBend() {               // return the wheel to centre (on release / mode switch / blur)
+  if (!bentKbd) return;
+  bentKbd = false;
+  api('/api/pitch-bend', jsonBody({ value: 8192, keyboard: true })).catch(() => { /* ignore */ });
+}
+function releaseMidi() {
+  for (const [m, slot] of midiHeld) { sendOff(m, slot); if (slot != null) paint(slot, false); }
+  midiHeld.clear();
+  for (const [m, slot] of sustainedOff) { sendOff(m, slot); if (slot != null) paint(slot, false); }
+  sustainedOff.clear();
+  sustainOn = false;
+  resetBend();
+}
+function onMidiMessage(e) {
+  const [status, d1, d2] = e.data;
+  const cmd = status & 0xf0;
+  if (cmd === 0x90 && d2 > 0) midiNoteOn(d1, d2);
+  else if (cmd === 0x80 || (cmd === 0x90 && d2 === 0)) midiNoteOff(d1);
+  else if (cmd === 0xe0) midiPitchBend(d1, d2);          // pitch bend wheel
+  else if (cmd === 0xb0 && d1 === 64) midiSustain(d2 >= 64);   // sustain pedal (CC#64)
+  // other CC / clock etc. ignored
+}
+function midiInputNames() {
+  return midiAccess ? [...midiAccess.inputs.values()].map(i => i.name).filter(Boolean) : [];
+}
+function bindMidiInputs() {            // (re)attach to every input — also the hotplug handler
+  if (!midiAccess) return;
+  for (const input of midiAccess.inputs.values()) input.onmidimessage = onMidiMessage;
+  const names = midiInputNames();
+  $('#midi-toggle').title = names.length
+    ? 'MIDI input: ' + names.join(', ')
+    : 'No MIDI device detected yet — connect one and it is picked up automatically';
+}
+async function setMidi(on) {
+  if (on) {
+    try { midiAccess = midiAccess || await navigator.requestMIDIAccess(); }
+    catch { tick('⚠ MIDI access was blocked'); $('#midi-in').checked = false; return; }
+    midiAccess.onstatechange = bindMidiInputs;
+    bindMidiInputs();
+    const names = midiInputNames();
+    tick(names.length ? `MIDI input: ON (${names.join(', ')})` : 'MIDI input: ON (waiting for a device)');
+  } else {
+    if (midiAccess) for (const input of midiAccess.inputs.values()) input.onmidimessage = null;
+    releaseMidi();
+    tick('MIDI input: OFF');
+  }
+  $('#keybed').classList.toggle('midi-on', on);
+  try { localStorage.setItem('msmpl.midi', on ? '1' : '0'); } catch { /* ignore */ }
+}
 
 // ── mouse/touch on the on-screen piano (works even when not armed) ────────────
 function clickRelease() {
@@ -229,6 +333,17 @@ $('#kb-mode-kbd').onclick = () => setMode('kbd');
   try { t.checked = localStorage.getItem('msmpl.qwerty') === '1'; } catch { /* ignore */ }
   enabled = t.checked;
   t.addEventListener('change', () => setEnabled(t.checked));
+
+  // MIDI input: only offer it where Web MIDI exists (Chrome/Edge/Firefox; not Safari)
+  if (MIDI_OK) {
+    $('#midi-toggle').hidden = false;
+    const mi = $('#midi-in');
+    mi.addEventListener('change', () => setMidi(mi.checked));
+    // re-enable only if it was on before — avoids a surprise permission prompt on every load
+    let want = false;
+    try { want = localStorage.getItem('msmpl.midi') === '1'; } catch { /* ignore */ }
+    if (want) { mi.checked = true; setMidi(true); }
+  }
 }
 
 buildPiano();

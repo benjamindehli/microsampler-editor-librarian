@@ -468,10 +468,17 @@
         <span class="kb-oct-val" id="kb-oct-val">C4</span>
         <button class="kb-oct" id="kb-oct-up" title="Octave up (X)" aria-label="Octave up">▶</button>
       </div>
-      <label class="follow-toggle keybed-arm"
-             title="Type to play: your computer keyboard plays the highlighted keys through the device — home row = white keys, top row = black keys, Z / X (or ◀ ▶) shift the octave">
-        <input type="checkbox" id="qwerty-play"> <span id="qwerty-cap">⌨ TYPE TO PLAY</span>
-      </label>
+      <div class="keybed-toggles">
+        <label class="follow-toggle" id="midi-toggle" hidden
+               title="Play the device from a connected MIDI keyboard (uses your browser's Web MIDI). Honors the SAMPLE / KEYBOARD mode above.">
+          <input type="checkbox" id="midi-in">
+          <span id="midi-cap"><svg class="midi-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="6.6" r="1.4"/><circle cx="6.9" cy="10" r="1.4"/><circle cx="17.1" cy="10" r="1.4"/><circle cx="8.9" cy="15.4" r="1.4"/><circle cx="15.1" cy="15.4" r="1.4"/></svg> MIDI IN</span>
+        </label>
+        <label class="follow-toggle"
+               title="Type to play: your computer keyboard plays the highlighted keys through the device — home row = white keys, top row = black keys, Z / X (or ◀ ▶) shift the octave">
+          <input type="checkbox" id="qwerty-play"> <span id="qwerty-cap">⌨ TYPE TO PLAY</span>
+        </label>
+      </div>
     </div>
     <div class="piano" id="piano" role="group" aria-label="On-screen keyboard — click a key to play"></div>
   </section>
@@ -552,7 +559,8 @@
         <kbd>A S D F G H J K</kbd> = white keys, top row <kbd>W E · T Y U</kbd> = black
         keys (the piano shows which key is which), and <kbd>Z</kbd> / <kbd>X</kbd> — or
         the <kbd>◀ ▶</kbd> buttons — shift the octave (C3/C4/C5). While it's off, those
-        keys stay free for the shortcuts below.</p>
+        keys stay free for the shortcuts below. Tick <b>MIDI IN</b> to play from a
+        connected MIDI keyboard (velocity, pitch bend + sustain pedal; honors the SAMPLE/KEYBOARD mode).</p>
       <p><b>Shortcuts</b> — <kbd>← → ↑ ↓</kbd> move pad · <kbd>Space</kbd>
         audition · <kbd>+ − 0</kbd> waveform zoom · <kbd>R</kbd> receive ·
         <kbd>⌘/Ctrl+Z</kbd> undo · <kbd>⌘/Ctrl+⇧Z</kbd> redo ·
