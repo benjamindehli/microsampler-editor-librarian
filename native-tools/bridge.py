@@ -475,19 +475,31 @@ class Device:
                 self.ms.send_sysex(P.parameter_change(ch, 80, 16 + i, int(v)))
         return {'type': int(fx_type)}
 
-    def play_note(self, slot, on, velocity=100, keyboard=False):
+    def play_note(self, slot, on, velocity=100, keyboard=False, note=None):
         """Trigger a note on the DEVICE via MIDI, cable 1. Two modes:
         - SAMPLE mode (keyboard=False): note 48 (C3) + slot on the global
           channel triggers that pad's sample (the numbering the pattern engine
           uses for sample-mode tracks).
-        - KEYBOARD mode (keyboard=True): the same note one channel above the
-          global channel plays the device's currently SELECTED sample pitched
-          (the microSAMPLER's keyboard-mode track sits on global channel + 1)."""
-        note = 48 + max(0, min(35, int(slot)))
+        - KEYBOARD mode (keyboard=True): the note one channel above the global
+          channel plays the device's currently SELECTED sample pitched (the
+          microSAMPLER's keyboard-mode track sits on global channel + 1).
+        `note` (0..127), when given, is the raw MIDI note to send (a real MIDI
+        keyboard's full range in keyboard mode); otherwise it is 48 + slot."""
+        n = max(0, min(127, int(note))) if note is not None else 48 + max(0, min(35, int(slot)))
         ch = (self.channel + (1 if keyboard else 0)) & 0x0f
         status = (0x90 if on else 0x80) | ch
         with self.lock:
-            self.ms.send_short(status, note, max(1, min(127, int(velocity))),
+            self.ms.send_short(status, n, max(1, min(127, int(velocity))),
+                               cable=self.cable)
+
+    def pitch_bend(self, value, keyboard=True):
+        """Pitch bend (En bb mm, ±1 octave on the device) — keyboard-mode only,
+        so it is sent on the keyboard channel (global + 1) by default. 14-bit
+        value 0..16383, centre 8192 (no bend)."""
+        value = max(0, min(16383, int(value)))
+        ch = (self.channel + (1 if keyboard else 0)) & 0x0f
+        with self.lock:
+            self.ms.send_short(0xE0 | ch, value & 0x7f, (value >> 7) & 0x7f,
                                cable=self.cable)
 
     def _stop_clock(self):
@@ -789,8 +801,11 @@ class MockDevice(Device):
         return {'connected': True, 'inquiry': self.inquiry, 'mock': True,
                 'version': VERSION, 'error': self.open_error}
 
-    def play_note(self, slot, on, velocity=100, keyboard=False):
-        self._last_note = (int(slot), bool(on), int(velocity), bool(keyboard))
+    def play_note(self, slot, on, velocity=100, keyboard=False, note=None):
+        self._last_note = (int(slot), bool(on), int(velocity), bool(keyboard), note)
+
+    def pitch_bend(self, value, keyboard=True):
+        self._last_bend = (int(value), bool(keyboard))
 
     def play_pattern(self, q, bpm=120):
         self._transport = ('play', int(q), float(bpm))
@@ -1449,12 +1464,29 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(DEVICE.set_effect(int(body['type']), knobs, params))
             if path == '/api/note':
                 body = self._json_body()
-                slot = int(body['slot'])
-                if not 0 <= slot <= 35:
-                    return self._err('slot 0..35', 400)
-                DEVICE.play_note(slot, bool(body.get('on', True)),
+                note = body.get('note')      # raw MIDI note (keyboard-mode full range)
+                slot = body.get('slot')
+                if note is not None:
+                    note = int(note)
+                    if not 0 <= note <= 127:
+                        return self._err('note 0..127', 400)
+                elif slot is not None:
+                    slot = int(slot)
+                    if not 0 <= slot <= 35:
+                        return self._err('slot 0..35', 400)
+                else:
+                    return self._err('need slot or note', 400)
+                DEVICE.play_note(slot if slot is not None else 0,
+                                 bool(body.get('on', True)),
                                  int(body.get('velocity', 100)),
-                                 bool(body.get('keyboard', False)))
+                                 bool(body.get('keyboard', False)), note=note)
+                return self._json({'ok': True})
+            if path == '/api/pitch-bend':
+                body = self._json_body()
+                value = int(body.get('value', 8192))
+                if not 0 <= value <= 16383:
+                    return self._err('value 0..16383', 400)
+                DEVICE.pitch_bend(value, bool(body.get('keyboard', True)))
                 return self._json({'ok': True})
             if path == '/api/master-volume':
                 body = self._json_body()
