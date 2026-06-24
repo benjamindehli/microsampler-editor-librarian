@@ -2,8 +2,9 @@
 import { fmtLevel, fmtPan, setFader, setSeg, setSwitch, tuneDisplay }
   from './controls.js';
 import { noteName } from './notes.js';
-import { slotData } from './state.js';
-import { $, fmtSigned } from './util.js';
+import { slotData, state } from './state.js';
+import { tick } from './ticker.js';
+import { $, apiJson, fmtSigned, jsonBody } from './util.js';
 import { loadWave } from './waveform.js';
 
 export async function showSlot(i, { keepWave = false } = {}) {
@@ -83,10 +84,46 @@ export function renderChips(s) {
   } else {
     pairs.push(['RATE', '—'], ['LEN', '—']);
   }
-  if (s.tempo_bpm) pairs.push(['BPM', s.tempo_bpm.toFixed(1)]);
   for (const [k, v] of pairs)
     chips.insertAdjacentHTML('beforeend', `<span class="chip">${k} <b>${v}</b></span>`);
+  // ORIG BPM is editable — a clickable chip opens the dialog (it re-uploads)
+  if (s.tempo_bpm)
+    chips.insertAdjacentHTML('beforeend',
+      `<button class="chip chip-btn" id="chip-bpm"
+         title="Original BPM (sample tempo) — click to edit">BPM <b>${s.tempo_bpm.toFixed(1)}</b></button>`);
 }
+
+// ORIG BPM lives only in the sample's upload header, so there is no live command —
+// applying re-uploads the sample (audio + all other params preserved). A dialog
+// (like the bank name/BPM editor) makes the value + decimals legible and the
+// re-upload deliberate.
+$('#info-chips').addEventListener('click', e => {
+  if (!e.target.closest('#chip-bpm') || state.sel == null) return;
+  const s = slotData(state.sel);
+  if (s.empty || !s.tempo_bpm) return;
+  $('#td-bpm').value = s.tempo_bpm.toFixed(1);
+  $('#tempo-dialog').showModal();
+});
+$('#td-ok').onclick = async e => {
+  e.preventDefault();
+  if (state.sel == null) return;
+  const i = state.sel, s = slotData(i);
+  const bpm = Math.max(20, Math.min(300, +$('#td-bpm').value || 0));
+  if (!bpm || Math.abs(bpm - (s.tempo_bpm || 0)) < 0.05) { $('#tempo-dialog').close(); return; }
+  $('#td-ok').setAttribute('aria-busy', 'true');     // dims APPLY while the re-upload runs
+  tick(`→ ${noteName(i)} rewriting sample (ORIG BPM ${bpm.toFixed(1)})…`);
+  try {
+    const r = await apiJson(`/api/sample/${i}/tempo`, jsonBody({ bpm }));
+    s.tempo_bpm = r.tempo_bpm;
+    if (state.sel === i) renderChips(s);
+    tick(`→ ${noteName(i)} ORIG BPM = ${r.tempo_bpm.toFixed(1)}`);
+    $('#tempo-dialog').close();
+  } catch (err) {
+    tick(`⚠ ORIG BPM failed: ${err.message}`);
+  } finally {
+    $('#td-ok').removeAttribute('aria-busy');
+  }
+};
 
 export function renderMetaFmt(s) {
   $('#meta-fmt').textContent = s.frames

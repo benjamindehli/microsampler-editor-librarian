@@ -43,6 +43,10 @@
   padding: .3rem .45rem; letter-spacing: .05em;
 }
 .chip b { color: var(--amber); font-weight: 400; }
+/* editable ORIG BPM chip — a button that opens the tempo dialog (same box as the
+   read-only chips, so it lines up exactly) */
+.chip-btn { appearance: none; cursor: pointer; transition: border-color .12s, color .12s; }
+.chip-btn:hover { border-color: var(--amber); color: var(--amber-hi); }
 .name-actions { display: flex; gap: .5rem; align-items: center; }
 
 /* waveform screen */

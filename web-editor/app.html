@@ -521,6 +521,20 @@
   </form>
 </dialog>
 
+<dialog id="tempo-dialog" class="hw-dialog" aria-label="Original BPM">
+  <form method="dialog">
+    <h3>ORIGINAL BPM</h3>
+    <p class="warn">This is the sample's original tempo (used for BPM-sync stretching).
+      Changing it re-uploads the sample to the device — its audio and all other settings
+      are kept, so it takes a moment.</p>
+    <label>BPM <input type="number" id="td-bpm" min="20" max="300" step="0.1"></label>
+    <menu>
+      <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
+      <button value="ok" id="td-ok" class="hw-btn accent"><span class="hw-btn-cap">APPLY</span></button>
+    </menu>
+  </form>
+</dialog>
+
 <dialog id="help-dialog" class="hw-dialog" aria-label="Help and shortcuts">
   <form method="dialog">
     <h3>microSAMPLER EDITOR — HELP</h3>

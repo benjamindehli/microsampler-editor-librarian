@@ -14,7 +14,9 @@
 .hw-dialog::backdrop { background: rgba(5,5,7,.8); }
 .hw-dialog h3 { margin: 0 0 .8rem; font-size: .9rem; letter-spacing: .18em; color: #fff; }
 .hw-dialog h3 span { color: var(--amber); }
-.hw-dialog .warn { font-size: .68rem; color: #ffb35c; letter-spacing: .06em; }
+/* cap the width so a longer warning wraps instead of stretching the dialog
+   (matches .confirm-body / .help-body, which constrain their body content) */
+.hw-dialog .warn { font-size: .68rem; color: #ffb35c; letter-spacing: .06em; max-width: 26rem; }
 .confirm-body { font-size: .8rem; line-height: 1.5; color: var(--ink); max-width: 26rem; }
 .hw-dialog label {
   display: flex; align-items: center; gap: .8rem;
