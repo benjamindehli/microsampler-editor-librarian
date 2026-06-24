@@ -71,6 +71,16 @@ st, _, data = req('GET', '/api/bank')
 s5 = json.loads(data)['slots'][5]
 assert s5['name'] == 'BEEPY' and s5['tempo_bpm'] == 99.5
 
+# --- ORIG BPM edit (mock HTTP) — re-uploads the sample with a new header tempo --
+st, _, data = req('POST', '/api/sample/5/tempo', body=json.dumps({'bpm': 88.0}))
+assert st == 200 and json.loads(data) == {'slot': 5, 'tempo_bpm': 88.0}
+st, _, data = req('GET', '/api/bank')
+assert json.loads(data)['slots'][5]['tempo_bpm'] == 88.0
+st, _, _ = req('POST', '/api/sample/5/tempo', body=json.dumps({'bpm': 999}))   # out of range
+assert st == 400
+st, _, _ = req('POST', '/api/sample/35/tempo', body=json.dumps({'bpm': 120}))  # empty slot
+assert st == 400
+
 # --- rename (mock HTTP) ---------------------------------------------------------
 st, _, data = req('POST', '/api/sample/0/name',
                   body=json.dumps({'name': 'NEWNAME', 'long_name': 'A New Name'}))
