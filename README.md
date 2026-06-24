@@ -19,6 +19,9 @@ This app covers everything the original did, plus a few things it didn't.
     PLAY** to play from your computer keyboard (Z/X shift octave). A **SAMPLE /
     KEYBOARD** toggle switches between triggering one sample per key (empty keys
     dimmed) and playing the selected sample pitched across the keyboard
+  - **MIDI IN** — play the device from a connected MIDI keyboard, with velocity,
+    pitch bend and sustain pedal (uses the browser's Web MIDI; honors the SAMPLE /
+    KEYBOARD mode)
   - WAV download/upload (auto-resample to 48/24/12/6 kHz); drop several WAVs
     onto the pads to bulk-fill consecutive slots
   - Auto-slice — chop one long sample across consecutive pads, by equal pieces
