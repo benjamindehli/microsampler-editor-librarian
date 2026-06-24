@@ -176,11 +176,25 @@ assert st == 400                                   # wrong-length guard
 # --- play note (mock HTTP) -------------------------------------------------------
 st, _, data = req('POST', '/api/note', body=json.dumps({'slot': 5, 'on': True}))
 assert st == 200 and json.loads(data)['ok'] is True
-assert B.DEVICE._last_note == (5, True, 100, False)
+assert B.DEVICE._last_note == (5, True, 100, False, None)
 st, _, data = req('POST', '/api/note',                 # keyboard mode flag carried through
                   body=json.dumps({'slot': 7, 'on': True, 'keyboard': True}))
-assert st == 200 and B.DEVICE._last_note == (7, True, 100, True)
+assert st == 200 and B.DEVICE._last_note == (7, True, 100, True, None)
+st, _, data = req('POST', '/api/note',                 # raw MIDI note (keyboard full range)
+                  body=json.dumps({'note': 72, 'on': True, 'keyboard': True, 'velocity': 90}))
+assert st == 200 and B.DEVICE._last_note == (0, True, 90, True, 72)
 st, _, _ = req('POST', '/api/note', body=json.dumps({'slot': 99}))
+assert st == 400
+st, _, _ = req('POST', '/api/note', body=json.dumps({'note': 200}))   # out of range
+assert st == 400
+st, _, _ = req('POST', '/api/note', body=json.dumps({'on': True}))    # neither slot nor note
+assert st == 400
+
+# --- pitch bend (keyboard-mode) -------------------------------------------------
+st, _, data = req('POST', '/api/pitch-bend', body=json.dumps({'value': 10000}))
+assert st == 200 and json.loads(data)['ok'] is True
+assert B.DEVICE._last_bend == (10000, True)
+st, _, _ = req('POST', '/api/pitch-bend', body=json.dumps({'value': 99999}))   # out of range
 assert st == 400
 
 # --- live param edit --------------------------------------------------------------
