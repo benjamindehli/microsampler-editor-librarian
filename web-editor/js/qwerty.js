@@ -35,7 +35,7 @@ function send(body) {
   api('/api/note', jsonBody({ velocity: 100, keyboard: mode === 'kbd', ...body }))
     .catch(err => { if (body.on) tick(`⚠ note failed: ${err.message}`); });
 }
-function note(slot, on, velocity = 100) { send({ slot, on, velocity }); }
+function note(slot, on) { send({ slot, on }); }   // on-screen/qwerty keys play at the send() default velocity
 function paint(slot, sounding) {
   // always light the piano key; in KEYBOARD mode the pad isn't what's triggered
   // (the selected sample plays pitched), so don't light the pad grid there
