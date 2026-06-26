@@ -73,6 +73,7 @@ export function renderFx() {
   const grid = $('#fx-params');
   grid.innerHTML = fx.params.length ? '' :
     '<p class="backup-empty">EFFECT OFF — NO PARAMETERS</p>';
+  $('#fx-legend').hidden = !fx.params.length;        // the legend only makes sense with params
   for (const p of fx.params) {
     const v = state.fx.vals[p.idx];
     const div = document.createElement('div');
@@ -199,6 +200,27 @@ function applyFxEnable() {
       q.idx !== idx && q.name === p.name && enabled[q.idx] !== false);
   }
   renderFxKnobs();        // active swap twins may have changed
+  markKnobParams();
+}
+
+// badge + ring the two params currently mapped to the device's FX EDIT 1/2 knobs,
+// so the physical-knob targets are obvious in the grid (ties the header assigns to
+// the params). Snapped to the active swap twin, like the device does.
+function markKnobParams() {
+  if (!state.fx) return;
+  const k = [fxSnapKnob(state.fx.knobs[0]), fxSnapKnob(state.fx.knobs[1])];
+  for (const div of document.querySelectorAll('#fx-params .fx-param')) {
+    const idx = +div.dataset.fxp;
+    const tags = [];
+    if (idx === k[0]) tags.push('FX1');
+    if (idx === k[1]) tags.push('FX2');
+    div.classList.toggle('knob', tags.length > 0);
+    let badge = div.querySelector('.fx-knob-badge');
+    if (tags.length) {
+      if (!badge) { badge = document.createElement('span'); badge.className = 'fx-knob-badge'; div.append(badge); }
+      badge.textContent = tags.join('·');
+    } else if (badge) { badge.remove(); }
+  }
 }
 
 $('#fx-type').onchange = ev => {
@@ -214,6 +236,7 @@ for (const k of [0, 1])
   $(k ? '#fx-knob2' : '#fx-knob1').onchange = ev => {
     state.fx.knobs[k] = +ev.target.value;
     sendFx(2 + k, +ev.target.value);
+    markKnobParams();                  // re-badge the grid for the new assignment
   };
 
 // The panel's FX EDIT 1/2 knobs transmit plain MIDI CC (Korg's Effect

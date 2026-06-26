@@ -32,6 +32,19 @@
 .fx-param .fx-select { min-width: 0; width: 100%; }
 .fx-param .ctl-label { line-height: 1.25; cursor: help; }
 
+/* params mapped to the device's physical FX EDIT 1/2 knobs — ringed + badged */
+.fx-param.knob { box-shadow: inset 0 0 0 1px var(--amber-dk); }
+.fx-knob-badge {
+  position: absolute; top: -7px; right: 8px; z-index: 2;
+  font: 700 .5rem/1 "Chakra Petch", sans-serif; letter-spacing: .08em;
+  color: #1a0d00; background: var(--amber); border-radius: 3px; padding: .12rem .32rem;
+}
+.fx-legend { margin: 1.1rem 0 0; font-size: .58rem; letter-spacing: .1em; color: var(--ink-dim); }
+.fx-legend b { color: var(--amber-dk); font-weight: 700; }
+/* the FX page has far less content than the sample editor, so don't force its
+   panel to the editor's tall min-height (that left a big empty void below) */
+#view-effect .editor { min-height: 360px; }
+
 /* range/default hover hint — theme-styled (recolours with the accent) */
 .fx-param[data-tip]::after {
   content: attr(data-tip);

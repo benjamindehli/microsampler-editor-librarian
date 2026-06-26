@@ -53,6 +53,11 @@
   align-items: start;
 }
 @media (max-width: 980px) { .deck { grid-template-columns: 1fr; } }
+/* gentle entrance when a view is shown (display none->grid restarts the anim on
+   every tab switch), so switching SAMPLES/EFFECT/PATTERNS/UTILITY feels smooth */
+.deck:not([hidden]) { animation: view-in .16s cubic-bezier(.2, .8, .25, 1) both; }
+@keyframes view-in { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) { .deck:not([hidden]) { animation: none; } }
 
 /* right column: editor + on-screen keyboard stacked. align-self:stretch makes it
    take the row height (the taller pad column), and the keybed flex-grows to fill
