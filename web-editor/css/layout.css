@@ -3,6 +3,7 @@
 /* ── top rail ─────────────────────────────────────────────────────────── */
 .rail {
   display: flex; align-items: center; gap: 1.4rem;
+  flex-wrap: wrap; row-gap: .55rem;   /* narrow widths: wrap instead of clipping the right cluster */
   padding: .8rem 1.2rem;
   background: linear-gradient(180deg, #1c1c21, var(--steel-1));
   border-bottom: 1px solid #000;

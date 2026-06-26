@@ -26,7 +26,14 @@
 }
 .backup-row .b-meta { font-size: .62rem; color: var(--ink-dim); letter-spacing: .08em; }
 .backup-row .spacer { flex: 1; }
-.backup-empty { font-size: .7rem; color: var(--ink-dim); letter-spacing: .1em; }
+/* empty / first-run prompt — centered with breathing room so it reads as an
+   intentional "do this next" state, not a stray dim line. grid-column spans the
+   whole grid where the parent is one (#pattern-grid, #fx-params); ignored else. */
+.backup-empty {
+  grid-column: 1 / -1; text-align: center;
+  padding: 2.4rem 1rem; line-height: 1.6;
+  font-size: .72rem; color: var(--ink-dim); letter-spacing: .12em;
+}
 
 .op-console {
   font-family: "Share Tech Mono", monospace; font-size: .72rem;
