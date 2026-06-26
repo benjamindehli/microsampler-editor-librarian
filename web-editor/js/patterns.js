@@ -80,7 +80,7 @@ function buildCard(p) {
         <span class="spacer"></span>
         <span class="p-meta">${tracks.join(' · ')}</span>
       </div>
-      <canvas class="pattern-roll"></canvas>
+      <div class="pattern-roll-wrap"><canvas class="pattern-roll"></canvas></div>
       <div class="p-head">
         <span class="p-meta">BARS <b>${p.valid ? p.bars : '–'}</b></span>
         <span class="p-meta" title="Sample assigned to the keyboard-mode track">
@@ -197,11 +197,40 @@ function drawRoll(canvas, p) {
 // transport, so only one pattern plays at a time.
 let playing = null;      // { pattern, btn } currently transport-playing, or null
 
+// APPROXIMATE play sweep on the card's mini-roll (the app can't read the device's
+// true position): a rAF line over the pattern's duration (bars × 4 beats at the
+// bank BPM, ticks == bars×384 so it maps linearly), looping like the device does.
+let pRAF = null, pPlayhead = null;
+function stopPlayhead() {
+  if (pRAF) cancelAnimationFrame(pRAF);
+  pRAF = null;
+  if (pPlayhead) { pPlayhead.remove(); pPlayhead = null; }
+}
+function startPlayhead(p, btn, bpm) {
+  stopPlayhead();
+  const wrap = btn.closest('.pattern-card') && btn.closest('.pattern-card').querySelector('.pattern-roll-wrap');
+  if (!wrap) return;
+  const ph = document.createElement('div');
+  ph.className = 'p-playhead';
+  wrap.append(ph);
+  pPlayhead = ph;
+  const durMs = p.bars * 4 * (60000 / Math.max(20, Math.min(300, bpm || 120)));
+  let t0 = null;
+  const frame = ts => {
+    if (pPlayhead !== ph) return;                 // stopped or superseded by another card
+    if (t0 == null) t0 = ts;
+    ph.style.left = (((ts - t0) % durMs) / durMs * wrap.clientWidth) + 'px';
+    pRAF = requestAnimationFrame(frame);
+  };
+  pRAF = requestAnimationFrame(frame);
+}
+
 export function stopTransport() {
   if (!playing) return;
   const btn = playing.btn;
   playing = null;
   btn.classList.remove('playing');
+  stopPlayhead();
   apiJson('/api/transport/stop', { method: 'POST' }).catch(() => { });
 }
 
@@ -213,15 +242,18 @@ async function playPattern(p, btn) {
   if (playing) playing.btn.classList.remove('playing');
   playing = { pattern: p.pattern, btn };
   btn.classList.add('playing');
+  const bpm = (state.bank && state.bank.bpm) || 120;
+  startPlayhead(p, btn, bpm);
   try {
     // the device sequencer is a slave — the bridge streams MIDI clock at this
     // tempo so Start actually advances (device needs MIDI CLK = AUTO/EXT MIDI)
-    await apiJson(`/api/pattern/${p.pattern}/play`,
-                  jsonBody({ bpm: (state.bank && state.bank.bpm) || 120 }));
+    await apiJson(`/api/pattern/${p.pattern}/play`, jsonBody({ bpm }));
     tick(`▶ pattern ${p.pattern + 1} (device)`);
   } catch (e) {
     tick(`⚠ play failed: ${e.message}`);
-    if (playing && playing.pattern === p.pattern) { btn.classList.remove('playing'); playing = null; }
+    if (playing && playing.pattern === p.pattern) {
+      btn.classList.remove('playing'); playing = null; stopPlayhead();
+    }
   }
 }
 
