@@ -25,7 +25,18 @@
   border-radius: 5px;
   padding: .7rem .8rem;
   display: flex; flex-direction: column; gap: .5rem;
+  transition: transform .12s, border-color .12s, box-shadow .12s;
 }
+.pattern-card:hover {                       /* subtle lift on hover (tactile, signals interactivity) */
+  transform: translateY(-1px);
+  border-color: var(--line-hi);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .45);
+}
+/* empty / unreadable patterns recede so the recorded ones stand out (still
+   fully usable — hover brings them back to full strength) */
+.pattern-card.is-empty { opacity: .5; }
+.pattern-card.is-empty:hover { opacity: 1; }
+.pattern-card.is-empty .pattern-roll { box-shadow: none; opacity: .55; }
 .pattern-card .p-head { display: flex; align-items: baseline; gap: .6rem; }
 .pattern-card .p-num {
   font-family: "Share Tech Mono", monospace; font-size: 1.05rem;

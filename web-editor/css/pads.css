@@ -37,7 +37,7 @@
   box-shadow: 0 2px 0 #000;
   transition: transform .05s, border-color .15s, background .15s;
 }
-.pad:hover { border-color: var(--line-hi); }
+.pad:hover { border-color: var(--line-hi); transform: translateY(-1px); box-shadow: 0 2px 0 #000, 0 5px 10px rgba(0, 0, 0, .4); }
 .pad:active { transform: translateY(1px); box-shadow: 0 1px 0 #000; }
 /* sharps = a keyboard's black keys: darker face so the layout reads at a glance
    (defined before .pad.sel so a selected sharp still gets the amber tint) */

@@ -14,7 +14,7 @@
   --line:    #2b2b33;          /* panel seams                */
   --line-hi: #3a3a44;
   --ink:     #b9b2a6;          /* silkscreen text            */
-  --ink-dim: #6d685f;
+  --ink-dim: #837d71;          /* muted labels — lifted from #6d685f for legible contrast */
   /* accent = one tunable colour (the theme switcher overrides these three RGB
      triplets; everything else — glows, borders, the phosphor backgrounds, the
      canvas waveform — derives from them so a theme change is total). */
