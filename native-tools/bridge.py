@@ -417,7 +417,7 @@ class Device:
                                     timeout_ms=8000, what='clear header ACK')
             else:
                 UL.upload(self.ms, self.channel, slot, d['pcm'], d['rate'],
-                          d['stereo'], 0, d['blob'], d['tempo'],
+                          d['stereo'], d['blob'], d['tempo'],
                           mode_bit=d.get('mode_bit', 0))
         return {'slot': slot, 'empty': bool(d.get('empty'))}
 
@@ -714,7 +714,7 @@ class Device:
         with self.lock:
             self._inquire()
             UL.upload(self.ms, self.channel, slot, pcm, target,
-                      len(chans) == 2, frames, blob, tempo)
+                      len(chans) == 2, blob, tempo)
         return {'slot': slot, 'frames': frames, 'rate_hz': target,
                 'stereo': len(chans) == 2}
 
