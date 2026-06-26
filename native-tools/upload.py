@@ -100,7 +100,7 @@ def to_device_pcm(chans, rate, target_rate):
 
 
 # --- upload phases ------------------------------------------------------------
-def upload(ms, channel, slot, pcm, rate, stereo, frames, blob, tempo, mode_bit=0):
+def upload(ms, channel, slot, pcm, rate, stereo, blob, tempo, mode_bit=0):
     # phase 1: header
     _drain(ms)
     ms.send_sysex(P.sample_header(channel, slot, len(pcm), rate, stereo,
@@ -207,7 +207,7 @@ def main():
             print("header ACKed — STOPPING (power-cycle the device now).")
             return 0
 
-        upload(ms, channel, args.slot, pcm, rate, stereo, frames, blob, args.tempo)
+        upload(ms, channel, args.slot, pcm, rate, stereo, blob, args.tempo)
         print(f"done — slot {args.slot} written to the device's CURRENT BANK (RAM).")
 
         if args.verify:

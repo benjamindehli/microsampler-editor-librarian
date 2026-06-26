@@ -119,7 +119,7 @@ chans, rate = U.load_wav(tmp)
 pcm, frames = U.to_device_pcm(chans, rate, 24000)
 blob = P.build_param_blob('TEST', 'Test long', 0, frames)
 ms = FakeMS(len(pcm))
-U.upload(ms, 0, 9, pcm, 24000, False, frames, blob, 95.5)
+U.upload(ms, 0, 9, pcm, 24000, False, blob, 95.5)
 assert ms.phase == 'done'
 hdr = ms.seen['header']
 assert int.from_bytes(hdr[0:4], 'little') == len(pcm)
@@ -137,7 +137,7 @@ def err_write(data):
         ms2._ack(0x28)                           # header error
 ms2.on_write = err_write
 try:
-    U.upload(ms2, 0, 9, pcm, 24000, False, frames, blob, 120.0)
+    U.upload(ms2, 0, 9, pcm, 24000, False, blob, 120.0)
     raise AssertionError('expected DownloadError')
 except Exception as e:
     assert '0x28' in str(e), e
