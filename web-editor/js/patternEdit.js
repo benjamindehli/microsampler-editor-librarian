@@ -67,6 +67,7 @@ function renderRoll() {
   // focus — remember which note was focused and restore it afterwards
   const af = document.activeElement;
   const refocus = af && af.classList && af.classList.contains('pe-note') ? af.dataset.i : null;
+  const ph = roll.querySelector('#pe-playhead');   // preserve the moving playhead across the rebuild
   roll.style.height = ROWS * ROWH + 'px';
   const tot = total();
   // bar lines + black-key row shading: numeric-only markup, safe as an HTML string
@@ -97,6 +98,7 @@ function renderRoll() {
     d.append(grip);
     roll.append(d);
   });
+  if (ph) roll.append(ph);                          // re-attach the preview playhead
   if (refocus != null) roll.querySelector(`.pe-note[data-i="${refocus}"]`)?.focus();
 }
 
@@ -446,9 +448,39 @@ function setPlayBtn() {
   $('#pe-play').classList.toggle('playing', pePlaying);
   $('#pe-play-cap').textContent = pePlaying ? '■ STOP' : '▶ PLAY';
 }
+
+// APPROXIMATE preview playhead (the app can't read the device's true position):
+// a rAF line sweeps the roll over the pattern's duration (bars × 4 beats at the
+// bank BPM) and loops, the way the device loops the pattern.
+let peRAF = null;
+function stopPlayhead() {
+  if (peRAF) cancelAnimationFrame(peRAF);
+  peRAF = null;
+  const ph = $('#pe-roll').querySelector('#pe-playhead');
+  if (ph) ph.hidden = true;
+}
+function startPlayhead(bpm) {
+  stopPlayhead();
+  const roll = $('#pe-roll');
+  let ph = roll.querySelector('#pe-playhead');
+  if (!ph) { ph = document.createElement('div'); ph.id = 'pe-playhead'; ph.className = 'pe-playhead'; roll.append(ph); }
+  ph.hidden = false;
+  const bars = cur.bars;                                  // matches the pattern just written
+  const durMs = bars * 4 * (60000 / Math.max(20, Math.min(300, bpm || 120)));   // 4/4
+  let t0 = null;
+  const frame = ts => {
+    if (!pePlaying) return;
+    if (t0 == null) t0 = ts;
+    const frac = ((ts - t0) % durMs) / durMs;             // loop
+    ph.style.left = (frac * roll.clientWidth) + 'px';
+    peRAF = requestAnimationFrame(frame);
+  };
+  peRAF = requestAnimationFrame(frame);
+}
+
 async function stopPreview() {
   if (!pePlaying) return;
-  pePlaying = false; setPlayBtn();
+  pePlaying = false; setPlayBtn(); stopPlayhead();
   try { await api('/api/transport/stop', { method: 'POST' }); } catch { /* ignore */ }
 }
 
@@ -460,12 +492,12 @@ async function preview() {
   try {
     await writePattern(buildSmf());
     cur.dirty = true;
-    await api(`/api/pattern/${cur.pattern}/play`,
-              jsonBody({ bpm: (state.bank && state.bank.bpm) || 120 }));
-    pePlaying = true; setPlayBtn();
+    const bpm = (state.bank && state.bank.bpm) || 120;
+    await api(`/api/pattern/${cur.pattern}/play`, jsonBody({ bpm }));
+    pePlaying = true; setPlayBtn(); startPlayhead(bpm);
     tick(`▶ preview ${pNum()}`);
   } catch (err) {
-    pePlaying = false; setPlayBtn();
+    pePlaying = false; setPlayBtn(); stopPlayhead();
     tick(`⚠ preview: ${err.message}`);
   }
 }
