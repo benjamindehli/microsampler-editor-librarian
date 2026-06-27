@@ -53,20 +53,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
       - name: JS syntax check
         run: |
-          for f in web-editor/js/*.js; do
+          for f in $(find web-editor -name '*.js'); do
             echo "checking $f"
             node --check "$f"
           done
       - name: ES module imports resolve
         run: node --input-type=module -e "
-          import('./web-editor/js/valueTables.js').then(m =>
+          import('./web-editor/functions/valueTables.js').then(m =>
             console.log('valueTables:', Object.keys(m.VALUE_TABLES).length, 'tables'));
-          import('./web-editor/js/fxData.js').then(m =>
+          import('./web-editor/functions/fxData.js').then(m =>
             console.log('fxData:', m.FX_TYPES.length, 'fx types'));"
       - name: unit tests (pure modules)
-        run: node --test test/*.test.mjs
+        run: |
+          npm install
+          npm test
 
   lint:
     name: lint (ruff + eslint)
