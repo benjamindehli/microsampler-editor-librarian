@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How the microSAMPLER works — concepts — microSAMPLER Editor / Librarian</title>
+<meta name="description" content="A plain-English guide to how the Korg microSAMPLER works: banks and memory, sample vs keyboard mode, BPM-sync, sampling types, effects, the pattern sequencer, MIDI, and how edits persist.">
+<link rel="canonical" href="https://benjamindehli.github.io/microsampler-editor-librarian/concepts.html">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#0b0b0d">
+<link rel="icon" type="image/svg+xml" href="assets/appicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="microSAMPLER Editor / Librarian">
+<meta property="og:title" content="How the microSAMPLER works — concepts">
+<meta property="og:description" content="Banks &amp; memory, sample vs keyboard mode, BPM-sync, sampling, effects, the sequencer and MIDI — explained for editor users.">
+<meta property="og:url" content="https://benjamindehli.github.io/microsampler-editor-librarian/concepts.html">
+<meta property="og:image" content="https://benjamindehli.github.io/microsampler-editor-librarian/assets/og-cover.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://benjamindehli.github.io/microsampler-editor-librarian/assets/og-cover.jpg">
+<link rel="stylesheet" href="css/docs.css">
+<script src="docs.js" defer></script>
+<script type="application/ld+json">
+{ "@context": "https://schema.org", "@type": "TechArticle",
+  "headline": "How the Korg microSAMPLER works",
+  "description": "Banks and memory, sample vs keyboard mode, BPM-sync, sampling types, effects, the pattern sequencer, MIDI, and persistence — explained for editor users.",
+  "inLanguage": "en",
+  "author": { "@type": "Person", "name": "Benjamin Dehli", "url": "https://www.dehlimusikk.no/" },
+  "mainEntityOfPage": "https://benjamindehli.github.io/microsampler-editor-librarian/concepts.html" }
+</script>
+</head>
+<body>
+
+<header class="topnav" id="top">
+  <a class="brand" href="index.html">
+    <img src="assets/logo.svg" alt="Dehli Musikk">
+    <b>microSAMPLER <span>Editor / Librarian</span></b>
+  </a>
+  <button class="menu-btn" aria-label="Toggle menu">MENU</button>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="getting-started.html">Getting started</a>
+    <a href="guide.html">Guide</a>
+    <a href="concepts.html" class="active">Concepts</a>
+    <a href="troubleshooting.html">Troubleshooting</a>
+    <a class="gh" href="https://github.com/benjamindehli/microsampler-editor-librarian" target="_blank" rel="noopener">GitHub ↗</a>
+  </nav>
+</header>
+
+<main class="content">
+  <div class="page-head">
+    <h1>How the microSAMPLER works</h1>
+    <p>A plain-English tour of the concepts behind the hardware, so the editor's parameters and views make
+      sense. This is a primer written for editor users — your microSAMPLER's own manual is the authoritative
+      reference.</p>
+  </div>
+
+  <nav class="toc" aria-label="On this page">
+    <b>On this page</b>
+    <ul>
+      <li><a href="#banks">Banks &amp; memory</a></li>
+      <li><a href="#persistence">RAM vs saved</a></li>
+      <li><a href="#samples">Samples &amp; the two play modes</a></li>
+      <li><a href="#params">Sample parameters</a></li>
+      <li><a href="#bpm-sync">BPM-sync &amp; original BPM</a></li>
+      <li><a href="#sampling">Sampling on the device</a></li>
+      <li><a href="#effects">Effects</a></li>
+      <li><a href="#patterns">The pattern sequencer</a></li>
+      <li><a href="#midi">MIDI &amp; the USB link</a></li>
+      <li><a href="#audio">Audio format</a></li>
+    </ul>
+  </nav>
+
+  <h2 id="banks">Banks &amp; memory</h2>
+  <p>Everything on the microSAMPLER lives in a <strong>bank</strong>. A bank is a complete kit: its 36 sample
+    slots, all their parameters, the bank's name and tempo, one effect setting, and 16 pattern slots. Only
+    <strong>one bank is loaded at a time</strong> — that's the "current bank" you're editing.</p>
+  <ul>
+    <li><strong>The current bank lives in RAM.</strong> When you sample, upload or tweak a parameter, you're
+      changing this working copy. Switching banks or powering off discards it unless you save (see below).</li>
+    <li><strong>User banks</strong> are persistent storage on the device. Saving the current bank into a user
+      bank keeps it across power cycles.</li>
+    <li><strong>ROM banks</strong> are factory content (samples and patterns) you can load as a starting point;
+      you can't overwrite them, but you can load one, edit it, and save the result to a user bank.</li>
+  </ul>
+  <p>Each bank draws on two separate memory pools: a large one for sample audio and a small one for pattern
+    sequences. The editor's <strong>memory meters</strong> show how full each pool is for the current bank —
+    handy before sampling something long or recording busy patterns.</p>
+
+  <h2 id="persistence">RAM vs saved</h2>
+  <div class="note warn">
+    <b class="label">EDITS ARE TEMPORARY UNTIL YOU SAVE</b>
+    <p>The editor writes to the device's <strong>current bank, which is RAM</strong>. Those changes are lost on
+      power-off or a bank switch. To keep them: do a <strong>WRITE</strong> on the device to a user bank, or
+      restore a backup into a user bank from the editor's <a href="guide.html#utility">Utility</a> view. Always
+      <strong>back up a bank</strong> before bulk operations, and never disconnect mid-transfer.</p>
+  </div>
+  <p>This RAM model is why the editor can be non-destructive: previewing a pattern, for instance, writes it to
+    the current bank and plays it, but nothing is permanent until you deliberately save. It's also why bank
+    backups matter — a backup captures the whole RAM bank to a file you can restore later.</p>
+
+  <h2 id="samples">Samples &amp; the two play modes</h2>
+  <p>A bank has <strong>36 sample slots</strong>, laid out across the device's keys (and mirrored on the
+    editor's pad grid). Each slot holds one recorded or imported sound plus its parameters. The microSAMPLER
+    plays those 36 sounds in two distinct ways, and understanding the difference explains a lot of the editor:</p>
+  <ul>
+    <li><strong>Sample mode</strong> — each key triggers its <em>own</em> slot at its original pitch, like a
+      drum kit or a pad bank. This is how you play a kit where every key is a different sound.</li>
+    <li><strong>Keyboard mode</strong> — the keys play a <em>single, selected</em> sample chromatically, like a
+      sampler instrument: hold a melody and the one sample follows the pitches.</li>
+  </ul>
+  <p>The on-screen keyboard's <strong>SAMPLE / KEYBOARD</strong> toggle, and MIDI-keyboard input, map straight
+    onto these two modes. The two modes are also why a <a href="#patterns">pattern</a> has two tracks: one for
+    sample-mode hits (which pad, when) and one for keyboard-mode notes (which pitch of the selected sample).</p>
+
+  <h2 id="params">Sample parameters</h2>
+  <p>Every slot carries a set of parameters the editor exposes and writes live:</p>
+  <table>
+    <tr><th>Parameter</th><th>What it does</th></tr>
+    <tr><td>Start / End</td><td>The portion of the recording that actually plays. Trim on the waveform or type exact frames.</td></tr>
+    <tr><td>Loop</td><td>Whether playback loops between the start and end points (sustained sounds) or plays once (one-shots).</td></tr>
+    <tr><td>Reverse</td><td>Plays the sample backwards.</td></tr>
+    <tr><td>Level / Pan</td><td>Per-slot volume and stereo position.</td></tr>
+    <tr><td>Decay / Release</td><td>How the sound fades while held and after release — its amplitude envelope.</td></tr>
+    <tr><td>Semitone / Tune</td><td>Coarse (±24 semitones) and fine (cents) pitch offset.</td></tr>
+    <tr><td>Velocity intensity</td><td>How strongly playing harder/softer affects the level.</td></tr>
+    <tr><td>FX switch</td><td>Whether the bank's effect is applied to this slot (see <a href="#effects">Effects</a>).</td></tr>
+    <tr><td>BPM-sync / Original BPM</td><td>Time-stretch or pitch behaviour relative to the bank tempo (see below).</td></tr>
+  </table>
+  <div class="note">
+    <b class="label">PANEL EDITS &amp; LIVE SYNC</b>
+    <p>The microSAMPLER only transmits a knob move while it's on its sample-edit page; turned elsewhere, the
+      value changes silently. So the editor re-reads the bank when you press <strong>RECEIVE</strong> or
+      refocus the window, keeping the two in sync after you fiddle with the hardware.</p>
+  </div>
+
+  <h2 id="bpm-sync">BPM-sync &amp; original BPM</h2>
+  <p>A bank has a tempo, and each sample remembers the tempo it was recorded at — its <strong>original
+    BPM</strong>. <strong>BPM-sync</strong> decides what happens when the bank tempo differs from a loop's
+    original tempo:</p>
+  <ul>
+    <li><strong>Off</strong> — the sample plays at its natural speed and pitch.</li>
+    <li><strong>Stretch</strong> — the sample is time-stretched to match the bank tempo, keeping its pitch.
+      Great for keeping a drum loop in time across tempos.</li>
+    <li><strong>Pitch</strong> — the sample is sped up or slowed down to match the tempo, so its pitch changes
+      with it (classic sampler behaviour).</li>
+  </ul>
+  <p>For stretch/pitch to track correctly, the sample's <strong>original BPM</strong> must be right — that's why
+    the editor lets you edit it (the <strong>BPM</strong> chip on the Samples view). When BPM-sync is on, the
+    editor's waveform playhead even sweeps at the stretched rate.</p>
+
+  <h2 id="sampling">Sampling on the device</h2>
+  <p>Sampling itself happens on the hardware (the editor can remotely trigger it via the
+    <a href="guide.html#utility">Utility</a> view, but you watch the device screen). A few concepts shape how a
+    recording turns into a playable slot:</p>
+  <ul>
+    <li><strong>Input</strong> — record from the audio input(s) or the built-in mic, or <strong>resample</strong>
+      the device's own output (to bounce a sound through the effect, for example).</li>
+    <li><strong>Trigger style</strong> — the device offers several ways a sample is captured and replayed, e.g.
+      looping material, one-shots, gated (only while a key is held), key-gated, and "auto next" for capturing a
+      run of slots in sequence. These map onto the loop/one-shot behaviour you see per slot.</li>
+    <li><strong>Audio-in through the effect</strong> — the bank's effect can process the live input, so you can
+      monitor and even sample through it.</li>
+  </ul>
+  <p>Whichever way you capture audio, you can also bring sounds in from your computer: the editor uploads WAVs
+    (resampling them to the device's rates), with optional normalize / trim / fade and auto-slicing across pads.</p>
+
+  <h2 id="effects">Effects</h2>
+  <p>Each bank has <strong>one effect</strong>, chosen from 22 types (filters, modulation, delays, reverb, a
+    looper, and more). It's applied to any sample whose <strong>FX switch</strong> is on, and optionally to the
+    live audio input. Two of the effect's parameters are assigned to the hardware's <strong>FX&nbsp;EDIT&nbsp;1/2</strong>
+    knobs for quick hands-on tweaking — the editor badges those two and tracks the physical knobs live. Which
+    parameters are available, and how some gray out or swap, depends on the chosen type; the editor mirrors the
+    hardware's behaviour exactly, and you can save/load whole effect setups as presets.</p>
+
+  <h2 id="patterns">The pattern sequencer</h2>
+  <p>Each bank holds <strong>16 patterns</strong>. A pattern is a short, looping performance recorded across
+    <strong>two tracks</strong> that match the two play modes:</p>
+  <ul>
+    <li>a <strong>sample-mode track</strong> — which pads were hit and when, and</li>
+    <li>a <strong>keyboard-mode track</strong> — notes played on the selected keyboard-mode sample.</li>
+  </ul>
+  <p>You can record patterns on the device, edit them in the editor's built-in piano roll (both tracks at once),
+    and import/export them as Standard MIDI Files for your DAW. Because a pattern is just notes on two tracks, a
+    MIDI file round-trips cleanly: channel 1 becomes the sample-mode track, other channels the keyboard-mode track.</p>
+  <div class="note">
+    <b class="label">THE SEQUENCER IS A CLOCK SLAVE</b>
+    <p>The device's sequencer doesn't run on its own clock when driven externally — it advances on incoming MIDI
+      clock. That's why the editor streams clock at the bank tempo to play a pattern, and why the device needs
+      <code>GLOBAL → MIDI CLK = AUTO</code>. See <a href="getting-started.html#device-setup">device setup</a>.</p>
+  </div>
+
+  <h2 id="midi">MIDI &amp; the USB link</h2>
+  <p>The microSAMPLER speaks MIDI over its USB connection. The editor uses that for the small, live things —
+    playing notes, nudging parameters, transport — while large transfers (samples, whole banks, patterns) use a
+    higher-throughput mode on the same USB pipe. A few consequences worth knowing:</p>
+  <ul>
+    <li><strong>One owner at a time.</strong> Because those transfers aren't ordinary MIDI, the device can't be
+      shared with a DAW or other MIDI software while the editor's bridge is running — close them first.</li>
+    <li><strong>Notes &amp; velocity</strong> play samples; in keyboard mode they play the selected sample
+      pitched. <strong>Pitch bend</strong> bends the keyboard-mode voice; the <strong>sustain pedal</strong> holds
+      notes. The editor forwards all of these from a connected MIDI keyboard via your browser's Web MIDI.</li>
+    <li><strong>Continuous controllers and NRPNs</strong> drive things like volume, pan, pattern selection, and
+      triggering record or sampling — which is how the editor's remote record/sampling buttons work.</li>
+    <li><strong>MIDI clock</strong> advances the sequencer (above).</li>
+  </ul>
+  <p>The editor itself never touches your computer's MIDI directly — a small local <strong>bridge</strong> owns
+    the USB connection and the browser talks to it over HTTP, which is why the bridge needs administrator
+    rights while it runs.</p>
+
+  <h2 id="audio">Audio format</h2>
+  <p>The microSAMPLER stores samples as <strong>16-bit audio</strong> at one of four sample rates
+    (48 / 24 / 12 / 6&nbsp;kHz) — lower rates trade fidelity for more recording time. When you upload a WAV the
+    editor resamples it to the nearest device rate automatically; when you download a slot you get a standard
+    WAV back. Total sample time depends on the rate and on mono vs stereo, which is what the memory meter is
+    tracking.</p>
+
+  <p>Ready to use it? Head to <a href="guide.html">the guide</a> for each view, or
+    <a href="getting-started.html">get set up</a> first.</p>
+
+  <footer>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="getting-started.html">Getting started</a>
+      <a href="guide.html">Guide</a>
+      <a href="concepts.html">Concepts</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="https://github.com/benjamindehli/microsampler-editor-librarian/releases">Releases &amp; changelog ↗</a>
+    </nav>
+    <img class="logo" src="assets/logo.svg" alt="Dehli Musikk">
+    <p>microSAMPLER Editor / Librarian — an independent, unofficial project.
+      microSAMPLER and Korg are trademarks of Korg Inc. Licensed under the GNU GPL v3.</p>
+  </footer>
+</main>
+
+<a class="to-top" href="#top" aria-label="Back to top" title="Back to top">↑</a>
+</body>
+</html>

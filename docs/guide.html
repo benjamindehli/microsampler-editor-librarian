@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guide — microSAMPLER Editor / Librarian</title>
+<meta name="description" content="The full guide to the microSAMPLER Editor / Librarian: the Samples, Effect, Patterns and pattern editor, Utility and Library views, the keyboard, and keyboard shortcuts.">
+<link rel="canonical" href="https://benjamindehli.github.io/microsampler-editor-librarian/guide.html">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#0b0b0d">
+<link rel="icon" type="image/svg+xml" href="assets/appicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="microSAMPLER Editor / Librarian">
+<meta property="og:title" content="Guide — microSAMPLER Editor / Librarian">
+<meta property="og:description" content="Every view in depth — Samples, Effect, Patterns &amp; editor, Utility, Library, keyboard and shortcuts.">
+<meta property="og:url" content="https://benjamindehli.github.io/microsampler-editor-librarian/guide.html">
+<meta property="og:image" content="https://benjamindehli.github.io/microsampler-editor-librarian/assets/og-cover.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://benjamindehli.github.io/microsampler-editor-librarian/assets/og-cover.jpg">
+<link rel="stylesheet" href="css/docs.css">
+<script src="docs.js" defer></script>
+<script type="application/ld+json">
+{ "@context": "https://schema.org", "@type": "TechArticle",
+  "headline": "microSAMPLER Editor / Librarian — full guide",
+  "description": "Every view in depth: Samples, Effect, Patterns and the pattern editor, Utility, Library, the keyboard, and shortcuts.",
+  "inLanguage": "en",
+  "author": { "@type": "Person", "name": "Benjamin Dehli", "url": "https://www.dehlimusikk.no/" },
+  "mainEntityOfPage": "https://benjamindehli.github.io/microsampler-editor-librarian/guide.html" }
+</script>
+</head>
+<body>
+
+<header class="topnav" id="top">
+  <a class="brand" href="index.html">
+    <img src="assets/logo.svg" alt="Dehli Musikk">
+    <b>microSAMPLER <span>Editor / Librarian</span></b>
+  </a>
+  <button class="menu-btn" aria-label="Toggle menu">MENU</button>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="getting-started.html">Getting started</a>
+    <a href="guide.html" class="active">Guide</a>
+    <a href="concepts.html">Concepts</a>
+    <a href="troubleshooting.html">Troubleshooting</a>
+    <a class="gh" href="https://github.com/benjamindehli/microsampler-editor-librarian" target="_blank" rel="noopener">GitHub ↗</a>
+  </nav>
+</header>
+
+<main class="content">
+  <div class="page-head">
+    <h1>The guide</h1>
+    <p>A tour of every view. New to the hardware? Read <a href="concepts.html">how the microSAMPLER
+      works</a> first — it makes the parameters here click into place.</p>
+  </div>
+
+  <nav class="toc" aria-label="On this page">
+    <b>On this page</b>
+    <ul>
+      <li><a href="#samples">Samples</a></li>
+      <li><a href="#effect">Effect</a></li>
+      <li><a href="#patterns">Patterns &amp; editor</a></li>
+      <li><a href="#utility">Utility</a></li>
+      <li><a href="#library">Library mode</a></li>
+      <li><a href="#rail">Top bar &amp; shortcuts</a></li>
+    </ul>
+  </nav>
+
+  <h2 id="samples">Samples</h2>
+  <figure>
+    <img src="assets/screenshots/samples.png" alt="The Samples view: 36-pad grid on the left; waveform and parameter controls on the right, with an on-screen keyboard beneath them" loading="lazy">
+    <figcaption>The SAMPLES view — pad grid, waveform, the full set of sample parameters, and an on-screen keyboard.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>36-slot pad grid</strong> — click a pad to edit it; filter by name with the search box.</li>
+    <li><strong>Waveform</strong> — scroll to zoom, drag to pan. Set the start/end points by dragging the
+      <kbd>S</kbd>/<kbd>E</kbd> markers or by typing exact frame values. With <strong>ZERO-SNAP</strong> on,
+      a dragged marker snaps to the nearest zero crossing so the trim doesn't click.</li>
+    <li><strong>Audition</strong> — the <strong>▶ PLAY</strong> button plays the slot on the device (with a
+      moving playhead over the waveform).</li>
+    <li><strong>Original BPM</strong> — click the <strong>BPM</strong> chip to edit the sample's original
+      tempo (used for BPM-sync stretching) in a dialog. Applying re-uploads the sample to the device, keeping
+      its audio and all other settings.</li>
+    <li><strong>On-screen keyboard</strong> — a piano below the editor mirrors all 36 pads; click a key to
+      play it on the device. The <strong>SAMPLE / KEYBOARD</strong> toggle switches how the keys play:
+      <strong>SAMPLE</strong> triggers a different sample per key (keys with no sample are dimmed), and
+      <strong>KEYBOARD</strong> plays the currently selected sample across the keyboard, pitched. Tick
+      <strong>⌨ TYPE TO PLAY</strong> to play from your computer keyboard too (the piano shows which key is
+      which), with <kbd>Z</kbd>/<kbd>X</kbd> or the <kbd>◀ ▶</kbd> buttons to shift octave. Tick
+      <strong>MIDI IN</strong> to play the device from a connected MIDI keyboard, with velocity, pitch bend
+      and sustain pedal (it uses your browser's Web MIDI and honors the same SAMPLE / KEYBOARD mode;
+      available in Chrome, Edge and Firefox).</li>
+    <li><strong>Transfer</strong> — download a slot as a WAV, or upload WAVs (auto-resampled to the device's
+      48/24/12/6&nbsp;kHz). Drop several WAVs onto the pads to fill consecutive slots.</li>
+    <li><strong>Auto-slice</strong> — from the upload dialog's <strong>SLICE…</strong> button, chop one long
+      sample across consecutive pads, either into equal pieces or at detected transients (ideal for drum
+      breaks and loops).</li>
+    <li><strong>Audio tools on upload</strong> — normalize, adjust gain, trim silence, fade in/out, and
+      convert mono↔stereo, all processed in your browser before transfer.</li>
+    <li><strong>Live editing</strong> — loop, reverse, BPM-sync, FX on/off, decay, release, level, pan,
+      semitone, tune and velocity intensity, all written to the device as you change them.</li>
+    <li><strong>Slot management</strong> — rename, clear (✕), and copy/swap by dragging one pad onto another.</li>
+    <li><strong>Memory meters</strong> — all samples are downloaded when you connect (a progress bar shows the
+      count), so the readout is always exact and every waveform is instant.</li>
+    <li><strong>FOLLOW</strong> (toggle, on by default) — the app's selection tracks the last sample triggered
+      on the device, whether you play it by hand or a pattern triggers it, so editing keeps up with the
+      hardware. Since samples are preloaded, the switch is instant; turn it off if you'd rather the selection
+      stay put while a pattern plays.</li>
+  </ul>
+  <figure>
+    <img src="assets/screenshots/upload.png" alt="The upload dialog with audio tools: channels, normalize, trim, gain and fades" loading="lazy">
+    <figcaption>Uploading a WAV — the audio tools panel processes the file before it's sent.</figcaption>
+  </figure>
+
+  <h2 id="effect">Effect</h2>
+  <figure>
+    <img src="assets/screenshots/effect.png" alt="The Effect view: an effect type selected with its parameter grid, two parameters badged FX1 and FX2" loading="lazy">
+    <figcaption>The EFFECT view — every effect type with its full parameter set; the two physical-knob targets are badged FX1 / FX2.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>All 22 effect types</strong>, each with its complete set of parameters. One effect runs per
+      bank (see <a href="concepts.html#effects">how effects work</a>).</li>
+    <li><strong>Hover any parameter</strong> to see its range and default value.</li>
+    <li><strong>Two assignable knobs</strong> — the parameters mapped to the hardware's FX&nbsp;EDIT&nbsp;1/2
+      knobs are badged <strong>FX1</strong> / <strong>FX2</strong> in the grid, and turning those knobs on the
+      device is tracked live in the editor.</li>
+    <li>Parameters gray out and swap exactly like the hardware does, depending on the current settings.</li>
+    <li><strong>Presets</strong> — save the whole effect (type, knobs, parameters) to a file and load it back.</li>
+  </ul>
+
+  <h2 id="patterns">Patterns &amp; editor</h2>
+  <figure>
+    <img src="assets/screenshots/patterns.png" alt="The Patterns view: a grid of pattern cards with piano-roll previews" loading="lazy">
+    <figcaption>The PATTERNS view — all 16 patterns with mini piano-roll previews.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>RECEIVE PATTERNS</strong> reads all 16 patterns from the current bank.</li>
+    <li><strong>Play</strong> a pattern on the device (the ▶ on each recorded card), with a playhead sweeping
+      its mini piano-roll.</li>
+    <li><strong>✎ EDIT</strong> opens an in-app <strong>piano-roll editor</strong> over both the sample-mode
+      (pad) and keyboard-mode (pitched) tracks. Switch between the <strong>Draw</strong>,
+      <strong>Erase</strong> and <strong>Select</strong> tools (the cursor changes to match): draw, move and
+      resize notes, drag to erase a run of them, or marquee-select several at once. It supports
+      <strong>multi-select</strong> (Shift/⌘-click), <strong>undo/redo</strong> and <strong>copy/paste</strong>
+      whose clipboard persists across patterns, so you can copy from one pattern and paste into another.
+      Per-note velocity shows as note brightness, the arrow keys nudge or resize, and <kbd>Space</kbd> plays
+      the pattern on the device with a playhead sweeping the roll. Set the bar count, grid snap and the
+      keyboard track's sample, then <strong>Save to Device</strong> (clicking outside the dialog saves and
+      closes). Works on an empty slot too, so you can build a pattern from scratch.</li>
+    <li><strong>● REC</strong> presses the device's record button over MIDI — arm → start → end — to record
+      into its current pattern.</li>
+    <li><strong>Import / export MIDI</strong> — export any pattern as a Standard MIDI File, or import one.</li>
+  </ul>
+  <figure>
+    <img src="assets/screenshots/pattern-editor.png" alt="The pattern editor: a piano roll over the two tracks, with sample-mode notes in amber and keyboard-mode notes in cream, Draw/Erase/Select tools and a SMP/KBD track switch above the grid" loading="lazy">
+    <figcaption>The pattern editor — a piano roll over both tracks (amber = sample/pad, cream = keyboard/pitch); Draw/Erase/Select tools sit above the grid, note brightness is velocity, ▶ PLAY previews on the device and SAVE TO DEVICE writes it back.</figcaption>
+  </figure>
+  <div class="note warn">
+    <b class="label">FOR PLAYBACK &amp; RECORD</b>
+    <p>The device must have <strong>GLOBAL → MIDI CLK = AUTO</strong> (or EXT&nbsp;MIDI) so its sequencer
+      follows the editor — see <a href="getting-started.html#device-setup">device setup</a>. Record is
+      fire-and-forget — watch the device screen as it steps through arm → record → end.</p>
+  </div>
+
+  <h2 id="utility">Utility</h2>
+  <figure>
+    <img src="assets/screenshots/utility.png" alt="The Utility view: bank backup/restore and remote sampling controls" loading="lazy">
+    <figcaption>The UTILITY view — backup/restore and remote sampling.</figcaption>
+  </figure>
+  <ul>
+    <li><strong>Bank backup &amp; restore</strong> — save the current bank to your computer and restore it
+      later, to the current (RAM) bank or to one of the device's persistent user banks. Backups can be
+      exported/imported as ZIP files.</li>
+    <li><strong>Cherry-pick restore</strong> — from a backup's <strong>SAMPLES…</strong> button, copy a single
+      sample into any pad of the current bank, without restoring the whole bank.</li>
+    <li><strong>Remote sampling</strong> — choose the input source (AUDIO&nbsp;IN / RE-SAMPLE) and press
+      <strong>SAMPLE</strong> to drive the device's sampling over MIDI. It mirrors the panel button
+      (arm → sample → end); watch the device screen.</li>
+  </ul>
+
+  <h2 id="library">Library mode (no hardware)</h2>
+  <figure>
+    <img src="assets/screenshots/library.png" alt="The Library view: a list of imported banks on the left and the selected bank's sample pads on the right, each playable and downloadable, with the recovered patterns listed below as MIDI downloads" loading="lazy">
+    <figcaption>Library mode — imported banks on the left, the selected bank's samples as pads you can play and download, and its recorded patterns as MIDI downloads below.</figcaption>
+  </figure>
+  <p>You don't need a microSAMPLER to browse and extract the contents of bank backups — useful for recovering
+    audio and patterns from old backups saved by Korg's original editor. Start the bridge in
+    <strong>library mode</strong>:</p>
+  <pre><code>python3 native-tools/bridge.py --library</code></pre>
+  <p>It serves on <a href="http://localhost:8766">http://localhost:8766</a> — a separate port from the device
+    bridge's 8765, so the two never clash. Or just double-click the <code>microSAMPLER&nbsp;Library</code>
+    launcher in your platform's folder (<code>macOS/</code>, <code>Linux/</code>, <code>Windows/</code>) — no
+    password is needed, since library mode never touches USB.</p>
+  <ul>
+    <li><strong>Open a bank file</strong> — in the <strong>LIBRARY</strong> view, <strong>OPEN BANK FILE…</strong>
+      imports a Korg <code>.msmpl_bank</code> backup or a <code>.zip</code> backup made by this app.</li>
+    <li><strong>Browse &amp; play</strong> — each imported bank shows its 36 pads; click a pad to play that
+      sample in the browser.</li>
+    <li><strong>Export samples</strong> — download any sample as a WAV, or grab the whole bank as a ZIP of
+      WAVs. Device-only features are hidden while in library mode.</li>
+    <li><strong>Export patterns</strong> — any recorded patterns appear below the pads; download each as a MIDI
+      file, or all of them as a <code>.mid</code> ZIP, ready to drop into your DAW.</li>
+  </ul>
+  <p>Prefer the command line? <code>python3 native-tools/msmpl_bank.py extract "bank.msmpl_bank"</code> writes
+    all the samples to WAVs (and any patterns to <code>.bin</code> blobs) without opening the app.</p>
+
+  <h2 id="rail">Top bar &amp; shortcuts</h2>
+  <ul>
+    <li><strong>Bank name &amp; BPM</strong> — click the bank display to edit them.</li>
+    <li><strong>Master volume</strong> — the slider sets the device's overall output level.</li>
+    <li><strong>Panic</strong> (⏻) — all-sound-off / stop, if a note ever sticks.</li>
+    <li><strong>Theme</strong> — 12 accent colours from a swatch dropdown; the whole interface recolours.</li>
+    <li><strong>RECEIVE</strong> — re-read the bank from the device.</li>
+    <li><strong>?</strong> — the in-app help overlay.</li>
+  </ul>
+  <table>
+    <tr><th>Shortcut</th><th>Action</th></tr>
+    <tr><td><kbd>← → ↑ ↓</kbd></td><td>Move between pads</td></tr>
+    <tr><td><kbd>Space</kbd></td><td>Audition the selected pad</td></tr>
+    <tr><td><kbd>+</kbd> / <kbd>−</kbd> / <kbd>0</kbd></td><td>Waveform zoom in / out / fit</td></tr>
+    <tr><td><kbd>R</kbd></td><td>Receive bank from device</td></tr>
+    <tr><td><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Z</kbd></td><td>Undo a parameter edit</td></tr>
+    <tr><td><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>⇧</kbd> + <kbd>Z</kbd></td><td>Redo</td></tr>
+    <tr><td><kbd>Z</kbd> / <kbd>X</kbd></td><td>On-screen keyboard: octave down / up (when "type to play" is on)</td></tr>
+    <tr><td><kbd>Space</kbd></td><td>Pattern editor: play / stop the pattern on the device</td></tr>
+    <tr><td><kbd>Del</kbd></td><td>Pattern editor: delete the selected note(s)</td></tr>
+    <tr><td><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>A</kbd> / <kbd>C</kbd> / <kbd>V</kbd></td><td>Pattern editor: select all / copy / paste notes</td></tr>
+    <tr><td><kbd>?</kbd></td><td>Help overlay</td></tr>
+  </table>
+
+  <footer>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="getting-started.html">Getting started</a>
+      <a href="guide.html">Guide</a>
+      <a href="concepts.html">Concepts</a>
+      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="https://github.com/benjamindehli/microsampler-editor-librarian/releases">Releases &amp; changelog ↗</a>
+    </nav>
+    <img class="logo" src="assets/logo.svg" alt="Dehli Musikk">
+    <p>microSAMPLER Editor / Librarian — an independent, unofficial project.
+      microSAMPLER and Korg are trademarks of Korg Inc. Licensed under the GNU GPL v3.</p>
+  </footer>
+</main>
+
+<a class="to-top" href="#top" aria-label="Back to top" title="Back to top">↑</a>
+</body>
+</html>
