@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Guide — microSAMPLER Editor / Librarian</title>
-<meta name="description" content="The full guide to the microSAMPLER Editor / Librarian: the Samples, Effect, Patterns and pattern editor, Utility and Library views, the keyboard, and keyboard shortcuts.">
+<title>Korg microSAMPLER editor — full guide (samples, effects, patterns)</title>
+<meta name="description" content="The full guide to the Korg microSAMPLER Editor / Librarian: the Samples, Effect, Patterns and pattern editor, Utility and Library views, the keyboard and shortcuts.">
 <link rel="canonical" href="https://benjamindehli.github.io/microsampler-editor-librarian/guide.html">
 <meta name="robots" content="index, follow">
 <meta name="theme-color" content="#0b0b0d">
@@ -13,12 +13,14 @@
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="microSAMPLER Editor / Librarian">
-<meta property="og:title" content="Guide — microSAMPLER Editor / Librarian">
+<meta property="og:title" content="Korg microSAMPLER editor — full guide">
 <meta property="og:description" content="Every view in depth — Samples, Effect, Patterns &amp; editor, Utility, Library, keyboard and shortcuts.">
 <meta property="og:url" content="https://benjamindehli.github.io/microsampler-editor-librarian/guide.html">
 <meta property="og:image" content="https://benjamindehli.github.io/microsampler-editor-librarian/assets/og-cover.jpg">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://benjamindehli.github.io/microsampler-editor-librarian/assets/og-cover.jpg">
+<link rel="preload" href="assets/fonts/chakra-petch-latin-500-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/chakra-petch-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/docs.css">
 <script src="docs.js" defer></script>
 <script type="application/ld+json">
@@ -28,6 +30,11 @@
   "inLanguage": "en",
   "author": { "@type": "Person", "name": "Benjamin Dehli", "url": "https://www.dehlimusikk.no/" },
   "mainEntityOfPage": "https://benjamindehli.github.io/microsampler-editor-librarian/guide.html" }
+</script>
+<script type="application/ld+json">
+{ "@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
+  {"@type":"ListItem","position":1,"name":"Home","item":"https://benjamindehli.github.io/microsampler-editor-librarian/"},
+  {"@type":"ListItem","position":2,"name":"Guide","item":"https://benjamindehli.github.io/microsampler-editor-librarian/guide.html"}]}
 </script>
 </head>
 <body>
@@ -69,7 +76,7 @@
 
   <h2 id="samples">Samples</h2>
   <figure>
-    <img src="assets/screenshots/samples.png" alt="The Samples view: 36-pad grid on the left; waveform and parameter controls on the right, with an on-screen keyboard beneath them" loading="lazy">
+    <img src="assets/screenshots/samples.png" alt="The Samples view: 36-pad grid on the left; waveform and parameter controls on the right, with an on-screen keyboard beneath them" width="1000" height="610" loading="lazy">
     <figcaption>The SAMPLES view — pad grid, waveform, the full set of sample parameters, and an on-screen keyboard.</figcaption>
   </figure>
   <ul>
@@ -109,13 +116,13 @@
       stay put while a pattern plays.</li>
   </ul>
   <figure>
-    <img src="assets/screenshots/upload.png" alt="The upload dialog with audio tools: channels, normalize, trim, gain and fades" loading="lazy">
+    <img src="assets/screenshots/upload.png" alt="The upload dialog with audio tools: channels, normalize, trim, gain and fades" width="1000" height="610" loading="lazy">
     <figcaption>Uploading a WAV — the audio tools panel processes the file before it's sent.</figcaption>
   </figure>
 
   <h2 id="effect">Effect</h2>
   <figure>
-    <img src="assets/screenshots/effect.png" alt="The Effect view: an effect type selected with its parameter grid, two parameters badged FX1 and FX2" loading="lazy">
+    <img src="assets/screenshots/effect.png" alt="The Effect view: an effect type selected with its parameter grid, two parameters badged FX1 and FX2" width="1000" height="610" loading="lazy">
     <figcaption>The EFFECT view — every effect type with its full parameter set; the two physical-knob targets are badged FX1 / FX2.</figcaption>
   </figure>
   <ul>
@@ -131,7 +138,7 @@
 
   <h2 id="patterns">Patterns &amp; editor</h2>
   <figure>
-    <img src="assets/screenshots/patterns.png" alt="The Patterns view: a grid of pattern cards with piano-roll previews" loading="lazy">
+    <img src="assets/screenshots/patterns.png" alt="The Patterns view: a grid of pattern cards with piano-roll previews" width="1000" height="610" loading="lazy">
     <figcaption>The PATTERNS view — all 16 patterns with mini piano-roll previews.</figcaption>
   </figure>
   <ul>
@@ -153,7 +160,7 @@
     <li><strong>Import / export MIDI</strong> — export any pattern as a Standard MIDI File, or import one.</li>
   </ul>
   <figure>
-    <img src="assets/screenshots/pattern-editor.png" alt="The pattern editor: a piano roll over the two tracks, with sample-mode notes in amber and keyboard-mode notes in cream, Draw/Erase/Select tools and a SMP/KBD track switch above the grid" loading="lazy">
+    <img src="assets/screenshots/pattern-editor.png" alt="The pattern editor: a piano roll over the two tracks, with sample-mode notes in amber and keyboard-mode notes in cream, Draw/Erase/Select tools and a SMP/KBD track switch above the grid" width="1000" height="610" loading="lazy">
     <figcaption>The pattern editor — a piano roll over both tracks (amber = sample/pad, cream = keyboard/pitch); Draw/Erase/Select tools sit above the grid, note brightness is velocity, ▶ PLAY previews on the device and SAVE TO DEVICE writes it back.</figcaption>
   </figure>
   <div class="note warn">
@@ -165,7 +172,7 @@
 
   <h2 id="utility">Utility</h2>
   <figure>
-    <img src="assets/screenshots/utility.png" alt="The Utility view: bank backup/restore and remote sampling controls" loading="lazy">
+    <img src="assets/screenshots/utility.png" alt="The Utility view: bank backup/restore and remote sampling controls" width="1000" height="610" loading="lazy">
     <figcaption>The UTILITY view — backup/restore and remote sampling.</figcaption>
   </figure>
   <ul>
@@ -181,7 +188,7 @@
 
   <h2 id="library">Library mode (no hardware)</h2>
   <figure>
-    <img src="assets/screenshots/library.png" alt="The Library view: a list of imported banks on the left and the selected bank's sample pads on the right, each playable and downloadable, with the recovered patterns listed below as MIDI downloads" loading="lazy">
+    <img src="assets/screenshots/library.png" alt="The Library view: a list of imported banks on the left and the selected bank's sample pads on the right, each playable and downloadable, with the recovered patterns listed below as MIDI downloads" width="1000" height="610" loading="lazy">
     <figcaption>Library mode — imported banks on the left, the selected bank's samples as pads you can play and download, and its recorded patterns as MIDI downloads below.</figcaption>
   </figure>
   <p>You don't need a microSAMPLER to browse and extract the contents of bank backups — useful for recovering
