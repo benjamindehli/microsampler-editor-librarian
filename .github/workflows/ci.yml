@@ -23,8 +23,8 @@ jobs:
           - { python: "3.8", os: ubuntu-22.04 }
           - { python: "3.12", os: ubuntu-latest }
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
       # the offline suite is dependency-free: pyusb/libusb are imported
@@ -52,10 +52,10 @@ jobs:
     name: frontend syntax
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: "22"
+          node-version: "24.18.0"
       - name: JS syntax check
         run: |
           for f in $(find web-editor -name '*.js'); do
@@ -77,17 +77,17 @@ jobs:
     name: lint (ruff + eslint)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Ruff (python)
         run: |
           pip install 'ruff==0.15.*'
           ruff check
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: "22"   # ESLint 10 needs ^20.19 || ^22.13 || >=24
+          node-version: "24.18.0"   # ESLint 10 needs ^20.19 || ^22.13 || >=24
       - name: ESLint (js)
         run: |
           npm install
@@ -101,8 +101,8 @@ jobs:
     name: e2e smoke (playwright)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install Playwright + Chromium
