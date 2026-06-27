@@ -1,14 +1,14 @@
 // Waveform screen: lazy WAV load, peak rendering, zoom/pan, start/end marker
 // dragging, device audition + approximate playhead.
-import { nearestZeroCrossing } from './audioTools.js';
-import { tuneCents } from './controls.js';
-import { renderMeter } from './meter.js';
-import { selectSlot } from './pads.js';
-import { loadSampleAudio } from './sampleLoad.js';
-import { renderChips, renderMetaFmt, renderPoints } from './slot.js';
-import { slotData, state } from './state.js';
-import { tick } from './ticker.js';
-import { $, api, jsonBody } from './util.js';
+import { tuneCents } from 'components/controls/controls.js';
+import { renderMeter } from 'components/meter/meter.js';
+import { selectSlot } from 'components/pads/pads.js';
+import { loadSampleAudio } from 'components/sample-editor/sampleLoad.js';
+import { renderChips, renderMetaFmt, renderPoints } from 'components/sample-editor/slot.js';
+import { nearestZeroCrossing } from 'functions/audioTools.js';
+import { slotData, state } from 'functions/state.js';
+import { tick } from 'functions/ticker.js';
+import { $, api, jsonBody } from 'functions/util.js';
 
 // Zoom window into the decoded buffer, in SAMPLE space [0..n]. vlen === 0 means
 // "fit on next draw". The window is global (not per-slot) and resets to fit

@@ -1,9 +1,9 @@
 // Sample parameter controls: live-edit ids, value encodings, the control
 // strip wiring, and panel-edit reflection.
-import { state } from './state.js';
-import { tick } from './ticker.js';
-import { $, api, fmtSigned, jsonBody } from './util.js';
-import { VALUE_TABLES } from './valueTables.js';
+import { state } from 'functions/state.js';
+import { tick } from 'functions/ticker.js';
+import { $, api, fmtSigned, jsonBody } from 'functions/util.js';
+import { VALUE_TABLES } from 'functions/valueTables.js';
 
 // Live-edit param ids — HARDWARE-CONFIRMED 2026-06-06 by panel-knob capture
 // (the editor binary's converter table did NOT match the device's actual
@@ -110,7 +110,7 @@ async function step(stack, other, key, label) {
   const e = stack.pop();
   if (!e) return;
   other.push(e);
-  const { selectSlot } = await import('./pads.js');
+  const { selectSlot } = await import('components/pads/pads.js');
   if (e.slot !== state.sel) selectSlot(e.slot);
   await sendParamTo(e.slot, e.param, e[key]);
   tick(`${label} S${e.slot + 1} #${e.param}`);

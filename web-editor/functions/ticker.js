@@ -1,5 +1,5 @@
 // Device event ticker (bottom strip).
-import { $ } from './util.js';
+import { $ } from 'functions/util.js';
 
 let tickerTimer;
 export function tick(text) {

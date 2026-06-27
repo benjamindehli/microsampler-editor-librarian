@@ -1,13 +1,13 @@
 // SSE feed from the bridge: routes device events to the right component.
 import { BIPOLAR, cacheParam, dec14, PARAM, reflect, tuneDisplay }
-  from './controls.js';
-import { FX_OBJ, fxReflect, onCC } from './effect.js';
-import { onPatternsProgress } from './patterns.js';
-import { state } from './state.js';
-import { tick } from './ticker.js';
-import { $, fmtSigned } from './util.js';
-import { onOpEvent } from './utility.js';
-import { followSelect } from './waveform.js';
+  from 'components/controls/controls.js';
+import { FX_OBJ, fxReflect, onCC } from 'components/effect/effect.js';
+import { onPatternsProgress } from 'components/patterns/patterns.js';
+import { followSelect } from 'components/sample-editor/waveform.js';
+import { onOpEvent } from 'components/utility/utility.js';
+import { state } from 'functions/state.js';
+import { tick } from 'functions/ticker.js';
+import { $, fmtSigned } from 'functions/util.js';
 
 export function subscribeEvents() {
   const es = new EventSource('/api/events');

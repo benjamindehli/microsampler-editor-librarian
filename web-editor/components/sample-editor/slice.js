@@ -3,14 +3,14 @@
 // modes — equal-length pieces, or detected transients (audioTools.sliceBuffer)
 // — then each slice is encoded to a WAV and uploaded to consecutive slots via
 // the same raw /api/sample/N path uploadBatch uses.
-import { refreshBank } from './app.js';
-import { encodeWav, sliceBuffer } from './audioTools.js';
-import { loadAllSamples } from './meter.js';
-import { forgetSample } from './sampleLoad.js';
-import { showSlot } from './slot.js';
-import { state } from './state.js';
-import { tick } from './ticker.js';
-import { $, api } from './util.js';
+import { refreshBank } from 'app.js';
+import { loadAllSamples } from 'components/meter/meter.js';
+import { forgetSample } from 'components/sample-editor/sampleLoad.js';
+import { showSlot } from 'components/sample-editor/slot.js';
+import { encodeWav, sliceBuffer } from 'functions/audioTools.js';
+import { state } from 'functions/state.js';
+import { tick } from 'functions/ticker.js';
+import { $, api } from 'functions/util.js';
 
 let cur = null;            // { buf:{channels,rate}, base, startSlot }
 

@@ -9,8 +9,8 @@
   "scripts": {
     "build": "node tools/build.mjs",
     "pack": "node tools/build.mjs && node tools/pack.mjs",
-    "lint:js": "eslint web-editor/js",
-    "test": "node --test test/*.test.mjs",
+    "lint:js": "eslint web-editor",
+    "test": "node --import ./test/alias-register.mjs --test test/*.test.mjs",
     "stamp-version": "node tools/stamp-docs-version.mjs",
     "version": "node tools/stamp-docs-version.mjs && git add docs/index.html native-tools/bridge.py"
   },

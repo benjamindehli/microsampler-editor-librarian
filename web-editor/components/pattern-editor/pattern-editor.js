@@ -5,11 +5,11 @@
 // POST /api/pattern/N → smf_to_pattern → pattern_write path. No SEQP is built in
 // the browser. Supports multi-select, copy/paste (clipboard persists across
 // sessions, so it doubles as duplicate-to-another-slot) and undo/redo.
-import { noteName } from './notes.js';
-import { notesToSmf } from './smfWrite.js';
-import { state } from './state.js';
-import { tick } from './ticker.js';
-import { $, api, apiJson, jsonBody } from './util.js';
+import { noteName } from 'functions/notes.js';
+import { notesToSmf } from 'functions/smfWrite.js';
+import { state } from 'functions/state.js';
+import { tick } from 'functions/ticker.js';
+import { $, api, apiJson, jsonBody } from 'functions/util.js';
 
 const TPB = 384;                 // ticks per 4/4 bar (96/quarter)
 const LO = 36, HI = 96;          // visible MIDI-note range (rows, high note on top)

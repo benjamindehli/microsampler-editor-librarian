@@ -1,25 +1,25 @@
 // microSAMPLER Editor / Librarian — entry module.
 // Talks to the local bridge (same origin). Live edits = POST /api/param with
 // the hardware-verified 3-value Parameter Change (obj = 16 + slot).
-import './dialogs.js';      // wires upload/rename dialogs + editor drop
-import './patterns.js';     // wires the patterns view
-import './slotops.js';      // wires copy/swap drop + clear button
-import './ux.js';           // keyboard shortcuts, theming, help overlay
-import './qwerty.js';       // QWERTY pad-play (computer MIDI keyboard)
+import 'components/dialogs/dialogs.js';      // wires upload/rename dialogs + editor drop
+import 'components/patterns/patterns.js';     // wires the patterns view
+import 'components/sample-editor/slotops.js';      // wires copy/swap drop + clear button
+import 'components/ux/ux.js';           // keyboard shortcuts, theming, help overlay
+import 'components/keyboard/keyboard.js';       // QWERTY pad-play (computer MIDI keyboard)
 
-import { fxFromBank, renderFx } from './effect.js';
-import { subscribeEvents } from './events.js';
-import { initLibrary, renderLibrary } from './library.js';
-import { loadAllSamples, renderMeter } from './meter.js';
-import { renderPads } from './pads.js';
-import { reapplyFormats } from './sampleLoad.js';
-import { showSlot } from './slot.js';
-import { state } from './state.js';
-import { tick } from './ticker.js';
-import { checkForUpdate } from './update.js';
-import { $, apiJson } from './util.js';
-import { loadBackups } from './utility.js';
-import { redrawCurrent } from './waveform.js';   // also wires marker drag/audition
+import { fxFromBank, renderFx } from 'components/effect/effect.js';
+import { initLibrary, renderLibrary } from 'components/library/library.js';
+import { loadAllSamples, renderMeter } from 'components/meter/meter.js';
+import { renderPads } from 'components/pads/pads.js';
+import { reapplyFormats } from 'components/sample-editor/sampleLoad.js';
+import { showSlot } from 'components/sample-editor/slot.js';
+import { redrawCurrent } from 'components/sample-editor/waveform.js';   // also wires marker drag/audition
+import { checkForUpdate } from 'components/update/update.js';
+import { loadBackups } from 'components/utility/utility.js';
+import { subscribeEvents } from 'functions/events.js';
+import { state } from 'functions/state.js';
+import { tick } from 'functions/ticker.js';
+import { $, apiJson } from 'functions/util.js';
 
 let subscribed = false;
 

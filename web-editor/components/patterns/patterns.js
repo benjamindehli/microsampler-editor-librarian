@@ -1,8 +1,8 @@
 // PATTERNS view: receive, piano-roll cards, .mid export/import, init, in-app edit.
-import { openPatternEditor } from './patternEdit.js';
-import { state } from './state.js';
-import { tick } from './ticker.js';
-import { $, apiJson, confirmDialog, esc, jsonBody } from './util.js';
+import { openPatternEditor } from 'components/pattern-editor/pattern-editor.js';
+import { state } from 'functions/state.js';
+import { tick } from 'functions/ticker.js';
+import { $, apiJson, confirmDialog, esc, jsonBody } from 'functions/util.js';
 
 let loadingPatterns = false;
 let lastPatterns = null;            // for recolouring the rolls on theme change

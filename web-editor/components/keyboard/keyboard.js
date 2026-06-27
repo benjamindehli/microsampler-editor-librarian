@@ -5,10 +5,10 @@
 // row = black keys; Z / X or the ◀ ▶ buttons shift the octave). The piano always
 // shows which computer key maps to which note, lit brighter while armed. Off by
 // default so the letter keys stay free for the normal shortcuts (ux.js).
-import { noteName, QWERTY_KEYMAP, QWERTY_OCTAVES, qwertySlot } from './notes.js';
-import { state } from './state.js';
-import { tick } from './ticker.js';
-import { $, api, jsonBody } from './util.js';
+import { noteName, QWERTY_KEYMAP, QWERTY_OCTAVES, qwertySlot } from 'functions/notes.js';
+import { state } from 'functions/state.js';
+import { tick } from 'functions/ticker.js';
+import { $, api, jsonBody } from 'functions/util.js';
 
 // the on-screen caption letter for each mapped computer key (see QWERTY_KEYMAP)
 const KEYLABEL = {

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { decodeWavPcm, encodeWav, nearestZeroCrossing, processBuffer, sliceBuffer, toolsActive }
-  from '../web-editor/js/audioTools.js';
+  from '../web-editor/functions/audioTools.js';
 
 const RATE = 48000;
 const NOOP = { channels: 'keep', normalize: false, trim: false, gainDb: 0,

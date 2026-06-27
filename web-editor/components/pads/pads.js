@@ -1,12 +1,12 @@
 // 36-slot pad grid: rendering, selection, device note-play, WAV drop.
-import { openUpload, uploadBatch } from './dialogs.js';
-import { noteName } from './notes.js';
-import { syncKeybed } from './qwerty.js';
-import { showSlot } from './slot.js';
-import { openSlotOp } from './slotops.js';
-import { state } from './state.js';
-import { tick } from './ticker.js';
-import { $, api, esc, jsonBody } from './util.js';
+import { openUpload, uploadBatch } from 'components/dialogs/dialogs.js';
+import { syncKeybed } from 'components/keyboard/keyboard.js';
+import { showSlot } from 'components/sample-editor/slot.js';
+import { openSlotOp } from 'components/sample-editor/slotops.js';
+import { noteName } from 'functions/notes.js';
+import { state } from 'functions/state.js';
+import { tick } from 'functions/ticker.js';
+import { $, api, esc, jsonBody } from 'functions/util.js';
 
 export function selectSlot(i) {
   state.sel = i;

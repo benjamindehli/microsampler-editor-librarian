@@ -6,8 +6,8 @@
 // unlike the bank slot objects — PERSISTS across refreshBank(); reapplyFormats()
 // re-stamps it onto the fresh bank so a focus re-sync doesn't lose load state
 // or reset the memory meter (it would otherwise revert to unknown on focus).
-import { slotData, state } from './state.js';
-import { api, wavFormat } from './util.js';
+import { slotData, state } from 'functions/state.js';
+import { api, wavFormat } from 'functions/util.js';
 
 export async function loadSampleAudio(i) {
   if (state.buffers.has(i)) return state.buffers.get(i);   // already loaded

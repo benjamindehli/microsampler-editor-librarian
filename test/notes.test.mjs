@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { noteName, QWERTY_KEYMAP, QWERTY_OCTAVES, qwertySlot }
-  from '../web-editor/js/notes.js';
+  from '../web-editor/functions/notes.js';
 
 test('noteName covers the 36 pads C3..B5', () => {
   assert.equal(noteName(0), 'C3');     // first pad

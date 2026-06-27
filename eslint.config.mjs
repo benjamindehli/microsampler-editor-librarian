@@ -12,12 +12,12 @@ import simpleImportSort from 'eslint-plugin-simple-import-sort';
 
 export default [
   // generated data modules — not hand-written, don't lint
-  { ignores: ['web-editor/js/valueTables.js', 'web-editor/js/fxData.js'] },
+  { ignores: ['web-editor/functions/valueTables.js', 'web-editor/functions/fxData.js'] },
 
   js.configs.recommended,
 
   {
-    files: ['web-editor/js/**/*.js'],
+    files: ['web-editor/**/*.js'],
     plugins: { 'simple-import-sort': simpleImportSort },
     languageOptions: {
       ecmaVersion: 2022,

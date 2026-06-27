@@ -3,7 +3,7 @@
 // when a newer one exists. Polite (caches the API result for a day — the
 // unauthenticated rate limit is 60/hr) and quiet on any failure (offline,
 // rate-limited, CORS): the editor works fine without it.
-import { $ } from './util.js';
+import { $ } from 'functions/util.js';
 
 const REPO = 'benjamindehli/microsampler-editor-librarian';
 const API = `https://api.github.com/repos/${REPO}/releases/latest`;

@@ -1,11 +1,11 @@
 // UTILITY view: backup list, restore dialog, background-op console.
-import { refreshBank } from './app.js';
-import { loadAllSamples } from './meter.js';
-import { noteName } from './notes.js';
-import { forgetSample } from './sampleLoad.js';
-import { state } from './state.js';
-import { tick } from './ticker.js';
-import { $, apiJson, esc, jsonBody } from './util.js';
+import { refreshBank } from 'app.js';
+import { loadAllSamples } from 'components/meter/meter.js';
+import { forgetSample } from 'components/sample-editor/sampleLoad.js';
+import { noteName } from 'functions/notes.js';
+import { state } from 'functions/state.js';
+import { tick } from 'functions/ticker.js';
+import { $, apiJson, esc, jsonBody } from 'functions/util.js';
 
 export async function loadBackups() {
   const { backups } = await apiJson('/api/backups');

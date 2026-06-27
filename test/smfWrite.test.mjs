@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { notesToSmf } from '../web-editor/js/smfWrite.js';
+import { notesToSmf } from '../web-editor/functions/smfWrite.js';
 
 // minimal SMF reader: returns {div, name, programs, notes:[[start,ch,note,vel,dur]]}
 function readSmf(u8) {

@@ -2,9 +2,9 @@
 // original Korg .msmpl_bank (or this app's .zip backup), browse a bank's 36
 // pads, play each sample in the browser, and download it (or the whole bank as
 // a ZIP of WAVs). No device involved — purely the backup files on disk.
-import { noteName } from './notes.js';
-import { tick } from './ticker.js';
-import { $, apiJson, esc } from './util.js';
+import { noteName } from 'functions/notes.js';
+import { tick } from 'functions/ticker.js';
+import { $, apiJson, esc } from 'functions/util.js';
 
 let banks = [];
 let selDir = null;

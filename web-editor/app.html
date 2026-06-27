@@ -4,19 +4,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>microSAMPLER Editor / Librarian</title>
-<link rel="stylesheet" href="css/fonts.css">
-<link rel="stylesheet" href="css/base.css">
-<link rel="stylesheet" href="css/layout.css">
-<link rel="stylesheet" href="css/pads.css">
-<link rel="stylesheet" href="css/keybed.css">
-<link rel="stylesheet" href="css/editor.css">
-<link rel="stylesheet" href="css/controls.css">
-<link rel="stylesheet" href="css/dialogs.css">
-<link rel="stylesheet" href="css/utility.css">
-<link rel="stylesheet" href="css/patterns.css">
-<link rel="stylesheet" href="css/patternEdit.css">
-<link rel="stylesheet" href="css/effect.css">
-<link rel="stylesheet" href="css/meter.css">
+<!-- bare-specifier roots so modules import by stable alias (functions/…,
+     components/…) regardless of file location; mirrored by esbuild for dist -->
+<script type="importmap">
+{ "imports": { "functions/": "./functions/", "components/": "./components/", "app.js": "./app.js" } }
+</script>
+<!-- global styles first (tokens + layout), then per-component sheets in cascade order -->
+<link rel="stylesheet" href="styles/fonts.css">
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/layout.css">
+<link rel="stylesheet" href="components/pads/pads.css">
+<link rel="stylesheet" href="components/keyboard/keyboard.css">
+<link rel="stylesheet" href="components/sample-editor/sample-editor.css">
+<link rel="stylesheet" href="components/controls/controls.css">
+<link rel="stylesheet" href="components/dialogs/dialogs.css">
+<link rel="stylesheet" href="components/utility/utility.css">
+<link rel="stylesheet" href="components/patterns/patterns.css">
+<link rel="stylesheet" href="components/pattern-editor/pattern-editor.css">
+<link rel="stylesheet" href="components/effect/effect.css">
+<link rel="stylesheet" href="components/meter/meter.css">
 </head>
 <body>
 
@@ -742,6 +748,6 @@
 </dialog>
 
 <div class="grain"></div>
-<script type="module" src="js/app.js"></script>
+<script type="module" src="app.js"></script>
 </body>
 </html>

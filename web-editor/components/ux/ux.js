@@ -1,13 +1,13 @@
 // UX polish: keyboard shortcuts, accent-colour theming, help overlay,
 // master-volume slider.
-import { refreshBank } from './app.js';
-import { redo, undo } from './controls.js';
-import { selectSlot } from './pads.js';
-import { stopTransport } from './patterns.js';
-import { slotData, state } from './state.js';
-import { tick } from './ticker.js';
-import { $, api, jsonBody } from './util.js';
-import { stopAudition } from './waveform.js';
+import { refreshBank } from 'app.js';
+import { redo, undo } from 'components/controls/controls.js';
+import { selectSlot } from 'components/pads/pads.js';
+import { stopTransport } from 'components/patterns/patterns.js';
+import { stopAudition } from 'components/sample-editor/waveform.js';
+import { slotData, state } from 'functions/state.js';
+import { tick } from 'functions/ticker.js';
+import { $, api, jsonBody } from 'functions/util.js';
 
 // ── accent theming (CSS custom props on :root, persisted) ────────────────
 // Only the three RGB triplets are overridden — every accent surface (glows,
