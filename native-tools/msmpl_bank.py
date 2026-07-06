@@ -106,7 +106,9 @@ def parse_bank(data):
 
 def extract(path, outdir):
     """Extract a .msmpl_bank FILE — see extract_bytes."""
-    return extract_bytes(open(path, 'rb').read(), outdir, os.path.basename(path))
+    with open(path, 'rb') as f:
+        data = f.read()
+    return extract_bytes(data, outdir, os.path.basename(path))
 
 
 def extract_bytes(data, outdir, source_name=None):
@@ -164,7 +166,8 @@ def main(argv=None):
     args = ap.parse_args(argv)
 
     if args.cmd == 'info':
-        bank = parse_bank(open(args.file, 'rb').read())
+        with open(args.file, 'rb') as f:
+            bank = parse_bank(f.read())
         print("bank '%s'  BPM %s" % (bank['name'], bank['bpm']))
         for s in bank['samples']:
             if s['empty']:

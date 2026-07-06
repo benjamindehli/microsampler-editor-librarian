@@ -55,10 +55,6 @@ def unpack14(lo, hi): return (lo & 0x7f) | ((hi & 0x7f) << 7)
 
 
 # --- Message builders -------------------------------------------------------
-def device_inquiry():
-    return bytes([SOX, 0x7e, 0x7f, 0x06, 0x01, EOX])
-
-
 # --- Sample DOWNLOAD (decoded from SampleReceiveInternal::process) -----------
 # Direct-mode marker: before dumping raw PCM the device sends one 64-byte bulk
 # block of FF FF FF + 61 zero bytes (DirectUsbAccessBase ctor builds the same
