@@ -19,7 +19,6 @@
 .pe-head input[type="number"] { width: 3.4em; }
 .pe-head input[type="range"] { width: 84px; }
 .pe-head select { max-width: 12em; }
-.pe-head .spacer { flex: 1; }
 #pe-vel-val { min-width: 2.2em; color: var(--amber); }
 #pe-play.playing .hw-btn-cap { color: var(--amber); }    /* previewing on the device */
 

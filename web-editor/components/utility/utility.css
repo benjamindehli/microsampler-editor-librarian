@@ -25,7 +25,6 @@
   text-shadow: 0 0 6px rgba(var(--amber-rgb),.35);
 }
 .backup-row .b-meta { font-size: .62rem; color: var(--ink-dim); letter-spacing: .08em; }
-.backup-row .spacer { flex: 1; }
 /* empty / first-run prompt — centered with breathing room so it reads as an
    intentional "do this next" state, not a stray dim line. grid-column spans the
    whole grid where the parent is one (#pattern-grid, #fx-params); ignored else. */
@@ -46,12 +45,6 @@
 }
 .op-console.err { color: #ff7a66; text-shadow: 0 0 6px rgba(255,80,60,.4); }
 
-.hw-dialog select {
-  flex: 1; background: var(--phos-bg); color: var(--amber);
-  font-family: "Share Tech Mono", monospace; font-size: .8rem;
-  border: 1px solid #000; border-radius: 3px; padding: .45rem .5rem;
-}
-.spacer { flex: 1; }
 
 
 /* backup zip import row */

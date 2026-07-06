@@ -5,7 +5,7 @@
 // per-pattern usage = bank-blob seq_lengths[i] × 0x200. All samples are
 // preloaded on connect (loadAllSamples), so sizes are ALWAYS REAL — no
 // estimation: an as-yet-unloaded slot just counts 0 until its WAV arrives.
-import { renderPads } from 'components/pads/pads.js';
+import { syncPads } from 'components/pads/pads.js';
 import { loadSampleAudio } from 'components/sample-editor/sampleLoad.js';
 import { renderChips } from 'components/sample-editor/slot.js';
 import { state } from 'functions/state.js';
@@ -13,7 +13,7 @@ import { tick } from 'functions/ticker.js';
 import { $ } from 'functions/util.js';
 
 export const MEM_SMPL_TOTAL = 0xEA0000;
-export const MEM_PTRN_TOTAL = 0x60000;
+const MEM_PTRN_TOTAL = 0x60000;
 const MEM_BLK = 0x8000;
 export const memBlk = b => Math.ceil(b / MEM_BLK) * MEM_BLK;
 
@@ -76,7 +76,7 @@ export async function loadAllSamples() {
     try {                                        // per-slot: one bad download
       await loadSampleAudio(s.slot);             // must not abort the rest
       renderMeter();
-      renderPads();                              // light the loaded indicator
+      syncPads();                                // light the loaded indicator
       if (state.sel === s.slot) renderChips(s);
     } catch { failed++; }
     done++;

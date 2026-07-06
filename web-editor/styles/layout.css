@@ -58,7 +58,12 @@
    every tab switch), so switching SAMPLES/EFFECT/PATTERNS/UTILITY feels smooth */
 .deck:not([hidden]) { animation: view-in .16s cubic-bezier(.2, .8, .25, 1) both; }
 @keyframes view-in { from { opacity: 0; transform: translateY(6px); } }
-@media (prefers-reduced-motion: reduce) { .deck:not([hidden]) { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  /* one-shot entrances AND the infinite loops (ghost sweep, LED/status blink,
+     upload scan bar) */
+  .deck:not([hidden]), .reveal, .ghost-wave, .offline-led,
+  .screen-status, .ud-progress div { animation: none; }
+}
 
 /* right column: editor + on-screen keyboard stacked. align-self:stretch makes it
    take the row height (the taller pad column), and the keybed flex-grows to fill
@@ -92,7 +97,7 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .ticker-log b { color: var(--amber); font-weight: 400; }
-.ticker-note { font-size: .54rem; letter-spacing: .12em; color: #4d4840; }
+.ticker-note { font-size: .54rem; letter-spacing: .12em; color: var(--ink-dim); }  /* ≥4.5:1 (AA) */
 
 
 /* ── offline curtain ─────────────────────────────────────────────────── */

@@ -36,7 +36,7 @@
    fully usable — hover brings them back to full strength) */
 .pattern-card.is-empty { opacity: .5; }
 .pattern-card.is-empty:hover { opacity: 1; }
-.pattern-card.is-empty .pattern-roll { box-shadow: none; opacity: .55; }
+.pattern-card.is-empty .pattern-roll { box-shadow: none; opacity: .45; }
 .pattern-card .p-head { display: flex; align-items: baseline; gap: .6rem; }
 .pattern-card .p-num {
   font-family: "Share Tech Mono", monospace; font-size: 1.05rem;
@@ -45,7 +45,6 @@
 .pattern-card .p-name {
   font-family: "Share Tech Mono", monospace; font-size: .8rem; color: var(--ink);
 }
-.pattern-card .p-head .spacer { flex: 1; }
 .pattern-card .p-meta { font-size: .58rem; letter-spacing: .1em; color: var(--ink-dim); }
 .pattern-card .p-meta b { color: var(--amber-dk); font-weight: 600; }
 .pattern-roll-wrap { position: relative; }      /* holds the canvas + the play sweep */
@@ -66,7 +65,6 @@
 .pattern-card .p-actions { display: flex; flex-direction: column; gap: .35rem; }
 .pattern-card .p-row { display: flex; gap: .35rem; }
 .pattern-card .p-row > .hw-btn { flex: 1; justify-content: center; }
-.pattern-card.is-empty .pattern-roll { opacity: .45; }
 
 /* track legend dots in pattern cards */
 .p-meta .dot {

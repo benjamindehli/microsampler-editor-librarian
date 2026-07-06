@@ -54,7 +54,6 @@
 .switch[aria-checked="true"] .switch-val { color: var(--amber); text-shadow: 0 0 6px rgba(var(--amber-rgb),.4); }
 
 /* segmented switch */
-.ctl-wide { grid-column: span 2; }
 .seg {
   display: flex; border: 1px solid var(--line); border-radius: 4px;
   overflow: hidden; max-width: 100%;
@@ -115,8 +114,6 @@
   border: 1px dashed var(--line); border-radius: 3px;
   padding: .32rem .5rem;
 }
-.ro b { color: var(--ink); font-weight: 400; }
-.ro .lock { color: #4c4c55; }
 /* editable START/END (device frames) */
 .ro-input {
   width: 5.5em; font: inherit; color: var(--amber);

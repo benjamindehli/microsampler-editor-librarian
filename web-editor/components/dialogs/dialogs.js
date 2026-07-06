@@ -3,7 +3,7 @@
 import { refreshBank } from 'app.js';
 import { fmtMem, loadAllSamples, MEM_SMPL_TOTAL, memBlk, sampleMemUsage, slotDevBytes }
   from 'components/meter/meter.js';
-import { renderPads } from 'components/pads/pads.js';
+import { syncPads } from 'components/pads/pads.js';
 import { forgetSample } from 'components/sample-editor/sampleLoad.js';
 import { openSlice } from 'components/sample-editor/slice.js';
 import { showSlot } from 'components/sample-editor/slot.js';
@@ -249,7 +249,7 @@ $('#rn-ok').onclick = async e => {
     s.long_name = res.long_name;
     tick(`✎ S${state.sel + 1} renamed "${res.name}"`);
     $('#rename-dialog').close();
-    renderPads();
+    syncPads();                       // name-only change — in-place
     $('#sel-name').textContent = res.name.padEnd(8);
     $('#sel-long').textContent = res.long_name;
   } catch (err) {
@@ -271,7 +271,10 @@ $('#bank-lcd').onclick = () => {
   $('#bank-dialog').showModal();
 };
 $('#bank-lcd').onkeydown = e => {
-  if (e.key === 'Enter' || e.key === ' ') $('#bank-lcd').click();
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();               // Space would scroll the page
+    $('#bank-lcd').click();
+  }
 };
 
 $('#bd-ok').onclick = async e => {

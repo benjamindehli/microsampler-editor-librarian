@@ -10,8 +10,34 @@ import { $, api, esc, jsonBody } from 'functions/util.js';
 
 export function selectSlot(i) {
   state.sel = i;
-  renderPads();
-  showSlot(i).then(renderPads).catch(() => { });   // light the loaded dot
+  syncPads();
+  showSlot(i).then(syncPads).catch(() => { });   // light the loaded dot
+}
+
+// In-place refresh of sel/loaded/name on the EXISTING buttons — the hot paths
+// (every pad click ×2, once per preloaded sample) don't need renderPads()'s
+// full 36-button rebuild, which repaints the whole grid and destroys the
+// focused pad (keyboard focus silently dropped to <body>). Falls back to the
+// rebuild when the grid doesn't match the bank (first render, or a slot
+// flipped empty↔used — those change a pad's children/draggable).
+export function syncPads() {
+  const kids = $('#pad-grid').children;
+  const slots = state.bank.slots;
+  if (kids.length !== slots.length) return renderPads();
+  let used = 0;
+  for (const s of slots) {
+    const b = kids[s.slot];
+    if (b.classList.contains('empty') === !s.empty) return renderPads();
+    if (!s.empty) used++;
+    b.classList.toggle('sel', state.sel === s.slot);
+    b.classList.toggle('loaded', !s.empty && state.buffers.has(s.slot));
+    const nameEl = b.querySelector('.pad-name');
+    const name = s.empty ? '· · · ·' : s.name;
+    if (nameEl.textContent !== name) nameEl.textContent = name;
+  }
+  $('#count-used').textContent = used;
+  applyPadFilter();                                // re-apply any active filter
+  syncKeybed();                                    // mirror used/loaded/selected onto the piano
 }
 
 export function renderPads() {
@@ -31,7 +57,7 @@ export function renderPads() {
     b.innerHTML = `<span class="pad-num">${String(s.slot + 1).padStart(2, '0')} · ${noteName(s.slot)}</span>
                    <span class="pad-name">${s.empty ? '· · · ·' : esc(s.name)}</span>
                    <span class="pad-led"></span>` +
-      (s.empty ? '' : '<span class="pad-play" title="Play on the device (hold)">▶</span>');
+      (s.empty ? '' : '<span class="pad-play" aria-hidden="true" title="Play on the device (hold)">▶</span>');
     b.onclick = () => selectSlot(s.slot);
     if (!s.empty) {                              // used pads drag → copy/swap
       b.draggable = true;
@@ -127,7 +153,7 @@ $('#pad-search').addEventListener('input', applyPadFilter);
     if (!wavs.length) return;
     if (wavs.length > 1) return uploadBatch(slot, wavs);
     state.sel = slot;
-    renderPads();
+    syncPads();
     showSlot(slot);                      // no await — dialog opens right away
     openUpload(wavs[0]);
   });

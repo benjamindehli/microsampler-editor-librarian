@@ -228,9 +228,9 @@
       to end — so watch the device screen. The new sample lands on the device.</p>
     <div class="sampling-row">
       <span class="ctl-label">INPUT</span>
-      <div class="seg" id="smp-input">
-        <button type="button" data-resample="0" class="on">AUDIO IN</button>
-        <button type="button" data-resample="1">RE-SAMPLE</button>
+      <div class="seg" id="smp-input" role="group" aria-label="Sampling input">
+        <button type="button" data-resample="0" class="on" aria-pressed="true">AUDIO IN</button>
+        <button type="button" data-resample="1" aria-pressed="false">RE-SAMPLE</button>
       </div>
       <button class="hw-btn accent" id="smp-button"><span class="hw-btn-cap">● SAMPLE</span></button>
     </div>
@@ -272,10 +272,10 @@
         <option value="6">USER BANK 7 (G) — FLASH</option>
         <option value="7">USER BANK 8 (H) — FLASH</option>
       </select></label>
-    <menu>
+    <div class="dlg-actions">
       <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
       <button value="ok" id="rd-ok" class="hw-btn accent"><span class="hw-btn-cap">RESTORE</span></button>
-    </menu>
+    </div>
   </form>
 </dialog>
 
@@ -401,10 +401,10 @@
         <div class="ctl-group g2">
           <div class="ctl" data-flash="17">
             <span class="ctl-label">BPM SYNC</span>
-            <div class="seg" id="ctl-sync" role="radiogroup">
-              <button data-v="0" class="on">OFF</button>
-              <button data-v="1">STRETCH</button>
-              <button data-v="2">PITCH</button>
+            <div class="seg" id="ctl-sync" role="group" aria-label="BPM sync">
+              <button data-v="0" class="on" aria-pressed="true">OFF</button>
+              <button data-v="1" aria-pressed="false">STRETCH</button>
+              <button data-v="2" aria-pressed="false">PITCH</button>
             </div>
           </div>
         </div>
@@ -522,10 +522,10 @@
       device to keep them.</p>
     <label>NAME <input type="text" id="bd-name" maxlength="8" spellcheck="false"></label>
     <label>BPM <input type="number" id="bd-bpm" min="20" max="300" step="0.1"></label>
-    <menu>
+    <div class="dlg-actions">
       <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
       <button value="ok" id="bd-ok" class="hw-btn accent"><span class="hw-btn-cap">APPLY</span></button>
-    </menu>
+    </div>
   </form>
 </dialog>
 
@@ -536,10 +536,10 @@
       Changing it re-uploads the sample to the device — its audio and all other settings
       are kept, so it takes a moment.</p>
     <label>BPM <input type="number" id="td-bpm" min="20" max="300" step="0.1"></label>
-    <menu>
+    <div class="dlg-actions">
       <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
       <button value="ok" id="td-ok" class="hw-btn accent"><span class="hw-btn-cap">APPLY</span></button>
-    </menu>
+    </div>
   </form>
 </dialog>
 
@@ -588,7 +588,7 @@
         <kbd>⌘/Ctrl+Z</kbd> undo · <kbd>⌘/Ctrl+⇧Z</kbd> redo ·
         <kbd>?</kbd> this help.</p>
     </div>
-    <menu><button value="ok" class="hw-btn accent"><span class="hw-btn-cap">GOT IT</span></button></menu>
+    <div class="dlg-actions"><button value="ok" class="hw-btn accent"><span class="hw-btn-cap">GOT IT</span></button></div>
   </form>
 </dialog>
 
@@ -596,11 +596,11 @@
   <form method="dialog">
     <h3>SLOT <span id="so-title">?</span></h3>
     <p class="warn" id="so-warn"></p>
-    <menu>
+    <div class="dlg-actions">
       <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
       <button value="copy" id="so-copy" class="hw-btn"><span class="hw-btn-cap">COPY →</span></button>
       <button value="swap" id="so-swap" class="hw-btn accent"><span class="hw-btn-cap">⇄ SWAP</span></button>
-    </menu>
+    </div>
   </form>
 </dialog>
 
@@ -609,10 +609,10 @@
     <h3>RENAME <span id="rn-slot">PAD 1</span></h3>
     <label>NAME <input type="text" id="rn-name" maxlength="8" spellcheck="false"></label>
     <label>LONG NAME <input type="text" id="rn-long" maxlength="32" spellcheck="false"></label>
-    <menu>
+    <div class="dlg-actions">
       <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
       <button value="ok" id="rn-ok" class="hw-btn accent"><span class="hw-btn-cap">RENAME</span></button>
-    </menu>
+    </div>
   </form>
 </dialog>
 
@@ -644,11 +644,11 @@
     </div>
     <div class="ud-mem" id="ud-mem" hidden></div>
     <div class="ud-progress" id="ud-progress" hidden><div></div></div>
-    <menu>
+    <div class="dlg-actions">
       <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
       <button type="button" id="ud-slice" class="hw-btn" disabled title="Chop this sample across several pads"><span class="hw-btn-cap">SLICE…</span></button>
       <button value="ok" id="ud-ok" class="hw-btn accent"><span class="hw-btn-cap">TRANSMIT</span></button>
-    </menu>
+    </div>
   </form>
 </dialog>
 
@@ -665,10 +665,10 @@
     <label id="sl-sens-row" hidden>SENSITIVITY <input type="range" id="sl-sens" min="0" max="100" step="1" value="75"></label>
     <div class="ud-mem" id="sl-info"></div>
     <div class="ud-progress" id="sl-progress" hidden><div></div></div>
-    <menu>
+    <div class="dlg-actions">
       <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
       <button type="button" id="sl-go" class="hw-btn accent"><span class="hw-btn-cap">SLICE</span></button>
-    </menu>
+    </div>
   </form>
 </dialog>
 
@@ -679,10 +679,10 @@
     <label>SAMPLE <select id="cp-src"></select></label>
     <label>→ PAD <select id="cp-dst"></select></label>
     <div class="ud-mem" id="cp-info"></div>
-    <menu>
+    <div class="dlg-actions">
       <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CLOSE</span></button>
       <button type="button" id="cp-copy" class="hw-btn accent"><span class="hw-btn-cap">COPY →</span></button>
-    </menu>
+    </div>
   </form>
 </dialog>
 
@@ -690,10 +690,10 @@
   <form method="dialog">
     <h3 id="confirm-title">CONFIRM</h3>
     <p class="confirm-body" id="confirm-body"></p>
-    <menu>
+    <div class="dlg-actions">
       <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
       <button value="ok" id="confirm-ok" class="hw-btn accent"><span class="hw-btn-cap">OK</span></button>
-    </menu>
+    </div>
   </form>
 </dialog>
 
@@ -724,14 +724,14 @@
       <button class="hw-btn accent" id="pe-save" type="button"><span class="hw-btn-cap"><span class="ico ico-up"></span>SAVE TO DEVICE</span></button>
     </div>
     <div class="pe-head-row">
-      <div class="pe-track pe-tool" role="radiogroup" aria-label="Tool">
-        <button id="pe-tool-pencil" class="on" type="button" title="Pencil — click to add, drag to move, drag the right edge to resize">✎ DRAW</button>
-        <button id="pe-tool-eraser" type="button" title="Eraser — click or drag over notes to remove them">⌫ ERASE</button>
-        <button id="pe-tool-select" type="button" title="Select — click a note, or drag a box to select several">▭ SELECT</button>
+      <div class="pe-track pe-tool" role="group" aria-label="Tool">
+        <button id="pe-tool-pencil" class="on" aria-pressed="true" type="button" title="Pencil — click to add, drag to move, drag the right edge to resize">✎ DRAW</button>
+        <button id="pe-tool-eraser" aria-pressed="false" type="button" title="Eraser — click or drag over notes to remove them">⌫ ERASE</button>
+        <button id="pe-tool-select" aria-pressed="false" type="button" title="Select — click a note, or drag a box to select several">▭ SELECT</button>
       </div>
-      <div class="pe-track" role="radiogroup" aria-label="Active track">
-        <button id="pe-track-smp" class="on" type="button" title="New notes go on the sample-mode (pad) track">SMP</button>
-        <button id="pe-track-kbd" type="button" title="New notes go on the keyboard-mode (pitched) track">KBD</button>
+      <div class="pe-track" role="group" aria-label="Active track">
+        <button id="pe-track-smp" class="on" aria-pressed="true" type="button" title="New notes go on the sample-mode (pad) track">SMP</button>
+        <button id="pe-track-kbd" aria-pressed="false" type="button" title="New notes go on the keyboard-mode (pitched) track">KBD</button>
       </div>
     </div>
   </div>

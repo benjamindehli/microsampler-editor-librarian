@@ -178,7 +178,10 @@ export function onOpEvent(evt) {
   const seg = $('#smp-input');
   seg.querySelectorAll('button').forEach(b => {
     b.onclick = () => {
-      seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+      seg.querySelectorAll('button').forEach(x => {
+        x.classList.toggle('on', x === b);
+        x.setAttribute('aria-pressed', String(x === b));
+      });
       apiJson('/api/sampling/input', jsonBody({ resample: b.dataset.resample === '1' }))
         .then(() => tick(`input → ${b.textContent.trim()}`)).catch(() => { });
     };

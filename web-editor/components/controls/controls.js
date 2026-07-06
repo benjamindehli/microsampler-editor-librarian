@@ -95,7 +95,7 @@ async function sendParamTo(slot, param, value) {
 
 // ── undo / redo of sample param edits ────────────────────────────────────
 const undoStack = [], redoStack = [];
-export async function sendParam(param, value) {
+async function sendParam(param, value) {
   if (state.sel == null) return;
   const before = readModel(state.sel, param);
   if (before !== value) {
@@ -148,8 +148,10 @@ $('#ctl-sync').querySelectorAll('button').forEach(b => {
   b.onclick = () => { setSeg(+b.dataset.v); sendParam(PARAM.BPM_SYNC, +b.dataset.v); };
 });
 export function setSeg(v) {
-  $('#ctl-sync').querySelectorAll('button').forEach(b =>
-    b.classList.toggle('on', +b.dataset.v === v));
+  $('#ctl-sync').querySelectorAll('button').forEach(b => {
+    b.classList.toggle('on', +b.dataset.v === v);
+    b.setAttribute('aria-pressed', String(+b.dataset.v === v));
+  });
   // device rule: Pitch Change disables Tune AND Semitone
   $('#tune-block').classList.toggle('locked', v === 2);
   $('#semitone-block').classList.toggle('locked', v === 2);
@@ -175,7 +177,7 @@ wireFader('#ctl-velo', '#val-velo', PARAM.VELO_INT, fmtSigned);
 wireSwitch('#ctl-fx', '#val-fx', PARAM.FX_SW);
 
 // set a control from a MODEL-space value (no dec14 — that's the wire form)
-export function setControl(param, value) {
+function setControl(param, value) {
   switch (param) {
     case PARAM.LOOP: setSwitch('#ctl-loop', '#val-loop', !!value); break;
     case PARAM.REVERSE: setSwitch('#ctl-reverse', '#val-reverse', !!value); break;

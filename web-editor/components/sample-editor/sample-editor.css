@@ -69,7 +69,6 @@
   color: var(--amber-dk); font-size: .8rem;
   animation: blink 1.1s steps(2) infinite;
 }
-@keyframes blink { 50% { opacity: .25; } }
 .screen-glass {
   position: absolute; inset: 0; pointer-events: none;
   background:

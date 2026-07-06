@@ -65,7 +65,24 @@ export async function loadWave(i) {
   }
 }
 
-export function drawWave(buf, s) {
+// Redraw coalescing + drag fast-path: pointermove (drag/pan) and wheel can fire
+// far faster than the display refresh, and drawWave is the expensive full-canvas
+// pass (one fillRect per pixel column, with a shadow-blur pass per call) — so
+// hot paths schedule at most ONE draw per animation frame, and draws during an
+// active drag skip the glow shadows (each shadowed fill is a per-call blur).
+// The release path (endDrag/commitPoints) always lands a full-quality draw.
+let fastDraw = false;
+let redrawReq = 0;
+function scheduleRedraw() {
+  if (redrawReq) return;
+  redrawReq = requestAnimationFrame(() => {
+    redrawReq = 0;
+    const buf = curBuf();
+    if (buf && state.sel != null) drawWave(buf, slotData(state.sel));
+  });
+}
+
+function drawWave(buf, s) {
   const canvas = $('#wave');
   const dpr = devicePixelRatio || 1;
   const W = canvas.clientWidth * dpr, H = canvas.clientHeight * dpr;
@@ -103,8 +120,10 @@ export function drawWave(buf, s) {
   const mids = new Float32Array(W);
   const spp = vlen / W;                          // samples per pixel column
   g.save();
-  g.shadowColor = A(.8);
-  g.shadowBlur = 6 * dpr;
+  if (!fastDraw) {                               // glow off while dragging
+    g.shadowColor = A(.8);
+    g.shadowBlur = 6 * dpr;
+  }
   g.fillStyle = `rgb(${rgb})`;
   for (let x = 0; x < W; x++) {
     const a = v0 + x * spp;
@@ -133,8 +152,10 @@ export function drawWave(buf, s) {
   g.save();
   g.strokeStyle = `rgba(${hiRgb},.85)`;
   g.lineWidth = dpr;
-  g.shadowColor = A(.6);
-  g.shadowBlur = 4 * dpr;
+  if (!fastDraw) {
+    g.shadowColor = A(.6);
+    g.shadowBlur = 4 * dpr;
+  }
   g.beginPath();
   for (let x = 0; x < W; x++) {
     const y = mid + mids[x] * (mid * .92);
@@ -187,7 +208,7 @@ function updateZoomUI() {
 function redrawZoom() {
   const buf = curBuf();
   if (!buf) return;
-  drawWave(buf, slotData(state.sel));
+  scheduleRedraw();          // coalesced — wheel/pan events outpace the display
   updateZoomUI();
 }
 
@@ -246,6 +267,7 @@ wave.addEventListener('dblclick', () => { fitView(); redrawZoom(); });
     if (m) drag = { mode: m };
     else if (canPan()) drag = { mode: 'pan', x: ev.clientX, v0: view.v0 };
     else return;                                  // at fit, body drag is a no-op
+    fastDraw = true;                              // shadow-free draws while dragging
     wave.setPointerCapture(ev.pointerId);
     ev.preventDefault();
   });
@@ -269,15 +291,17 @@ wave.addEventListener('dblclick', () => { fitView(); redrawZoom(); });
     const f = frameAt(ev, s);
     if (drag.mode === 'start') s.start = Math.min(f, s.end - 1);
     else s.end = Math.max(f, s.start + 1);
-    drawWave(curBuf(), s);
+    scheduleRedraw();                             // coalesced (see drawWave)
     renderPoints(s);
   });
   const endDrag = async () => {
     if (!drag) return;
     const mode = drag.mode;
     drag = null;
+    fastDraw = false;                             // glow back on
     wave.style.cursor = '';
-    if (mode === 'pan') return;                   // panning sends nothing
+    if (mode === 'pan') { scheduleRedraw(); return; }   // full-quality final frame;
+    //                                                     panning sends nothing
     const s = slotData(state.sel);
     const buf = curBuf();
     // snap the just-dragged marker to the nearest zero crossing (numeric inputs
@@ -435,5 +459,12 @@ export const redrawCurrent = () => {
     updateZoomUI();
   }
 };
-addEventListener('resize', redrawCurrent);
-addEventListener('msmpl-theme', redrawCurrent);
+// resize streams events while the window is being dragged — coalesce to one
+// draw per frame (scheduleRedraw); the zoom chrome only needs a cheap update
+addEventListener('resize', () => {
+  if (state.sel != null && state.buffers.has(state.sel)) {
+    scheduleRedraw();
+    updateZoomUI();
+  }
+});
+addEventListener('msmpl-theme', redrawCurrent);   // one-shot — sync is fine

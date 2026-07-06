@@ -248,6 +248,8 @@ function onPointerMove(e) {
   if (drag.mode === 'resize') {
     const nt = cur.notes[drag.idx];
     nt.dur = Math.max(s, Math.round((t - nt.start) / s) * s);
+    syncNoteEls([drag.idx]);        // geometry-only — full renderRoll on release
+    return;
   } else {
     const r = roll.getBoundingClientRect();
     let dStart = t - drag.grabTick;
@@ -265,8 +267,26 @@ function onPointerMove(e) {
       cur.notes[j].start = o.start + dStart;
       cur.notes[j].note = o.note + dNote;
     }
+    syncNoteEls([...drag.orig.keys()]);   // geometry-only — full renderRoll on release
   }
-  renderRoll();
+}
+
+// During a move/resize drag only the DRAGGED notes' geometry changes — patch
+// their inline styles in place. renderRoll() (bars + ~25 row shades + up to
+// 199 note divs rebuilt) ran on EVERY pointermove; the full rebuild now waits
+// for pointerup.
+function syncNoteEls(idxs) {
+  const roll = $('#pe-roll'), tot = total();
+  for (const i of idxs) {
+    const nt = cur.notes[i];
+    const el = roll.querySelector(`.pe-note[data-i="${i}"]`);
+    if (!el || !nt) continue;
+    el.style.left = nt.start / tot * 100 + '%';
+    el.style.width = nt.dur / tot * 100 + '%';
+    el.style.top = rowTop(nt.note) + 1 + 'px';
+    el.setAttribute('aria-label', noteLabel(nt));   // keep AT + tooltip current
+    el.title = `${midiLabel(nt.note)} · vel ${nt.vel}`;
+  }
 }
 
 // select all notes intersecting the dragged box (content-px → tick/row ranges)
@@ -293,8 +313,8 @@ function onPointerUp() {
   if (!drag) return;
   if (drag.mode === 'marquee') finishMarquee();
   else if (drag.mode === 'erase') { if (drag.erased) pushHistory(); }
-  else pushHistory();                                 // move / resize / pencil-add
-  drag = null;
+  else { renderRoll(); pushHistory(); }               // move / resize / pencil-add:
+  drag = null;                                        // the deferred full rebuild
 }
 
 function onWheel(e) {                                 // scroll over a note → velocity
@@ -372,7 +392,11 @@ function onKey(e) {
 
 function setTool(t) {
   cur.tool = t;
-  for (const x of ['pencil', 'eraser', 'select']) $('#pe-tool-' + x).classList.toggle('on', x === t);
+  for (const x of ['pencil', 'eraser', 'select']) {
+    const b = $('#pe-tool-' + x);
+    b.classList.toggle('on', x === t);
+    b.setAttribute('aria-pressed', String(x === t));
+  }
   const roll = $('#pe-roll');
   roll.classList.toggle('erasing', t === 'eraser');
   roll.classList.toggle('selecting', t === 'select');
@@ -423,8 +447,10 @@ export function openPatternEditor(p) {
 
 function setTrack(t) {
   cur.track = t;
-  $('#pe-track-smp').classList.toggle('on', t === 0);
-  $('#pe-track-kbd').classList.toggle('on', t === 1);
+  for (const [id, on] of [['#pe-track-smp', t === 0], ['#pe-track-kbd', t === 1]]) {
+    $(id).classList.toggle('on', on);
+    $(id).setAttribute('aria-pressed', String(on));
+  }
 }
 
 const pNum = () => `P${String(cur.pattern + 1).padStart(2, '0')}`;

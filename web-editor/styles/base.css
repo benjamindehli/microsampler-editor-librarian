@@ -56,6 +56,12 @@ body {
 
 /* entrance: machine powering on, sections rise in sequence */
 .reveal { animation: rise .55s cubic-bezier(.2,.8,.25,1) both; animation-delay: var(--d, 0s); }
+
+/* shared flex filler (pattern cards, pattern-editor header, backup rows) */
+.spacer { flex: 1; }
+/* shared LED/status blink — used across sheets (.offline-led in layout,
+   .screen-status in sample-editor), so it lives in the base sheet */
+@keyframes blink { 50% { opacity: .25; } }
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
 
 /* ── silkscreen + LCD primitives ─────────────────────────────────────── */

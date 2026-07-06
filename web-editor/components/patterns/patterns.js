@@ -136,7 +136,7 @@ function buildCard(p) {
 // Update a single card in place after a save / INIT / import — avoids re-receiving
 // all 16 patterns from the device (slow + stops the sequencer). The write's POST
 // response already carries the changed pattern (bridge pattern_write → _pattern_json).
-export function applyPattern(p) {
+function applyPattern(p) {
   if (!p || !lastPatterns) return;
   lastPatterns[p.pattern] = p;
   if (playing && playing.pattern === p.pattern) stopTransport();   // DOM swap orphans the btn
