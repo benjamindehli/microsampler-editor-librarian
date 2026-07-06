@@ -39,10 +39,12 @@ function renderBanks() {
 
 async function renderDetail() {
   const el = $('#lib-detail');
-  if (!selDir) { el.innerHTML = ''; return; }
+  const dir = selDir;               // guard against a stale response: bank A's
+  if (!dir) { el.innerHTML = ''; return; }   // fetch may resolve after B was clicked
   let samples;
-  try { samples = (await apiJson(`/api/backup/${encodeURIComponent(selDir)}/samples`)).samples; }
-  catch (e) { el.innerHTML = `<p class="backup-empty">${esc(e.message)}</p>`; return; }
+  try { samples = (await apiJson(`/api/backup/${encodeURIComponent(dir)}/samples`)).samples; }
+  catch (e) { if (dir === selDir) el.innerHTML = `<p class="backup-empty">${esc(e.message)}</p>`; return; }
+  if (dir !== selDir) return;       // superseded — the newer click's render owns the pane
   const bySlot = {};
   for (const s of samples) bySlot[s.slot] = s;
   const zip = `/api/backup/${encodeURIComponent(selDir)}.zip`;

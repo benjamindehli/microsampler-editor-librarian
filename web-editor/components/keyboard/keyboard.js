@@ -287,7 +287,12 @@ async function setMidi(on) {
     const names = midiInputNames();
     tick(names.length ? `MIDI input: ON (${names.join(', ')})` : 'MIDI input: ON (waiting for a device)');
   } else {
-    if (midiAccess) for (const input of midiAccess.inputs.values()) input.onmidimessage = null;
+    if (midiAccess) {
+      // also drop the hotplug handler — left bound, any device state change
+      // would re-attach the inputs and silently re-enable MIDI while OFF
+      midiAccess.onstatechange = null;
+      for (const input of midiAccess.inputs.values()) input.onmidimessage = null;
+    }
     releaseMidi();
     tick('MIDI input: OFF');
   }

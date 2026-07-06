@@ -71,17 +71,20 @@ export async function loadAllSamples() {
     txt.textContent = `LOADING SAMPLES ${done} / ${todo.length}`;
   };
   show();
-  try {
-    for (const s of todo) {
-      await loadSampleAudio(s.slot);
-      done++;
-      show();
+  let failed = 0;
+  for (const s of todo) {
+    try {                                        // per-slot: one bad download
+      await loadSampleAudio(s.slot);             // must not abort the rest
       renderMeter();
       renderPads();                              // light the loaded indicator
       if (state.sel === s.slot) renderChips(s);
-    }
-    tick(`▦ loaded ${done} sample${done === 1 ? '' : 's'}`);
-  } catch (e) { tick(`⚠ load failed: ${e.message}`); }
+    } catch { failed++; }
+    done++;
+    show();
+  }
+  tick(failed
+    ? `⚠ loaded ${done - failed}/${todo.length} samples (${failed} failed — RECEIVE retries)`
+    : `▦ loaded ${done} sample${done === 1 ? '' : 's'}`);
   bar.hidden = true;
   loadingAll = false;
 }

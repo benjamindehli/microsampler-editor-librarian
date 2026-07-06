@@ -108,8 +108,12 @@ $('#td-ok').onclick = async e => {
   e.preventDefault();
   if (state.sel == null) return;
   const i = state.sel, s = slotData(i);
-  const bpm = Math.max(20, Math.min(300, +$('#td-bpm').value || 0));
-  if (!bpm || Math.abs(bpm - (s.tempo_bpm || 0)) < 0.05) { $('#tempo-dialog').close(); return; }
+  const raw = parseFloat($('#td-bpm').value);
+  // blank/garbage input must NO-OP — clamping it first would turn '' into 20
+  // and trigger the destructive re-upload at BPM 20
+  if (!Number.isFinite(raw)) { $('#tempo-dialog').close(); return; }
+  const bpm = Math.max(20, Math.min(300, raw));
+  if (Math.abs(bpm - (s.tempo_bpm || 0)) < 0.05) { $('#tempo-dialog').close(); return; }
   $('#td-ok').setAttribute('aria-busy', 'true');     // dims APPLY while the re-upload runs
   tick(`→ ${noteName(i)} rewriting sample (ORIG BPM ${bpm.toFixed(1)})…`);
   try {

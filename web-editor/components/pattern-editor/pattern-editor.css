@@ -69,8 +69,9 @@
 /* preview playhead — an approximate rAF sweep over the pattern's duration (loops),
    like the sample waveform's; spans the full roll height so it scrolls with it */
 .pe-playhead {
-  position: absolute; top: 0; bottom: 0; width: 2px; z-index: 6; pointer-events: none;
+  position: absolute; top: 0; bottom: 0; left: 0; width: 2px; z-index: 6; pointer-events: none;
   background: var(--amber); box-shadow: 0 0 6px var(--amber);
+  /* moved via translateX (compositor-only; left would relayout per frame) */
 }
 .pe-rowbg { position: absolute; left: 0; right: 0; background: rgba(0, 0, 0, .28); }
 

@@ -105,7 +105,15 @@ async function syncNameFromFile() {
   uploadPreflight();
 }
 $('#ud-file').onchange = syncNameFromFile;
-for (const id of UD_TOOL_IDS) $('#' + id).addEventListener('input', uploadPreflight);
+// debounced: the pre-flight runs processBuffer (full-file DSP — peak scans,
+// trim, fades) just to update the memory estimate; per-keystroke recompute
+// makes the dialog laggy while typing a value on a long sample
+let preflightT = null;
+const preflightSoon = () => {
+  clearTimeout(preflightT);
+  preflightT = setTimeout(uploadPreflight, 150);
+};
+for (const id of UD_TOOL_IDS) $('#' + id).addEventListener('input', preflightSoon);
 
 // minimal RIFF/WAVE chunk walk over the file head (proper fmt/data chunks —
 // 44-byte assumptions break on files with LIST/INFO chunks)

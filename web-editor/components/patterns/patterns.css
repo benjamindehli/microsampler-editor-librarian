@@ -58,8 +58,9 @@
 }
 /* approximate sweep while the pattern plays on the device (loops with it) */
 .p-playhead {
-  position: absolute; top: 0; bottom: 0; width: 2px; pointer-events: none;
+  position: absolute; top: 0; bottom: 0; left: 0; width: 2px; pointer-events: none;
   background: var(--amber); box-shadow: 0 0 5px var(--amber);
+  /* moved via translateX (compositor-only; left would relayout per frame) */
 }
 /* two rows (PLAY·EDIT·INIT / IMPORT·EXPORT), buttons stretch to fill their row */
 .pattern-card .p-actions { display: flex; flex-direction: column; gap: .35rem; }

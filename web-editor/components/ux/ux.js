@@ -135,6 +135,10 @@ const typing = () => {
 const dialogOpen = () => !!document.querySelector('dialog[open]');
 
 addEventListener('keydown', e => {
+  // an open dialog owns ALL its keys — incl. ⌘Z: the pattern editor has its own
+  // undo stack (⌘Z here would ALSO undo a device param = double-fire), and text
+  // fields need native text undo (a device param undo would hijack it)
+  if (dialogOpen()) return;
   // undo/redo work even while a slot control has focus
   const mod = e.metaKey || e.ctrlKey;
   if (mod && (e.key === 'z' || e.key === 'Z')) {
@@ -143,7 +147,7 @@ addEventListener('keydown', e => {
     return;
   }
   if (mod && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); redo(); return; }
-  if (typing() || dialogOpen() || mod) return;
+  if (typing() || mod) return;
 
   const onSamples = !$('#view-samples').hidden;
   if (e.key === '?') { $('#help-dialog').showModal(); e.preventDefault(); return; }

@@ -95,6 +95,10 @@ for (const r of document.querySelectorAll('input[name="sl-mode"]'))
     $('#sl-sens-row').hidden = !transient;
     preview();
   });
-$('#sl-count').addEventListener('input', preview);
-$('#sl-sens').addEventListener('input', preview);
+// debounced: preview() runs sliceBuffer (copies + de-clicks every segment's
+// audio) just to display a count — per-tick recompute makes the sliders laggy
+let previewT = null;
+const previewSoon = () => { clearTimeout(previewT); previewT = setTimeout(preview, 120); };
+$('#sl-count').addEventListener('input', previewSoon);
+$('#sl-sens').addEventListener('input', previewSoon);
 $('#sl-go').addEventListener('click', () => { doSlice().catch(() => { }); });

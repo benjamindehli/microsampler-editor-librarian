@@ -18,7 +18,7 @@ const ROWH = 14;                 // px per note row
 const PAD_LO = 48, PAD_HI = 83;  // sample-mode notes map to pads 0..35 (note−48)
 const BLACK = new Set([1, 3, 6, 8, 10]);
 
-let cur = null;                  // { pattern, notes:[{start,dur,note,vel,track}], bars, sample, name, track, sel:Set, primary, origSmf, dirty }
+let cur = null;                  // { pattern, notes:[{start,dur,note,vel,track}], bars, sample, name, track, sel:Set, primary, origSmf, deviceDirty }
 let drag = null;                 // { mode:'move'|'resize', idx, grabTick, origNote, orig:Map }
 let pePlaying = false;           // previewing on the device (transport running)
 let clipboard = [];              // copied notes (relative to earliest start); persists across opens
@@ -118,7 +118,6 @@ function pushHistory() {
   history.push(s);
   if (history.length > 120) history.shift();
   hpos = history.length - 1;
-  cur.dirty = true;
 }
 function restoreState(s) {
   const o = JSON.parse(s);
@@ -128,7 +127,6 @@ function restoreState(s) {
   $('#pe-name').value = cur.name;
   $('#pe-sample').value = cur.sample == null ? '' : String(cur.sample);
   renderRoll(); setVelUI();
-  cur.dirty = true;
 }
 function undo() { if (hpos > 0) { hpos--; restoreState(history[hpos]); tick('undo'); } }
 function redo() { if (hpos < history.length - 1) { hpos++; restoreState(history[hpos]); tick('redo'); } }
@@ -414,7 +412,7 @@ export function openPatternEditor(p) {
   renderRoll();
   setVelUI();
   cur.origSmf = buildSmf();         // pristine slot, for restore-on-cancel
-  cur.dirty = false;
+  cur.deviceDirty = false;          // true only once a PREVIEW writes the device
   history = [stateStr()]; hpos = 0;
   pePlaying = false; setPlayBtn();
   $('#pattern-editor').showModal();
@@ -467,12 +465,13 @@ function startPlayhead(bpm) {
   ph.hidden = false;
   const bars = cur.bars;                                  // matches the pattern just written
   const durMs = bars * 4 * (60000 / Math.max(20, Math.min(300, bpm || 120)));   // 4/4
-  let t0 = null;
+  const width = roll.clientWidth;                         // once — a per-frame read
+  let t0 = null;                                          // after moving = reflow/frame
   const frame = ts => {
     if (!pePlaying) return;
     if (t0 == null) t0 = ts;
     const frac = ((ts - t0) % durMs) / durMs;             // loop
-    ph.style.left = (frac * roll.clientWidth) + 'px';
+    ph.style.transform = `translateX(${frac * width}px)`;
     peRAF = requestAnimationFrame(frame);
   };
   peRAF = requestAnimationFrame(frame);
@@ -491,7 +490,7 @@ async function preview() {
   if (pePlaying) { stopPreview(); return; }
   try {
     await writePattern(buildSmf());
-    cur.dirty = true;
+    cur.deviceDirty = true;         // the device slot now holds the edit
     const bpm = (state.bank && state.bank.bpm) || 120;
     await api(`/api/pattern/${cur.pattern}/play`, jsonBody({ bpm }));
     pePlaying = true; setPlayBtn(); startPlayhead(bpm);
@@ -512,7 +511,7 @@ async function save() {
   btn.disabled = true;
   try {
     announce(await writePattern(buildSmf()));        // refresh just this card
-    cur.dirty = false;
+    cur.deviceDirty = false;
     tick(`✓ pattern ${pNum()} saved`);
     await closeEditor();
   } catch (err) {
@@ -522,9 +521,11 @@ async function save() {
   }
 }
 
-// discard edits; if a preview wrote to the device, restore the slot to how it was
+// discard edits; if a preview wrote to the device, restore the slot to how it
+// was (edits WITHOUT a preview never touched the device — nothing to restore,
+// and a needless write here would stop the sequencer for no reason)
 async function cancel() {
-  if (cur.dirty) { try { announce(await writePattern(cur.origSmf)); } catch { /* ignore */ } }
+  if (cur.deviceDirty) { try { announce(await writePattern(cur.origSmf)); } catch { /* ignore */ } }
   await closeEditor();
 }
 

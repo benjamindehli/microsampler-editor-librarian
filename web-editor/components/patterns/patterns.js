@@ -215,11 +215,12 @@ function startPlayhead(p, btn, bpm) {
   wrap.append(ph);
   pPlayhead = ph;
   const durMs = p.bars * 4 * (60000 / Math.max(20, Math.min(300, bpm || 120)));
-  let t0 = null;
+  const width = wrap.clientWidth;                 // once — a per-frame read after
+  let t0 = null;                                  // moving the line reflows per frame
   const frame = ts => {
     if (pPlayhead !== ph) return;                 // stopped or superseded by another card
     if (t0 == null) t0 = ts;
-    ph.style.left = (((ts - t0) % durMs) / durMs * wrap.clientWidth) + 'px';
+    ph.style.transform = `translateX(${((ts - t0) % durMs) / durMs * width}px)`;
     pRAF = requestAnimationFrame(frame);
   };
   pRAF = requestAnimationFrame(frame);

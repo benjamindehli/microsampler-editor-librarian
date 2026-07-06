@@ -289,7 +289,10 @@ wave.addEventListener('dblclick', () => { fitView(); redrawZoom(); });
     await commitPoints(s.start, s.end);
   };
   wave.addEventListener('pointerup', endDrag);
-  wave.addEventListener('pointercancel', () => { drag = null; wave.style.cursor = ''; });
+  // pointercancel commits like pointerup — pointermove already mutated
+  // s.start/s.end, so just dropping the drag would leave the readouts and
+  // markers diverged from the device until the next commit or focus resync
+  wave.addEventListener('pointercancel', endDrag);
 
   // zero-snap toggle (persisted; default on)
   const zt = $('#zero-snap');
@@ -386,6 +389,10 @@ function startPlayhead(s) {
   const speed = playbackSpeed(s) || 1;                  // faster pitch = shorter sweep
   const regionMs = ((s.end - s.start) / s.rate_hz / speed) * 1000;
   const rev = !!s.reverse;                              // REVERSE → sweep END→START
+  // width read ONCE (not per frame — a per-frame clientWidth read right after
+  // moving the line forces a reflow every frame); moved via transform so the
+  // sweep stays compositor-only. Approximate anyway — a mid-play resize is fine.
+  const width = wave.clientWidth;
   let t0 = null;
   const frame = (ts) => {
     if (!playing) return;
@@ -398,9 +405,9 @@ function startPlayhead(s) {
     const frac = regionMs > 0 ? elapsed / regionMs : 0;
     const pos = rev ? 1 - frac : frac;
     const devFrame = s.start + pos * (s.end - s.start);
-    const x = (((devFrame / total) * n - view.v0) / view.vlen) * wave.clientWidth;
-    if (x < 0 || x > wave.clientWidth) ph.hidden = true;   // scrolled off (zoom)
-    else { ph.hidden = false; ph.style.left = x + 'px'; }
+    const x = (((devFrame / total) * n - view.v0) / view.vlen) * width;
+    if (x < 0 || x > width) ph.hidden = true;             // scrolled off (zoom)
+    else { ph.hidden = false; ph.style.transform = `translateX(${x}px)`; }
     playRAF = requestAnimationFrame(frame);
   };
   playRAF = requestAnimationFrame(frame);

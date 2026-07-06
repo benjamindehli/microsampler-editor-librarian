@@ -86,8 +86,9 @@ $('#device-help-retry').addEventListener('click', async () => {
     if (st.connected) { await onConnected(st); }
     else { showDeviceHelp(st); }
   } catch {
-    setOnline(false);                             // bridge went away mid-retry
-  }
+    setOnline(false);                             // bridge went away mid-retry —
+    setTimeout(boot, 2500);                       // resume the reconnect polling
+  }                                               // (boot's own catch keeps it up)
   btn.disabled = false; cap.textContent = was;
 });
 
