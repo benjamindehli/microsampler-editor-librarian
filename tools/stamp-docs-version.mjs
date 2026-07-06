@@ -21,27 +21,39 @@ const REPO = 'microsampler-editor-librarian';
 const V = '[\\w.+-]+';                                 // semver incl. -beta.1 etc.
 
 const targets = [
-  { file: 'docs/index.html', edit: s => s
+  { file: 'docs/index.html', patterns: [
       // release ZIP URL — version appears in BOTH the tag path and the filename
-      .replace(new RegExp(`releases/download/v${V}/${REPO}-v${V}\\.zip`, 'g'),
-        `releases/download/v${version}/${REPO}-v${version}.zip`)
+      [new RegExp(`releases/download/v${V}/${REPO}-v${V}\\.zip`, 'g'),
+        `releases/download/v${version}/${REPO}-v${version}.zip`],
       // the download button label
-      .replace(new RegExp(`Download&nbsp;v${V} \\(ZIP\\)`, 'g'),
-        `Download&nbsp;v${version} (ZIP)`)
+      [new RegExp(`Download&nbsp;v${V} \\(ZIP\\)`, 'g'),
+        `Download&nbsp;v${version} (ZIP)`],
       // JSON-LD softwareVersion (no leading "v")
-      .replace(new RegExp(`"softwareVersion":\\s*"${V}"`, 'g'),
-        `"softwareVersion": "${version}"`) },
-  { file: 'native-tools/bridge.py', edit: s => s
+      [new RegExp(`"softwareVersion":\\s*"${V}"`, 'g'),
+        `"softwareVersion": "${version}"`],
+  ] },
+  { file: 'native-tools/bridge.py', patterns: [
       // VERSION = '...'  (value the bridge reports via /api/status)
-      .replace(new RegExp(`VERSION = '${V}'`), `VERSION = '${version}'`) },
+      [new RegExp(`VERSION = '${V}'`), `VERSION = '${version}'`],
+  ] },
 ];
 
 const check = process.argv.includes('--check');
-let stale = false;
-for (const { file, edit } of targets) {
+let stale = false, broken = false;
+for (const { file, patterns } of targets) {
   const path = join(root, file);
   const src = readFileSync(path, 'utf8');
-  const out = edit(src);
+  let out = src;
+  for (const [re, sub] of patterns) {
+    // every pattern must MATCH — if a rewrite made one vanish (e.g. the button
+    // was reworded), a silent no-op would leave the guard blind to that target
+    if (!src.match(re)) {
+      broken = true;
+      console.error(`${file}: stamped pattern not found: ${re} — update tools/stamp-docs-version.mjs`);
+      continue;
+    }
+    out = out.replace(re, sub);
+  }
   if (out === src) continue;
   stale = true;
   if (check) {
@@ -51,5 +63,6 @@ for (const { file, edit } of targets) {
     console.log(`stamped ${file} → v${version}`);
   }
 }
+if (broken) process.exit(1);
 if (check && stale) process.exit(1);
 if (!stale) console.log(`already at v${version}`);
