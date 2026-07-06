@@ -22,7 +22,7 @@
   --amber-rgb: 255, 138, 30; --amber: rgb(var(--amber-rgb));
   --amber-hi: #ffc063; --amber-dk: #8a4500;
   --phos-bg: color-mix(in srgb, rgb(var(--amber-rgb)) 9%, #000);
-  --ok: #79e06b; --err: #ff4f3d;
+  --err: #ff4f3d;
   --maxw: 880px;
   font-size: 16px;
 }
@@ -31,7 +31,7 @@
 html { scroll-behavior: smooth; scroll-padding-top: 5rem; }   /* clear the sticky nav */
 body {
   margin: 0; color: var(--ink);
-  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   line-height: 1.65;
   background:
     radial-gradient(1100px 460px at 70% -160px, #1a1a20 0%, transparent 60%),
@@ -149,12 +149,10 @@ figcaption { color: var(--ink-dim); font-size: .82rem; margin-top: .5rem; text-a
 .note { border: 1px solid var(--line); border-left: 3px solid var(--amber); border-radius: 6px;
   background: var(--steel-1); padding: .85rem 1.1rem; margin: 1.2rem 0; }
 .note.warn { border-left-color: var(--err); }
-.note.ok { border-left-color: var(--ok); }
 .note p { margin: .3rem 0; }
 .note b.label { display: block; font: 600 .64rem/1 "Chakra Petch", sans-serif;
   letter-spacing: .16em; color: var(--amber); margin-bottom: .35rem; }
 .note.warn b.label { color: var(--err); }
-.note.ok b.label { color: var(--ok); }
 
 footer { margin-top: 3rem; padding-top: 1.4rem; border-top: 1px solid var(--line);
   color: var(--ink-dim); font-size: .82rem; }
