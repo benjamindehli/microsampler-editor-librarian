@@ -71,6 +71,18 @@ st, _, data = req('GET', '/api/bank')
 s5 = json.loads(data)['slots'][5]
 assert s5['name'] == 'BEEPY' and s5['tempo_bpm'] == 99.5
 
+# query values arrive percent-encoded (encodeURIComponent) — must be decoded,
+# or 'MY KIT' lands on the device as literal 'MY%20KIT'
+st, _, _ = req('POST', '/api/sample/6?name=MY%20KIT&tempo=120', body=buf.getvalue())
+assert st == 200
+st, _, data = req('GET', '/api/bank')
+assert json.loads(data)['slots'][6]['name'] == 'MY KIT'
+
+# a non-WAV upload body is client input → 400 (and must not kill the handler
+# thread — load_wav used to raise SystemExit, which except Exception misses)
+st, _, _ = req('POST', '/api/sample/7?name=BAD', body=b'this is not a wav')
+assert st == 400
+
 # --- ORIG BPM edit (mock HTTP) — re-uploads the sample with a new header tempo --
 st, _, data = req('POST', '/api/sample/5/tempo', body=json.dumps({'bpm': 88.0}))
 assert st == 200 and json.loads(data) == {'slot': 5, 'tempo_bpm': 88.0}
@@ -101,8 +113,15 @@ st, _, _ = req('POST', '/api/sample/0/points',
                body=json.dumps({'start': 500, 'end': 500}))   # start must be < end
 assert st == 400
 st, _, _ = req('POST', '/api/sample/35/points',
-               body=json.dumps({'start': 0, 'end': 10}))      # empty slot
-assert st == 500
+               body=json.dumps({'start': 0, 'end': 10}))      # empty slot →
+assert st == 400                                              # client error, not a 500
+st, _, _ = req('POST', '/api/sample/35/name',
+               body=json.dumps({'name': 'GHOST'}))            # ditto for rename
+assert st == 400
+st, _, _ = req('POST', '/api/param', body=json.dumps({'param': 16, 'value': 1}))
+assert st == 400                                              # missing field → 400
+st, _, _ = req('POST', '/api/param', body='{not json')
+assert st == 400                                              # bad JSON body → 400
 
 # --- patterns (mock HTTP) ----------------------------------------------------
 st, _, data = req('GET', '/api/patterns')

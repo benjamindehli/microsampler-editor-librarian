@@ -42,10 +42,18 @@ import traceback
 import wave
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+from urllib.parse import unquote
+
 import protocol as P
 from msusb import MicroSampler, from_usb_midi
 import download as DL
 import upload as UL
+
+
+class DeviceGone(RuntimeError):
+    """A device op was attempted while open() had failed (no USB device
+    claimed) — mapped to HTTP 503 so the UI can tell 'not connected' from a
+    bad request."""
 
 VERSION = '1.14.1'   # current app version; kept in sync by tools/stamp-docs-version.mjs
 WEB_ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -80,6 +88,7 @@ class Device:
         self.listeners = []                 # SSE queues
         self.reader_enabled = reader
         self.op = None                      # current/last backup or restore
+        self.op_lock = threading.Lock()     # start_op check-then-set atomicity
         self.pattern_cache = {}             # q -> raw 1308B blob
         self._stop = threading.Event()
         self._reader = None
@@ -253,12 +262,13 @@ class Device:
 
     # -- long-running ops (backup/restore): one at a time, progress over SSE --
     def start_op(self, name, fn):
-        if self.op and not self.op['done']:
-            raise RuntimeError('another operation is already running')
-        self.op = {'name': name, 'lines': [], 'done': False, 'ok': None}
+        with self.op_lock:                  # atomic check-then-set: two racing
+            if self.op and not self.op['done']:   # POSTs can't both start
+                raise RuntimeError('another operation is already running')
+            self.op = op = {'name': name, 'lines': [], 'done': False, 'ok': None}
 
-        def run():
-            ok = False
+        def run():                          # writes ITS op dict, not self.op —
+            ok = False                      # which a later op may have replaced
             try:
                 with self.lock:
                     self._inquire()
@@ -268,8 +278,8 @@ class Device:
                 traceback.print_exc()
                 self.op_log('ERROR: %s' % e)
             finally:
-                self.op['ok'] = ok
-                self.op['done'] = True
+                op['ok'] = ok
+                op['done'] = True
                 self._emit({'type': 'op_done', 'name': name, 'ok': ok})
 
         threading.Thread(target=run, daemon=True).start()
@@ -296,14 +306,18 @@ class Device:
         with self.lock:
             self._inquire()
             out = []
-            for q in range(16):
-                # progress over SSE — the GET blocks until all 16 are read,
-                # but the event stream (separate thread) delivers these live
-                self._emit({'type': 'progress', 'op': 'patterns',
-                            'done': q, 'total': 16})
-                blob = fetch_sequence(self.ms, self.channel, q)
-                self.pattern_cache[q] = blob
-                out.append(_pattern_json(q, blob))
+            try:
+                for q in range(16):
+                    # progress over SSE — the GET blocks until all 16 are read,
+                    # but the event stream (separate thread) delivers these live
+                    self._emit({'type': 'progress', 'op': 'patterns',
+                                'done': q, 'total': 16})
+                    blob = fetch_sequence(self.ms, self.channel, q)
+                    self.pattern_cache[q] = blob
+                    out.append(_pattern_json(q, blob))
+            except Exception:
+                self._abort_dump()   # a failed 0x13 select may be left open
+                raise
             self._emit({'type': 'progress', 'op': 'patterns',
                         'done': 16, 'total': 16})
         return {'patterns': out}
@@ -314,7 +328,11 @@ class Device:
             from bank import fetch_sequence
             with self.lock:
                 self._inquire()
-                blob = fetch_sequence(self.ms, self.channel, q)
+                try:
+                    blob = fetch_sequence(self.ms, self.channel, q)
+                except Exception:
+                    self._abort_dump()   # a failed 0x13 select may be left open
+                    raise
                 self.pattern_cache[q] = blob
         if not blob:
             return None
@@ -329,7 +347,11 @@ class Device:
         time.sleep(0.06)
         with self.lock:
             self._inquire()
-            send_sequence(self.ms, self.channel, q, blob)
+            try:
+                send_sequence(self.ms, self.channel, q, blob)
+            except Exception:
+                self._abort_dump()   # a failed write session may be left open
+                raise
             self.pattern_cache[q] = blob
         return _pattern_json(q, blob)
 
@@ -361,10 +383,20 @@ class Device:
         return {'connected': self.ms is not None, 'inquiry': self.inquiry,
                 'mock': False, 'version': VERSION, 'error': self.open_error}
 
+    def _require_device(self):
+        """Every device op calls this (via _inquire or directly): when open()
+        failed the bridge still serves, so ops must fail with a clear 503
+        instead of an opaque NoneType AttributeError."""
+        if self.ms is None:
+            raise DeviceGone('device not connected%s — power-cycle it and '
+                             'press RETRY' % (' (%s)' % self.open_error
+                                              if self.open_error else ''))
+
     def _inquire(self):
         """Fresh Device Inquiry — the original editor opens EVERY session with
         one (DeviceInquiry at the top of each UsbSession::process); the device
         refuses dump-mode requests (func 0x29) without it. Caller holds lock."""
+        self._require_device()
         reply, _ = self.ms.device_inquiry(timeout_ms=2000, cables=(self.cable,))
         if not reply:
             raise RuntimeError('device inquiry failed — device off or wedged '
@@ -372,6 +404,7 @@ class Device:
         self.channel = reply[2] & 0x0f
 
     def send_param(self, obj, param, value):
+        self._require_device()
         with self.lock:
             self.ms.send_sysex(P.parameter_change(self.channel, obj, param, value))
 
@@ -380,6 +413,7 @@ class Device:
         params 0..7, BPM*10 as param 16 — from EditBankParameterAction).
         Batched because 9 separate /api/param round-trips each contend with
         the background reader's lock cycle — user-visibly sluggish."""
+        self._require_device()
         padded = name[:8].ljust(8)
         with self.lock:
             for i, c in enumerate(padded):
@@ -466,6 +500,7 @@ class Device:
         send the 2 knob assigns (params 2-3) + every effect param (16+i) to
         override. Batched for the same reason bank settings are (per-message
         round-trips contend the reader lock = sluggish)."""
+        self._require_device()
         ch = self.channel
         with self.lock:
             self.ms.send_sysex(P.parameter_change(ch, 80, 1, int(fx_type)))
@@ -486,6 +521,7 @@ class Device:
           microSAMPLER's keyboard-mode track sits on global channel + 1).
         `note` (0..127), when given, is the raw MIDI note to send (a real MIDI
         keyboard's full range in keyboard mode); otherwise it is 48 + slot."""
+        self._require_device()
         n = max(0, min(127, int(note))) if note is not None else 48 + max(0, min(35, int(slot)))
         ch = (self.channel + (1 if keyboard else 0)) & 0x0f
         status = (0x90 if on else 0x80) | ch
@@ -497,6 +533,7 @@ class Device:
         """Pitch bend (En bb mm, ±1 octave on the device) — keyboard-mode only,
         so it is sent on the keyboard channel (global + 1) by default. 14-bit
         value 0..16383, centre 8192 (no bend)."""
+        self._require_device()
         value = max(0, min(16383, int(value)))
         ch = (self.channel + (1 if keyboard else 0)) & 0x0f
         with self.lock:
@@ -541,6 +578,7 @@ class Device:
         mm = q*8. Then stream MIDI clock (the sequencer is a slave — clock
         advances it) and send system-realtime Start (0xFA). send_short derives
         the USB-MIDI CIN automatically (0xB CC, 0xF single-byte real-time)."""
+        self._require_device()
         mm = max(0, min(127, int(q) * 8))
         # Always STOP first: a pattern-select (NRPN) doesn't register while the
         # sequencer is running, and a Start during playback just restarts the
@@ -559,6 +597,7 @@ class Device:
 
     def stop_pattern(self):
         """Stop sequencer playback on the DEVICE (MIDI Stop, 0xFC) + stop clock."""
+        self._require_device()
         self._stop_clock()
         with self.lock:
             self.ms.send_short(0xFC, 0, 0, cable=self.cable)        # MIDI Stop
@@ -568,6 +607,7 @@ class Device:
         """Set the device's overall output via the Universal Real-Time Master
         Volume SysEx [F0 7F 7F 04 01 vv mm F7] (owner's manual p.46) — 14-bit,
         mm = MSB, max when both 7F. `value` is a 0..127 slider position."""
+        self._require_device()
         v = max(0, min(127, int(value)))
         v14 = round(v / 127 * 0x3FFF)
         with self.lock:
@@ -579,6 +619,7 @@ class Device:
         """All-sound-off safety net for stuck notes / runaway playback: All
         Sound Off (CC#120) + All Note Off (CC#123) on the global channel, MIDI
         Stop, and our clock off. (Manual lists CC#120/123 for exactly this.)"""
+        self._require_device()
         self._stop_clock()
         cc = 0xB0 | (self.channel & 0x0f)
         with self.lock:
@@ -591,6 +632,7 @@ class Device:
     def _nrpn(self, lsb, data):
         """Send one NRPN on the global channel: MSB 0x20, given LSB, data (CC#06).
         The device's panel buttons/dials are addressed this way (manual p.46)."""
+        self._require_device()
         cc = 0xB0 | (self.channel & 0x0f)
         with self.lock:
             self.ms.send_short(cc, 0x63, 0x20, cable=self.cable)    # NRPN MSB
@@ -628,7 +670,14 @@ class Device:
         time.sleep(0.06)
         with self.lock:
             self._inquire()
-            bank = self._fetch_bank_blob()
+            try:
+                bank = self._fetch_bank_blob()
+            except Exception:
+                # the 0x10 request may have opened a dump session before the
+                # failure (timeout / garbled reply) — abort so the device
+                # isn't stranded needing a power-cycle
+                self._abort_dump()
+                raise
             try:
                 slots = [self._slot_json(i, bank['sample_params'][i])
                          for i in range(36)]
@@ -684,6 +733,16 @@ class Device:
     def _leave_dump(self, commit=True):
         from bank import leave_dump_mode
         leave_dump_mode(self.ms, self.channel, commit=commit)
+
+    def _abort_dump(self):
+        """Best-effort leave-dump (abort, no commit) after a mid-dump failure —
+        the device may be stranded in a select/dump session that otherwise
+        needs a power-cycle. Caller holds the lock; swallows every error
+        (this only ever runs on an already-failing path)."""
+        try:
+            self._leave_dump(commit=False)
+        except Exception:
+            pass
 
     def download_wav(self, slot):
         """-> (wav_bytes, orig_tempo_bpm) or (None, None) when empty. The orig
@@ -1268,7 +1327,11 @@ def import_backup_zip(data):
     import zipfile
     _check_backup_writable()
     os.makedirs(BACKUP_ROOT, exist_ok=True)
-    with zipfile.ZipFile(io.BytesIO(data)) as z:
+    try:
+        zf = zipfile.ZipFile(io.BytesIO(data))
+    except zipfile.BadZipFile:
+        raise RuntimeError('not a zip file') from None   # client input → HTTP 400
+    with zf as z:
         names = [n for n in z.namelist() if not n.endswith('/')]
         if not any(n.endswith('manifest.json') for n in names):
             raise RuntimeError('not a backup zip (no manifest.json)')
@@ -1319,10 +1382,13 @@ def list_backups():
                     m = json.load(f)
             except Exception:
                 continue
-            out.append({
+            out.append({          # .get: a hand-edited manifest without the
+                # 'empty' flags must not 500 the whole /api/backups listing
                 'dir': d, 'name': m.get('name', '?'), 'bpm': m.get('bpm'),
-                'samples': sum(1 for s in m.get('samples', []) if not s['empty']),
-                'patterns': sum(1 for s in m.get('sequences', []) if not s['empty']),
+                'samples': sum(1 for s in m.get('samples', [])
+                               if not s.get('empty')),
+                'patterns': sum(1 for s in m.get('sequences', [])
+                                if not s.get('empty')),
             })
     return out
 
@@ -1434,13 +1500,21 @@ class Handler(BaseHTTPRequestHandler):
             return self._static(path)
         except BrokenPipeError:
             pass
+        except DeviceGone as e:
+            self._err(e, 503)                 # bridge up, device unclaimed
+        except RuntimeError as e:
+            self._err(e, 400)                 # validation ('unknown backup'…)
         except Exception as e:          # surface everything to the browser + log
             traceback.print_exc()
             self._err(e)
 
     def do_POST(self):
         path, _, query = self.path.partition('?')
-        params = dict(p.split('=', 1) for p in query.split('&') if '=' in p)
+        # the app percent-encodes query values (encodeURIComponent) — decode,
+        # or a sample named "MY KIT" lands on the device as literal "MY%20KIT"
+        params = {k: unquote(v)
+                  for k, v in (p.split('=', 1)
+                               for p in query.split('&') if '=' in p)}
         try:
             if path == '/api/connect':       # (re)attempt to claim the device
                 try:
@@ -1569,7 +1643,8 @@ class Handler(BaseHTTPRequestHandler):
                     return self._err('pattern 0..15', 400)
                 if m.group(2):                       # /init: factory pattern,
                     old = DEVICE.pattern_cache.get(q)  # keep sample assignment
-                    keep = P.parse_pattern(old)['sample'] if old else None
+                    par = P.parse_pattern(old) if old else None   # None if the
+                    keep = par['sample'] if par else None         # blob is invalid
                     blob = bytearray(P.build_init_pattern())
                     blob[0x1e0] = 0xff if keep is None else keep
                     return self._json(DEVICE.pattern_write(q, bytes(blob)))
@@ -1608,10 +1683,7 @@ class Handler(BaseHTTPRequestHandler):
                     return self._err('bpm required', 400)
                 if not 20.0 <= bpm <= 300.0:
                     return self._err('bpm 20..300', 400)
-                try:
-                    return self._json(DEVICE.set_tempo(slot, bpm))
-                except RuntimeError as e:
-                    return self._err(str(e), 400)
+                return self._json(DEVICE.set_tempo(slot, bpm))
             m = re.match(r'^/api/sample/(\d+)$', path)
             if m:
                 slot = int(m.group(1))
@@ -1622,6 +1694,17 @@ class Handler(BaseHTTPRequestHandler):
                 tempo = float(params.get('tempo', '120'))
                 return self._json(DEVICE.upload_wav(slot, wav, name, tempo))
             return self._err('not found', 404)
+        except BrokenPipeError:
+            pass                              # client went away mid-request
+        except DeviceGone as e:
+            self._err(e, 503)                 # bridge up, device unclaimed
+        except KeyError as e:                 # missing body field
+            self._err('missing field %s' % e, 400)
+        # client-input errors are 400s, not tracebacks: bad JSON / non-numeric
+        # values (ValueError incl. JSONDecodeError, TypeError), and the device
+        # methods' validation RuntimeErrors ('slot is empty', bad backup name…)
+        except (ValueError, TypeError, RuntimeError) as e:
+            self._err(e, 400)
         except Exception as e:
             traceback.print_exc()
             self._err(e)

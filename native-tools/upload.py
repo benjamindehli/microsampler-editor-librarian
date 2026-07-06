@@ -44,12 +44,18 @@ RATES = (48000, 24000, 12000, 6000)
 # --- audio loading / conversion ---------------------------------------------
 def load_wav(path):
     """-> (list of per-channel array('h'), rate)"""
-    with wave.open(path, 'rb') as w:
+    try:
+        w = wave.open(path, 'rb')
+    except (wave.Error, EOFError) as e:        # not a WAV → ValueError, so the
+        raise ValueError(f"not a PCM WAV file ({e})") from None   # bridge 400s it
+    with w:
         nch, width, rate, nframes = (w.getnchannels(), w.getsampwidth(),
                                      w.getframerate(), w.getnframes())
         raw = w.readframes(nframes)
     if nch not in (1, 2):
-        raise SystemExit(f"unsupported channel count {nch} (mono/stereo only)")
+        # ValueError, NOT SystemExit: the bridge calls load_wav for HTTP uploads
+        # and SystemExit (a BaseException) would kill its handler thread silently
+        raise ValueError(f"unsupported channel count {nch} (mono/stereo only)")
 
     samples = array('h')
     if width == 2:
@@ -63,7 +69,7 @@ def load_wav(path):
             samples.append(int.from_bytes(raw[i:i+width], 'little', signed=True)
                            >> (8 * (width - 2)))
     else:
-        raise SystemExit(f"unsupported sample width {width}")
+        raise ValueError(f"unsupported sample width {width}")
 
     chans = [samples[c::nch] for c in range(nch)]
     return chans, rate
@@ -159,7 +165,10 @@ def main():
     name = (args.name or base)[:8].upper()
     long_name = args.long_name or base
 
-    chans, in_rate = load_wav(args.wav)
+    try:
+        chans, in_rate = load_wav(args.wav)
+    except ValueError as e:                    # keep the clean CLI message
+        raise SystemExit(str(e)) from None
     rate = args.rate or min(RATES, key=lambda r: abs(r - in_rate))
     pcm, frames = to_device_pcm(chans, in_rate, rate)
     stereo = len(chans) == 2

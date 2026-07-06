@@ -90,7 +90,16 @@ def backup(ms, channel, bank, out, log=print):
                 'samples': [], 'sequences': []}
 
     # ---- 1. bank blob -----------------------------------------------------
-    bp = fetch_bank_blob(ms, channel, bank)
+    try:
+        bp = fetch_bank_blob(ms, channel, bank)
+    except Exception:
+        # the dump request may have opened a session before the failure —
+        # best-effort abort so the device isn't stranded in dump mode
+        try:
+            leave_dump_mode(ms, channel, commit=False)
+        except Exception:
+            pass
+        raise
     log(f"bank '{bp['name']}'  BPM {bp['bpm']:.1f}")
     with open(os.path.join(out, 'bank.bin'), 'wb') as f:
         f.write(bp['raw'])
@@ -185,8 +194,17 @@ def restore(ms, channel, bank, src, log=print):
     # ---- 1. bank blob -----------------------------------------------------
     _drain(ms)
     ms.send_sysex(P.bank_dump_send(channel, blob, bank))
-    _wait_korg_reply(ms, P.BANK_SEND_OK, P.BANK_SEND_ERR,
-                     timeout_ms=10000, what='bank blob ACK (func 0x23)')
+    try:
+        _wait_korg_reply(ms, P.BANK_SEND_OK, P.BANK_SEND_ERR,
+                         timeout_ms=10000, what='bank blob ACK (func 0x23)')
+    except Exception:
+        # the blob was already sent — the device may sit in dump mode waiting;
+        # best-effort abort so it isn't stranded needing a power-cycle
+        try:
+            leave_dump_mode(ms, channel, commit=False)
+        except Exception:
+            pass
+        raise
     log(f"bank blob ACKed ('{manifest.get('name', '?')}')")
 
     try:
@@ -223,7 +241,10 @@ def restore(ms, channel, bank, src, log=print):
         for entry in manifest['sequences']:
             q = entry['pattern']
             path = os.path.join(src, 'sequences', f'q{q:02d}.bin')
-            data = open(path, 'rb').read() if os.path.exists(path) else b''
+            data = b''
+            if os.path.exists(path):
+                with open(path, 'rb') as f:
+                    data = f.read()
             send_sequence(ms, channel, q, data)
             if data:
                 log(f"  q{q:02d}: {len(data)} bytes")
