@@ -6,7 +6,7 @@
 //
 // Frontend: JS is bundled (all ES modules → one file) + minified, CSS is
 // concatenated in cascade order + minified, HTML comments/indentation are
-// stripped and the 11 <link>s collapse to one. Python runtime is copied
+// stripped and the stylesheet <link>s collapse to one. Python runtime is copied
 // verbatim minus the test suite (it's the GPL source — not minified, by
 // design; readable source must accompany distributed object code anyway).
 // Dev/RE-only files (tools/re, .pkg, tests, .github) are left out.
@@ -56,7 +56,7 @@ const cssSrc = cssLinks.map(p => readFileSync(join(WEB, p), 'utf8')).join('\n');
 const cssMin = (await transform(cssSrc, { loader: 'css', minify: true })).code;
 writeFileSync(d('web-editor/css/app.css'), cssMin);
 
-// ── HTML: strip comments + indentation, collapse the 11 links to one ─────
+// ── HTML: strip comments + indentation, collapse the CSS links to one ────
 // Strip comments to a fixpoint: one pass can re-expose a `<!--` delimiter
 // (e.g. `<!--<!---->`), so repeat until the string stops changing. A single
 // pass trips CodeQL's incomplete-multi-character-sanitization rule.
@@ -98,11 +98,11 @@ for (const launcher of ['macOS/microSAMPLER Editor Librarian.command',
 for (const f of ['README.md', 'LICENSE']) cpSync(r(f), d(f));
 
 // ── report ───────────────────────────────────────────────────────────────
-const srcJs = cssLinks.length;  // (just to reference; real numbers below)
+const sheetCount = cssLinks.length;
 const sz = p => execFileSync('wc', ['-c', p]).toString().trim().split(/\s+/)[0] | 0;
 console.log('built dist/:');
 console.log(`  app.js      ${kb(sz(d('web-editor/app.js')))}  (bundled+minified)`);
-console.log(`  css/app.css ${kb(sz(d('web-editor/css/app.css')))}  (${srcJs} sheets merged)`);
+console.log(`  css/app.css ${kb(sz(d('web-editor/css/app.css')))}  (${sheetCount} sheets merged)`);
 console.log(`  app.html    ${kb(sz(d('web-editor/app.html')))}`);
 console.log('  + assets/, native-tools/*.py (no tests), launcher, README, LICENSE');
 console.log('\nrun it:  sudo python3 dist/native-tools/bridge.py');
