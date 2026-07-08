@@ -60,9 +60,9 @@ jobs:
       matrix:
         include:
           - { runner: macos-14, arch: arm64 }
-          # the Intel runner label changes as GitHub retires images — if this
-          # job stops finding a runner, check the current x86_64 macOS label
-          - { runner: macos-13, arch: x86_64 }
+          # macos-13 (the old Intel label) is retired — macos-15-intel is
+          # GitHub's current x86_64 image; update again when that one goes
+          - { runner: macos-15-intel, arch: x86_64 }
     env:
       HAVE_SIGNING: ${{ secrets.MACOS_CERT_P12 != '' }}
       APP: dist/bundle/microSAMPLER Library.app

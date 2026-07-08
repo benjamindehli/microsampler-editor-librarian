@@ -36,6 +36,8 @@ MANIFEST
 #   before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+# PyInstaller specs under tools/bundle/ are SOURCE, not build output
+!tools/bundle/*.spec
 
 # Installer logs
 pip-log.txt
