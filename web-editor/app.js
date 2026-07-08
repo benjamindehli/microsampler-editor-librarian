@@ -19,7 +19,7 @@ import { loadBackups } from 'components/utility/utility.js';
 import { subscribeEvents } from 'functions/events.js';
 import { state } from 'functions/state.js';
 import { tick } from 'functions/ticker.js';
-import { $, apiJson } from 'functions/util.js';
+import { $, apiJson, confirmDialog } from 'functions/util.js';
 
 let subscribed = false;
 
@@ -33,6 +33,7 @@ async function boot() {
     return;
   }
   setOnline(true, st);
+  wireQuit(st);                                   // bundled app: QUIT in the rail
   // hardware-free LIBRARY mode (bridge --library): no device, just the librarian.
   if (st.library) { enterLibraryMode(st); return; }
   // bridge is up but couldn't claim the device (missing / wedged) — show the
@@ -68,6 +69,23 @@ async function onConnected(st) {
   restoreView();                                  // now that the app is up
   checkForUpdate(st.version).catch(() => { });    // GitHub releases → toast
 }                                                 // refreshBank() preloads samples
+
+// The bundled app has no terminal to Ctrl+C, so its bridge enables
+// POST /api/shutdown (advertised via status.shutdown) and the rail shows QUIT.
+function wireQuit(st) {
+  const btn = $('#quit-btn');
+  btn.hidden = !st.shutdown;
+  if (!st.shutdown || btn.dataset.wired) return;
+  btn.dataset.wired = '1';
+  btn.onclick = async () => {
+    if (!await confirmDialog('QUIT',
+      'Stop the local bridge? This page goes offline until you start the app again.',
+      'QUIT')) return;
+    try { await apiJson('/api/shutdown', { method: 'POST' }); }
+    catch { /* the server may drop the connection while stopping */ }
+    $('#quit-curtain').hidden = false;
+  };
+}
 
 function showDeviceHelp(st) {
   $('#device-help-msg').textContent =

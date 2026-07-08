@@ -106,6 +106,7 @@
   display: grid; place-items: center;
   background: rgba(8,8,10,.96);   /* opaque dim, no blur — see dialogs.css note */
 }
+.quit-curtain { z-index: 95; }   /* covers the offline curtain after a QUIT */
 .offline-card {
   text-align: center; padding: 2.2rem 2.6rem;
   background: var(--steel-1); border: 1px solid var(--line-hi); border-radius: var(--r);
