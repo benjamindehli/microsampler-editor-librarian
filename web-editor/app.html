@@ -114,8 +114,22 @@
     <button class="hw-btn" id="refresh-btn" title="Re-read bank from device (R)">
       <span class="hw-btn-cap">RECEIVE</span>
     </button>
+    <!-- bundled app only (status.shutdown): stops the local bridge from the UI -->
+    <button class="hw-btn" id="quit-btn" hidden title="Quit — stop the local bridge">
+      <span class="hw-btn-cap">QUIT</span>
+    </button>
   </div>
 </header>
+
+<!-- shown after a deliberate QUIT (bundled app) — sits above the offline
+     curtain so the auto-reconnect message can't contradict it -->
+<div id="quit-curtain" class="offline quit-curtain" hidden>
+  <div class="offline-card">
+    <h2>LIBRARY CLOSED</h2>
+    <p>The local bridge has been stopped.</p>
+    <p class="dim">You can close this tab. Start the app again to come back.</p>
+  </div>
+</div>
 
 <!-- ── effect view ─────────────────────────────────────────────────────── -->
 <main class="deck utility-deck" id="view-effect" hidden>

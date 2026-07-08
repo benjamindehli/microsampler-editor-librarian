@@ -56,11 +56,17 @@ class DeviceGone(RuntimeError):
     bad request."""
 
 VERSION = '1.14.1'   # current app version; kept in sync by tools/stamp-docs-version.mjs
-WEB_ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                         '..', 'web-editor'))
+# static root; MSMPL_WEB_ROOT overrides for the bundled app (PyInstaller datas)
+WEB_ROOT = os.environ.get('MSMPL_WEB_ROOT') or \
+    os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                  '..', 'web-editor'))
 # where bank backups live; override with MSMPL_BACKUP_DIR (e.g. an external drive)
 BACKUP_ROOT = os.environ.get('MSMPL_BACKUP_DIR') or \
     os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backups')
+# the bundled app (no terminal to Ctrl+C) may enable POST /api/shutdown so the
+# web UI can stop the bridge; advertised to the app via /api/status "shutdown"
+ALLOW_SHUTDOWN = os.environ.get('MSMPL_ALLOW_SHUTDOWN') == '1'
+SRV = None           # the running HTTP server (set in main; /api/shutdown stops it)
 MIME = {'.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
         '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml',
         '.wav': 'audio/wav', '.webp': 'image/webp', '.jpg': 'image/jpeg',
@@ -1441,7 +1447,9 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split('?')[0]
         try:
             if path == '/api/status':
-                return self._json(DEVICE.status())
+                st = DEVICE.status()
+                st['shutdown'] = ALLOW_SHUTDOWN   # UI shows QUIT when available
+                return self._json(st)
             if path == '/api/bank':
                 return self._json(DEVICE.bank_summary())
             if path == '/api/backups':
@@ -1516,6 +1524,12 @@ class Handler(BaseHTTPRequestHandler):
                   for k, v in (p.split('=', 1)
                                for p in query.split('&') if '=' in p)}
         try:
+            if path == '/api/shutdown':      # bundled app: quit from the web UI
+                if not (ALLOW_SHUTDOWN and SRV):
+                    return self._err('not enabled', 404)
+                self._json({'ok': True})     # answer first, THEN stop the server
+                threading.Thread(target=SRV.shutdown, daemon=True).start()
+                return
             if path == '/api/connect':       # (re)attempt to claim the device
                 try:
                     DEVICE.open()
@@ -1794,7 +1808,8 @@ def main():
     if hasattr(signal, 'SIGHUP'):
         signal.signal(signal.SIGHUP, _graceful)
 
-    srv = ThreadingHTTPServer(('127.0.0.1', port), Handler)
+    global SRV
+    srv = SRV = ThreadingHTTPServer(('127.0.0.1', port), Handler)
     print('bridge ready: http://localhost:%d  (Ctrl+C to stop)' % port)
     try:
         srv.serve_forever()

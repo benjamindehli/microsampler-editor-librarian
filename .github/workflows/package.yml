@@ -1,0 +1,146 @@
+name: Package apps
+
+# Build the double-clickable "microSAMPLER Library" app (hardware-free
+# librarian — no sudo, no terminal) for Linux and macOS. Manual trigger while
+# this is piloted; wire into releases once the artifacts are proven.
+#
+# macOS signing + notarization run only when these repo secrets exist:
+#   MACOS_CERT_P12        base64 of the "Developer ID Application" .p12
+#                         (base64 -i cert.p12 | pbcopy)
+#   MACOS_CERT_PASSWORD   the .p12's password
+#   MACOS_SIGN_IDENTITY   e.g. "Developer ID Application: Name (TEAMID)"
+#   APPLE_ID              Apple-ID email for notarytool
+#   APPLE_TEAM_ID         10-char team id
+#   APPLE_APP_PASSWORD    app-specific password (appleid.apple.com)
+# Without them the jobs still build + smoke-test unsigned artifacts.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: Library app (Linux x86_64)
+    runs-on: ubuntu-22.04        # oldest LTS runner = widest glibc compatibility
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install pyinstaller
+      - name: Build (PyInstaller onedir)
+        run: pyinstaller --noconfirm --distpath dist/bundle --workpath build/bundle tools/bundle/library.spec
+      - name: Smoke test the frozen binary
+        run: |
+          "./dist/bundle/microSAMPLER Library/microSAMPLER Library" &
+          for i in $(seq 1 40); do
+            curl -sf http://localhost:8766/api/status > /dev/null && break
+            sleep 0.5
+          done
+          curl -sf http://localhost:8766/api/status | grep -q '"library": true'
+          curl -sf http://localhost:8766/app.html | grep -q microSAMPLER
+          curl -sf -X POST http://localhost:8766/api/shutdown | grep -q '"ok": true'
+      - name: Build AppImage
+        run: tools/bundle/make_appimage.sh
+      - name: Tarball (for users who avoid AppImages)
+        run: tar -C dist/bundle -czf "dist/bundle/microSAMPLER_Library-linux-x86_64.tar.gz" "microSAMPLER Library"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: microSAMPLER-Library-linux-x86_64
+          path: |
+            dist/bundle/microSAMPLER_Library-x86_64.AppImage
+            dist/bundle/microSAMPLER_Library-linux-x86_64.tar.gz
+
+  macos:
+    name: Library app (macOS ${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: macos-14, arch: arm64 }
+          # the Intel runner label changes as GitHub retires images — if this
+          # job stops finding a runner, check the current x86_64 macOS label
+          - { runner: macos-13, arch: x86_64 }
+    env:
+      HAVE_SIGNING: ${{ secrets.MACOS_CERT_P12 != '' }}
+      APP: dist/bundle/microSAMPLER Library.app
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install pyinstaller
+      - name: Make .icns from AppIcon.png
+        run: |
+          mkdir -p build/icon.iconset
+          for s in 16 32 128 256 512; do
+            sips -z $s $s web-editor/assets/AppIcon.png --out "build/icon.iconset/icon_${s}x${s}.png" > /dev/null
+            sips -z $((s*2)) $((s*2)) web-editor/assets/AppIcon.png --out "build/icon.iconset/icon_${s}x${s}@2x.png" > /dev/null
+          done
+          iconutil -c icns build/icon.iconset -o build/AppIcon.icns
+          echo "MSMPL_ICNS=$PWD/build/AppIcon.icns" >> "$GITHUB_ENV"
+      - name: Build (PyInstaller .app)
+        run: pyinstaller --noconfirm --distpath dist/bundle --workpath build/bundle tools/bundle/library.spec
+      - name: Smoke test the frozen binary
+        run: |
+          "./$APP/Contents/MacOS/microSAMPLER Library" &
+          for i in $(seq 1 40); do
+            curl -sf http://localhost:8766/api/status > /dev/null && break
+            sleep 0.5
+          done
+          curl -sf http://localhost:8766/api/status | grep -q '"library": true'
+          curl -sf http://localhost:8766/app.html | grep -q microSAMPLER
+          curl -sf -X POST http://localhost:8766/api/shutdown | grep -q '"ok": true'
+
+      # ── signing + notarization (skipped unless the secrets are configured) ──
+      - name: Import signing certificate
+        if: env.HAVE_SIGNING == 'true'
+        env:
+          CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+        run: |
+          KEYCHAIN=build/signing.keychain-db
+          KEYCHAIN_PW=$(openssl rand -hex 16)
+          echo "$CERT_P12" | base64 -d > build/cert.p12
+          security create-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
+          security set-keychain-settings -lut 900 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
+          security import build/cert.p12 -k "$KEYCHAIN" -P "$CERT_PASSWORD" \
+            -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s \
+            -k "$KEYCHAIN_PW" "$KEYCHAIN" > /dev/null
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain
+          rm build/cert.p12
+      - name: Codesign (hardened runtime)
+        if: env.HAVE_SIGNING == 'true'
+        env:
+          IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+        run: |
+          # inner Mach-O binaries first (dylibs/.so + the executable), app last
+          find "$APP/Contents" -type f \( -name '*.dylib' -o -name '*.so' -o -perm +111 \) \
+            -exec codesign --force --options runtime --timestamp \
+              --entitlements tools/bundle/entitlements.plist --sign "$IDENTITY" {} +
+          codesign --force --options runtime --timestamp \
+            --entitlements tools/bundle/entitlements.plist --sign "$IDENTITY" "$APP"
+          codesign --verify --deep --strict "$APP"
+      - name: Notarize + staple
+        if: env.HAVE_SIGNING == 'true'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          ditto -c -k --keepParent "$APP" build/notarize.zip
+          xcrun notarytool submit build/notarize.zip --wait \
+            --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_PASSWORD"
+          xcrun stapler staple "$APP"
+
+      - name: Zip the .app
+        run: ditto -c -k --keepParent "$APP" "dist/bundle/microSAMPLER_Library-macos-${{ matrix.arch }}.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: microSAMPLER-Library-macos-${{ matrix.arch }}
+          path: dist/bundle/microSAMPLER_Library-macos-${{ matrix.arch }}.zip

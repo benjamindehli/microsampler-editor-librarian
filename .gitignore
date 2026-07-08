@@ -256,3 +256,6 @@ microsampler-owners-manual.pdf
 node_modules/
 dist/
 release/
+
+# local sign/notarize scratch (the CI copy lives in build/)
+notarize.zip
