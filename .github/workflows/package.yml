@@ -45,7 +45,7 @@ jobs:
         run: tools/bundle/make_appimage.sh
       - name: Tarball (for users who avoid AppImages)
         run: tar -C dist/bundle -czf "dist/bundle/microSAMPLER_Library-linux-x86_64.tar.gz" "microSAMPLER Library"
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: microSAMPLER-Library-linux-x86_64
           path: |
@@ -171,7 +171,7 @@ jobs:
 
       - name: Zip the .app
         run: ditto -c -k --keepParent "$APP" "dist/bundle/microSAMPLER_Library-macos-${{ matrix.arch }}.zip"
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7
         with:
           name: microSAMPLER-Library-macos-${{ matrix.arch }}
           path: dist/bundle/microSAMPLER_Library-macos-${{ matrix.arch }}.zip
