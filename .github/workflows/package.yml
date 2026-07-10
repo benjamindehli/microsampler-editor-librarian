@@ -1,8 +1,9 @@
 name: Package apps
 
-# Build the double-clickable "microSAMPLER Library" app (hardware-free
-# librarian — no sudo, no terminal) for Linux and macOS. Manual trigger while
-# this is piloted; wire into releases once the artifacts are proven.
+# Build the double-clickable apps — "microSAMPLER Editor Librarian" (macOS:
+# menu-bar shell + SMAppService root daemon, no sudo/terminal) and
+# "microSAMPLER Library" (hardware-free librarian, Linux + macOS). Manual
+# trigger while piloted; wire into releases once the artifacts are proven.
 #
 # macOS signing + notarization run only when these repo secrets exist:
 #   MACOS_CERT_P12        base64 of the "Developer ID Application" .p12
@@ -53,7 +54,7 @@ jobs:
             dist/bundle/microSAMPLER_Library-linux-x86_64.tar.gz
 
   macos:
-    name: Library app (macOS ${{ matrix.arch }})
+    name: Apps (macOS ${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -65,7 +66,8 @@ jobs:
           - { runner: macos-15-intel, arch: x86_64 }
     env:
       HAVE_SIGNING: ${{ secrets.MACOS_CERT_P12 != '' }}
-      APP: dist/bundle/microSAMPLER Library.app
+      APP_LIB: dist/bundle/microSAMPLER Library.app
+      APP_ED: dist/bundle/microSAMPLER Editor Librarian.app
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -81,11 +83,15 @@ jobs:
           done
           iconutil -c icns build/icon.iconset -o build/AppIcon.icns
           echo "MSMPL_ICNS=$PWD/build/AppIcon.icns" >> "$GITHUB_ENV"
-      - name: Build (PyInstaller .app)
+      - name: Build Library app (PyInstaller .app)
         run: pyinstaller --noconfirm --distpath dist/bundle --workpath build/bundle tools/bundle/library.spec
-      - name: Smoke test the frozen binary
+      - name: Build Editor bridge (PyInstaller onedir) + assemble the .app
         run: |
-          "./$APP/Contents/MacOS/microSAMPLER Library" &
+          pyinstaller --noconfirm --distpath dist/bundle --workpath build/bundle tools/bundle/editor.spec
+          tools/bundle/make_editor_app.sh
+      - name: Smoke test both frozen bridges
+        run: |
+          "./$APP_LIB/Contents/MacOS/microSAMPLER Library" &
           for i in $(seq 1 40); do
             curl -sf http://localhost:8766/api/status > /dev/null && break
             sleep 0.5
@@ -93,6 +99,18 @@ jobs:
           curl -sf http://localhost:8766/api/status | grep -q '"library": true'
           curl -sf http://localhost:8766/app.html | grep -q microSAMPLER
           curl -sf -X POST http://localhost:8766/api/shutdown | grep -q '"ok": true'
+          # editor daemon: no device on the runner — must still serve, report
+          # daemon mode, and survive a claim attempt + release
+          "./$APP_ED/Contents/Resources/bridge/msmpl-bridge" &
+          ED_PID=$!
+          for i in $(seq 1 40); do
+            curl -sf http://localhost:8765/api/status > /dev/null && break
+            sleep 0.5
+          done
+          curl -sf http://localhost:8765/api/status | grep -q '"daemon": true'
+          curl -sf http://localhost:8765/app.html | grep -q microSAMPLER
+          curl -sf -X POST http://localhost:8765/api/release | grep -q '"released": true'
+          kill $ED_PID
 
       # ── signing + notarization (skipped unless the secrets are configured) ──
       - name: Import signing certificate
@@ -118,13 +136,16 @@ jobs:
         env:
           IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
         run: |
-          # inner Mach-O binaries first (dylibs/.so + the executable), app last
-          find "$APP/Contents" -type f \( -name '*.dylib' -o -name '*.so' -o -perm +111 \) \
-            -exec codesign --force --options runtime --timestamp \
-              --entitlements tools/bundle/entitlements.plist --sign "$IDENTITY" {} +
-          codesign --force --options runtime --timestamp \
-            --entitlements tools/bundle/entitlements.plist --sign "$IDENTITY" "$APP"
-          codesign --verify --deep --strict "$APP"
+          # inner Mach-O binaries first (dylibs/.so + executables, incl. the
+          # editor's embedded bridge + vendored libusb), each app bundle last
+          for APP in "$APP_LIB" "$APP_ED"; do
+            find "$APP/Contents" -type f \( -name '*.dylib' -o -name '*.so' -o -perm +111 \) \
+              -exec codesign --force --options runtime --timestamp \
+                --entitlements tools/bundle/entitlements.plist --sign "$IDENTITY" {} +
+            codesign --force --options runtime --timestamp \
+              --entitlements tools/bundle/entitlements.plist --sign "$IDENTITY" "$APP"
+            codesign --verify --deep --strict "$APP"
+          done
       - name: Notarize + staple
         if: env.HAVE_SIGNING == 'true'
         timeout-minutes: 200
@@ -133,7 +154,11 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
         run: |
-          ditto -c -k --keepParent "$APP" build/notarize.zip
+          # ONE submission for both apps (Apple scans everything in the zip)
+          mkdir build/notarize
+          ditto "$APP_LIB" "build/notarize/$(basename "$APP_LIB")"
+          ditto "$APP_ED" "build/notarize/$(basename "$APP_ED")"
+          ditto -c -k build/notarize build/notarize.zip
           # NOT `submit --wait`: its internal polling aborts the whole job on the
           # first transient network error (seen: NSURLError -1009/-1001 after 1¾ h
           # of an Apple-side slow queue). Submit, take the id, poll ourselves —
@@ -167,11 +192,16 @@ jobs:
             esac
           done
           [ "$STATUS" = "Accepted" ]             # never Accepted within 3 h → fail
-          xcrun stapler staple "$APP"
+          xcrun stapler staple "$APP_LIB"
+          xcrun stapler staple "$APP_ED"
 
-      - name: Zip the .app
-        run: ditto -c -k --keepParent "$APP" "dist/bundle/microSAMPLER_Library-macos-${{ matrix.arch }}.zip"
+      - name: Zip the apps
+        run: |
+          ditto -c -k --keepParent "$APP_LIB" "dist/bundle/microSAMPLER_Library-macos-${{ matrix.arch }}.zip"
+          ditto -c -k --keepParent "$APP_ED" "dist/bundle/microSAMPLER_Editor_Librarian-macos-${{ matrix.arch }}.zip"
       - uses: actions/upload-artifact@v7
         with:
-          name: microSAMPLER-Library-macos-${{ matrix.arch }}
-          path: dist/bundle/microSAMPLER_Library-macos-${{ matrix.arch }}.zip
+          name: microSAMPLER-apps-macos-${{ matrix.arch }}
+          path: |
+            dist/bundle/microSAMPLER_Library-macos-${{ matrix.arch }}.zip
+            dist/bundle/microSAMPLER_Editor_Librarian-macos-${{ matrix.arch }}.zip
