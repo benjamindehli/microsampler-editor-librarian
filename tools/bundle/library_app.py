@@ -7,8 +7,9 @@ Wraps bridge.py --library for a double-clickable, no-terminal experience:
   * the bundled web-editor/ is served via MSMPL_WEB_ROOT
   * MSMPL_ALLOW_SHUTDOWN=1 enables POST /api/shutdown, so the web UI shows a
     QUIT button (there is no terminal to Ctrl+C)
-  * the default browser opens once the server answers; if a library bridge is
-    ALREADY running on the port, just open it (mirrors the .command launcher)
+  * once the server answers, the UI opens in a Chromium app-mode window when
+    available (own window, app-like), else the default browser; if a library
+    bridge is ALREADY running on the port, just open it
   * stdout/stderr go to <data dir>/library.log when frozen (windowed apps may
     have no usable stdio)
 
@@ -17,7 +18,9 @@ Plain `python3 tools/bundle/library_app.py` also works for a quick local run.
 """
 import json
 import os
+import shutil
 import socket
+import subprocess
 import sys
 import threading
 import time
@@ -25,6 +28,32 @@ import urllib.request
 import webbrowser
 
 PORT = 8766          # library mode's own port (device bridge uses 8765)
+
+# Chromium-family browsers that support `--app=URL` (own window, no tabs/URL
+# bar — feels like an app, keeps every browser feature incl. downloads)
+CHROMIUM_MACOS = ('Google Chrome', 'Microsoft Edge', 'Brave Browser', 'Chromium')
+CHROMIUM_LINUX = ('google-chrome', 'microsoft-edge', 'brave-browser',
+                  'chromium', 'chromium-browser')
+
+
+def open_ui(url):
+    """Open the UI in a Chromium app-mode window when one is installed (the
+    same trick the .command launcher uses); otherwise the default browser."""
+    if sys.platform == 'darwin':
+        for app in CHROMIUM_MACOS:
+            if subprocess.call(['open', '-na', app, '--args', '--app=' + url],
+                               stdout=subprocess.DEVNULL,
+                               stderr=subprocess.DEVNULL) == 0:
+                return
+    elif sys.platform.startswith('linux'):
+        for exe in CHROMIUM_LINUX:
+            path = shutil.which(exe)
+            if path:
+                subprocess.Popen([path, '--app=' + url],
+                                 stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL)
+                return
+    webbrowser.open(url)
 
 
 def resource_root():
@@ -70,11 +99,11 @@ def port_free(port):
 
 
 def open_when_up(url, port):
-    """Poll until the server accepts connections, then open the browser."""
+    """Poll until the server accepts connections, then open the UI."""
     for _ in range(240):
         try:
             socket.create_connection(('127.0.0.1', port), timeout=0.5).close()
-            webbrowser.open(url)
+            open_ui(url)
             return
         except OSError:
             time.sleep(0.25)
@@ -93,7 +122,7 @@ def main():
     port = PORT
     if not port_free(port):
         if library_bridge_at(port):     # already running → just open its UI
-            webbrowser.open('http://localhost:%d' % port)
+            open_ui('http://localhost:%d' % port)
             return 0
         s = socket.socket()             # something else owns 8766 → any free port
         s.bind(('127.0.0.1', 0))

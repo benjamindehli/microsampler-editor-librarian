@@ -126,10 +126,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // ── menu actions ─────────────────────────────────────────────────────────
     @objc func openEditor() {
         if service.status == .enabled {
-            NSWorkspace.shared.open(bridgeURL)
+            openUI()
         } else {
             ensureService(interactive: true)
         }
+    }
+
+    /// Open the editor in a Chromium "app mode" window when one is installed
+    /// (own window, no tabs/URL bar — app-like, keeps Web MIDI + downloads);
+    /// otherwise the default browser.
+    func openUI() {
+        for app in ["Google Chrome", "Microsoft Edge", "Brave Browser", "Chromium"] {
+            let p = Process()
+            p.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+            p.arguments = ["-na", app, "--args", "--app=" + bridgeURL.absoluteString]
+            p.standardOutput = FileHandle.nullDevice
+            p.standardError = FileHandle.nullDevice
+            do { try p.run() } catch { continue }
+            p.waitUntilExit()
+            if p.terminationStatus == 0 { return }
+        }
+        NSWorkspace.shared.open(bridgeURL)
     }
 
     @objc func releaseDevice() {
@@ -152,7 +169,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         URLSession.shared.dataTask(with: statusURL) { data, _, _ in
             DispatchQueue.main.async {
                 if data != nil {
-                    NSWorkspace.shared.open(bridgeURL)
+                    self.openUI()
                 } else {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         self.pollBridge(attempt: attempt + 1)
