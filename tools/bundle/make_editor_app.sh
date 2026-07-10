@@ -30,7 +30,10 @@ swiftc -O -target "$ARCH-apple-macos13.0" \
 
 sed "s/__VERSION__/$VERSION/g" "$SRC/Info.plist" > "$APP/Contents/Info.plist"
 cp "$SRC/no.dehlimusikk.msmpl.bridge.plist" "$APP/Contents/Library/LaunchDaemons/"
-cp -r "$BRIDGE" "$APP/Contents/Resources/bridge"
+# ditto, NOT `cp -r`: macOS cp -r follows symlinks, which flattens the
+# Python.framework inside the PyInstaller onedir into an invalid bundle —
+# codesign then dies with "bundle format is ambiguous"
+ditto "$BRIDGE" "$APP/Contents/Resources/bridge"
 [ -n "${MSMPL_ICNS:-}" ] && cp "$MSMPL_ICNS" "$APP/Contents/Resources/AppIcon.icns"
 
 echo "assembled: $APP  (v$VERSION, $ARCH, macOS 13+)"

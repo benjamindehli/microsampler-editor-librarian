@@ -136,10 +136,17 @@ jobs:
         env:
           IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
         run: |
-          # inner Mach-O binaries first (dylibs/.so + executables, incl. the
-          # editor's embedded bridge + vendored libusb), each app bundle last
+          # inside-out: 1) loose Mach-O files (dylibs/.so/executables, incl.
+          # the editor's embedded bridge + vendored libusb) — but NOT framework
+          # internals; 2) nested frameworks AS BUNDLES (signing their files
+          # individually leaves the framework unsealed → the app-level sign
+          # dies with "bundle format is ambiguous"); 3) each app bundle last
           for APP in "$APP_LIB" "$APP_ED"; do
             find "$APP/Contents" -type f \( -name '*.dylib' -o -name '*.so' -o -perm +111 \) \
+                ! -path '*/*.framework/*' \
+              -exec codesign --force --options runtime --timestamp \
+                --entitlements tools/bundle/entitlements.plist --sign "$IDENTITY" {} +
+            find "$APP/Contents" -type d -name '*.framework' \
               -exec codesign --force --options runtime --timestamp \
                 --entitlements tools/bundle/entitlements.plist --sign "$IDENTITY" {} +
             codesign --force --options runtime --timestamp \
