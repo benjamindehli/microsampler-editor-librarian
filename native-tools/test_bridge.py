@@ -24,7 +24,33 @@ def req(method, path, body=None, headers=None):
 
 # --- status -------------------------------------------------------------------
 st, ct, data = req('GET', '/api/status')
-assert st == 200 and json.loads(data)['mock'] is True
+status = json.loads(data)
+assert st == 200 and status['mock'] is True
+assert status['shutdown'] is False and status['daemon'] is False
+
+# --- daemon-mode primitives (device release + lazy-claim throttle) --------------
+st, _, data = req('POST', '/api/release')       # nothing claimed → safe no-op
+assert st == 200 and json.loads(data) == {'released': True, 'was_claimed': False}
+
+_dev = B.Device.__new__(B.Device)               # bare instance for unit checks
+_dev.ms = None
+_dev.open_error = None
+_dev._claim_fail_at = 0.0
+_attempts = []
+_dev.open = lambda: (_attempts.append(1), (_ for _ in ()).throw(RuntimeError('no usb')))[1]
+_dev.maybe_claim()                              # attempt 1: fails, records time
+_dev.maybe_claim()                              # within throttle → NO attempt 2
+assert len(_attempts) == 1 and 'no usb' in _dev.open_error
+_dev._claim_fail_at = 0                         # throttle expired
+_dev.maybe_claim()
+assert len(_attempts) == 2
+_dev.close = lambda: None
+out = _dev.release()                            # release resets the throttle…
+assert out == {'released': True, 'was_claimed': False}
+assert _dev._claim_fail_at == 0.0 and _dev.open_error is None
+_dev.ms = object()
+assert _dev.release()['was_claimed'] is True    # …and reports a real release
+print('daemon-mode primitives: OK')
 
 # --- bank summary ---------------------------------------------------------------
 st, ct, data = req('GET', '/api/bank')

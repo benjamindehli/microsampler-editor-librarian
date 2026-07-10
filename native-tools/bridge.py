@@ -66,6 +66,12 @@ BACKUP_ROOT = os.environ.get('MSMPL_BACKUP_DIR') or \
 # the bundled app (no terminal to Ctrl+C) may enable POST /api/shutdown so the
 # web UI can stop the bridge; advertised to the app via /api/status "shutdown"
 ALLOW_SHUTDOWN = os.environ.get('MSMPL_ALLOW_SHUTDOWN') == '1'
+# DAEMON mode (the launchd root daemon inside the Editor .app): start with the
+# device UNCLAIMED, lazily claim when the editor page opens, release it again
+# after the UI has been closed for MSMPL_IDLE_RELEASE seconds — so the daemon
+# can run 24/7 without hogging the microSAMPLER from DAWs. Also --daemon.
+DAEMON = os.environ.get('MSMPL_DAEMON') == '1'
+IDLE_RELEASE_SECS = float(os.environ.get('MSMPL_IDLE_RELEASE', '300'))
 SRV = None           # the running HTTP server (set in main; /api/shutdown stops it)
 MIME = {'.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
         '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml',
@@ -98,6 +104,7 @@ class Device:
         self.pattern_cache = {}             # q -> raw 1308B blob
         self._stop = threading.Event()
         self._reader = None
+        self._claim_fail_at = 0.0          # maybe_claim() failure throttle
         self._clock_stop = None             # threading.Event while sending MIDI clock
 
     # -- lifecycle ----------------------------------------------------------
@@ -183,6 +190,12 @@ class Device:
                 'cable': cable,
             }
         if self.reader_enabled:
+            # a prior close() set _stop and left its reader winding down — wait
+            # it out and re-arm, or the fresh reader below exits immediately
+            # (matters for the daemon's claim→release→re-claim cycles)
+            if self._reader and self._reader.is_alive():
+                self._reader.join(timeout=2)
+            self._stop.clear()
             self._reader = threading.Thread(target=self._read_loop, daemon=True)
             self._reader.start()
 
@@ -193,6 +206,34 @@ class Device:
             if self.ms:
                 self.ms.close()
                 self.ms = None
+
+    def maybe_claim(self):
+        """DAEMON mode: lazily (re)claim the device — called when the editor
+        page loads or the bank is (re)read, NOT on passive status polls (the
+        menu-bar app polls /api/status and must never grab the USB device).
+        Failed attempts are throttled: repeated fast open() cycles are exactly
+        what wedges the device's USB stack (see the reopen-wedge gotcha)."""
+        if self.ms is not None:
+            return
+        if time.time() - self._claim_fail_at < 10:
+            return
+        try:
+            self.open()
+            self.open_error = None
+        except Exception as e:
+            self._claim_fail_at = time.time()
+            self.open_error = str(e)
+
+    def release(self):
+        """Release the USB device but keep serving (daemon idle-release + the
+        menu-bar 'Release Device'): the microSAMPLER becomes usable by DAWs
+        again; the next editor visit re-claims via maybe_claim()."""
+        was = self.ms is not None
+        if was:
+            self.close()
+        self.open_error = None          # deliberate release ≠ an open failure
+        self._claim_fail_at = 0.0       # a re-claim may happen immediately
+        return {'released': True, 'was_claimed': was}
 
     # -- background event reader (paused whenever an operation holds the lock)
     def _read_loop(self):
@@ -1449,9 +1490,12 @@ class Handler(BaseHTTPRequestHandler):
             if path == '/api/status':
                 st = DEVICE.status()
                 st['shutdown'] = ALLOW_SHUTDOWN   # UI shows QUIT when available
+                st['daemon'] = DAEMON             # background-service mode
                 return self._json(st)
             if path == '/api/bank':
-                return self._json(DEVICE.bank_summary())
+                if DAEMON:
+                    DEVICE.maybe_claim()   # long-lived tab resyncing after an
+                return self._json(DEVICE.bank_summary())   # idle-release
             if path == '/api/backups':
                 return self._json({'backups': list_backups()})
             m = re.match(r'^/api/backup/([^/]+)\.zip$', path)   # whole-bank zip
@@ -1505,6 +1549,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self._bytes(data, 'audio/wav', extra)
             if path == '/api/events':
                 return self._sse()
+            if DAEMON and path in ('/', '/app.html'):
+                DEVICE.maybe_claim()     # opening the editor = claim intent
+                #                          (1-2 s inline; page loads connected)
             return self._static(path)
         except BrokenPipeError:
             pass
@@ -1524,6 +1571,8 @@ class Handler(BaseHTTPRequestHandler):
                   for k, v in (p.split('=', 1)
                                for p in query.split('&') if '=' in p)}
         try:
+            if path == '/api/release':       # daemon/menu-bar: free the USB
+                return self._json(DEVICE.release())   # device, keep serving
             if path == '/api/shutdown':      # bundled app: quit from the web UI
                 if not (ALLOW_SHUTDOWN and SRV):
                     return self._err('not enabled', 404)
@@ -1770,30 +1819,62 @@ def main():
     ap.add_argument('--library', action='store_true',
                     help='hardware-free LIBRARY mode: browse/import/export bank '
                          'backups + original .msmpl_bank files, no device needed')
+    ap.add_argument('--daemon', action='store_true',
+                    help='background-service mode (the Editor .app\'s launchd '
+                         'daemon): start UNCLAIMED, claim lazily when the editor '
+                         'opens, auto-release after idle (MSMPL_IDLE_RELEASE s)')
     ap.add_argument('--no-reader', action='store_true',
                     help='disable the background panel-edit reader (diagnostic; '
                          'the /api/events stream stays silent)')
     ap.add_argument('--trace', action='store_true',
                     help='hexdump every USB read/write to stderr (diagnostic)')
     args = ap.parse_args()
+    global DAEMON
+    DAEMON = DAEMON or args.daemon
     port = args.port if args.port else (8766 if args.library else 8765)
     _own_backups_to_invoker()    # if sudo: give backups/ back to the user (heals)
 
     DEVICE = (LibraryDevice() if args.library else
               MockDevice() if args.mock else
               Device(reader=not args.no_reader, trace=args.trace))
-    try:
-        DEVICE.open()
-    except Exception as e:
-        # Serve anyway so the app can show a friendly "device not responding"
-        # panel with a Retry button (POST /api/connect), instead of the user
-        # seeing only this terminal line. Power-cycle + Retry usually recovers.
-        DEVICE.open_error = str(e)
-        print('device open failed: %s\n  → serving the editor anyway; '
-              'power-cycle the device and click Retry (or restart).' % e)
+    if DAEMON:
+        # background service: don't claim at startup — the device stays free
+        # for DAWs until the editor page actually opens (maybe_claim), and is
+        # released again after MSMPL_IDLE_RELEASE s without any UI connected
+        print('DAEMON mode — device unclaimed until the editor opens; '
+              'idle-release after %ds without UI.' % IDLE_RELEASE_SECS)
+
+        def idle_watch():
+            empty_since = None
+            while True:
+                time.sleep(15)
+                if DEVICE.listeners or DEVICE.ms is None:
+                    empty_since = None            # UI connected / nothing held
+                    continue
+                empty_since = empty_since or time.monotonic()
+                if time.monotonic() - empty_since >= IDLE_RELEASE_SECS:
+                    print('no UI for %ds — releasing the device'
+                          % IDLE_RELEASE_SECS)
+                    try:
+                        DEVICE.release()
+                    except Exception:
+                        traceback.print_exc()
+                    empty_since = None
+        threading.Thread(target=idle_watch, daemon=True).start()
+    else:
+        try:
+            DEVICE.open()
+        except Exception as e:
+            # Serve anyway so the app can show a friendly "device not responding"
+            # panel with a Retry button (POST /api/connect), instead of the user
+            # seeing only this terminal line. Power-cycle + Retry usually recovers.
+            DEVICE.open_error = str(e)
+            print('device open failed: %s\n  → serving the editor anyway; '
+                  'power-cycle the device and click Retry (or restart).' % e)
     if args.library:
         print('LIBRARY mode — no device; browse/import/export bank backups.')
-    if not args.mock and not args.library and DEVICE.open_error is None:
+    if not args.mock and not args.library and not DAEMON \
+            and DEVICE.open_error is None:
         print('microSAMPLER claimed (cable %d, channel %d) — Web MIDI mode is '
               'unavailable until the bridge exits.'
               % (DEVICE.cable, DEVICE.channel + 1))
