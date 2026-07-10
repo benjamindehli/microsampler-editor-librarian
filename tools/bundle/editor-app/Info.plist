@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Info.plist template for "microSAMPLER Editor Librarian.app".
+     __VERSION__ is stamped by make_editor_app.sh from package.json. -->
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key>
+  <string>microSAMPLER Editor Librarian</string>
+  <key>CFBundleDisplayName</key>
+  <string>microSAMPLER Editor Librarian</string>
+  <key>CFBundleIdentifier</key>
+  <string>no.dehlimusikk.microsampler-editor</string>
+  <key>CFBundleExecutable</key>
+  <string>microSAMPLER Editor Librarian</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>__VERSION__</string>
+  <key>CFBundleVersion</key>
+  <string>__VERSION__</string>
+  <key>CFBundleIconFile</key>
+  <string>AppIcon</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>13.0</string>
+  <key>LSUIElement</key>
+  <true/>
+  <key>NSHighResolutionCapable</key>
+  <true/>
+  <key>LSApplicationCategoryType</key>
+  <string>public.app-category.music</string>
+</dict>
+</plist>

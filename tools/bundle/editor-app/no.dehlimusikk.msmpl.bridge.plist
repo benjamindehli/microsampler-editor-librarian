@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- launchd ROOT daemon declared by the Editor .app and registered via
+     SMAppService (one-time user approval in Login Items). BundleProgram is
+     relative to the app bundle. KeepAlive keeps the tiny HTTP server up;
+     the USB device itself is only claimed while the editor UI is open
+     (bridge --daemon mode: claim-on-demand + idle-release). -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>no.dehlimusikk.msmpl.bridge</string>
+  <key>BundleProgram</key>
+  <string>Contents/Resources/bridge/msmpl-bridge</string>
+  <key>AssociatedBundleIdentifiers</key>
+  <array>
+    <string>no.dehlimusikk.microsampler-editor</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/Library/Logs/DehliMusikk/msmpl-bridge.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Library/Logs/DehliMusikk/msmpl-bridge.log</string>
+</dict>
+</plist>
