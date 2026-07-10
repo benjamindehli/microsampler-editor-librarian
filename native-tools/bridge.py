@@ -1446,6 +1446,18 @@ def list_backups():
 DEVICE = None        # set in main()
 
 
+class BridgeServer(ThreadingHTTPServer):
+    def handle_error(self, request, client_address):
+        """A client dropping mid-request (tab closed, EventSource aborted,
+        page refresh) is routine — socketserver's default prints a full
+        traceback for it, which reads like a crash in the daemon log."""
+        exc = sys.exc_info()[0]
+        if exc and issubclass(exc, (ConnectionResetError, BrokenPipeError,
+                                    ConnectionAbortedError)):
+            return
+        super().handle_error(request, client_address)
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
 
@@ -1890,7 +1902,7 @@ def main():
         signal.signal(signal.SIGHUP, _graceful)
 
     global SRV
-    srv = SRV = ThreadingHTTPServer(('127.0.0.1', port), Handler)
+    srv = SRV = BridgeServer(('127.0.0.1', port), Handler)
     print('bridge ready: http://localhost:%d  (Ctrl+C to stop)' % port)
     try:
         srv.serve_forever()
