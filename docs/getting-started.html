@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Korg microSAMPLER editor — getting started, install &amp; setup</title>
-<meta name="description" content="How to install the Korg microSAMPLER Editor / Librarian on macOS, Linux and Windows, the first-run steps, and the device setup (MIDI clock) you need.">
+<meta name="description" content="Download the signed Korg microSAMPLER editor apps for macOS and Linux, or use the classic launchers, plus first-run steps and device setup (MIDI clock).">
 <link rel="canonical" href="https://benjamindehli.github.io/microsampler-editor-librarian/getting-started.html">
 <meta name="robots" content="index, follow">
 <meta name="theme-color" content="#0b0b0d">
@@ -29,12 +29,12 @@
 <script type="application/ld+json">
 { "@context": "https://schema.org", "@type": "TechArticle",
   "headline": "Getting started with the microSAMPLER Editor / Librarian",
-  "description": "Requirements, installation, first run and device setup.",
+  "description": "Download the apps, requirements, installation, first run and device setup.",
   "inLanguage": "en",
   "author": { "@type": "Person", "name": "Benjamin Dehli", "url": "https://www.dehlimusikk.no/" },
   "image": "https://benjamindehli.github.io/microsampler-editor-librarian/assets/og/getting-started.jpg",
   "datePublished": "2026-06-27",
-  "dateModified": "2026-07-06",
+  "dateModified": "2026-07-11",
   "mainEntityOfPage": "https://benjamindehli.github.io/microsampler-editor-librarian/getting-started.html" }
 </script>
 <script type="application/ld+json">
@@ -64,23 +64,56 @@
 <main class="content">
   <div class="page-head">
     <h1>Getting started</h1>
-    <p>What you need, how to install it on each platform, and the first-run steps to get the editor
-      talking to your microSAMPLER.</p>
+    <p>Download the app for your platform (or use the classic launchers), then the first-run steps
+      to get the editor talking to your microSAMPLER.</p>
   </div>
 
   <nav class="toc" aria-label="On this page">
     <b>On this page</b>
     <ul>
+      <li><a href="#download">Download the apps</a></li>
       <li><a href="#requirements">Requirements</a></li>
-      <li><a href="#get">Get the app</a></li>
-      <li><a href="#macos">Install — macOS</a></li>
-      <li><a href="#linux">Install — Linux</a></li>
-      <li><a href="#windows">Install — Windows</a></li>
+      <li><a href="#get">The classic way (ZIP)</a></li>
+      <li><a href="#macos">Launcher — macOS</a></li>
+      <li><a href="#linux">Launcher — Linux</a></li>
+      <li><a href="#windows">Launcher — Windows</a></li>
       <li><a href="#manual">Manual &amp; mock</a></li>
       <li><a href="#first-run">First run</a></li>
       <li><a href="#device-setup">Device setup</a></li>
     </ul>
   </nav>
+
+  <h2 id="download">Download the apps</h2>
+  <p>The quickest way in: signed, notarized desktop apps. No Terminal, no password prompts, nothing
+    else to install.</p>
+
+  <h3>macOS (13 Ventura or newer)</h3>
+  <p>
+    <a class="cta" href="https://github.com/benjamindehli/microsampler-editor-librarian/releases/latest/download/microSAMPLER-macos-arm64.dmg">Download for Apple&nbsp;Silicon →</a>
+    <a class="cta" href="https://github.com/benjamindehli/microsampler-editor-librarian/releases/latest/download/microSAMPLER-macos-x86_64.dmg">Download for Intel →</a>
+  </p>
+  <p>Open the disk image and drag both apps to the Applications shortcut:</p>
+  <ul>
+    <li><strong>microSAMPLER Editor Librarian</strong> — the full editor, as a menu-bar app. On first
+      launch macOS asks you to approve its background service once (System Settings → Login Items);
+      after that the editor is one click away. The service claims the microSAMPLER only while the
+      editor is open, and releases it a few minutes after you close the tab, so the device stays
+      available to your DAW the rest of the time.</li>
+    <li><strong>microSAMPLER Library</strong> — browse, play and export the samples and patterns in
+      bank backups (including original Korg <code>.msmpl_bank</code> files), no hardware needed.</li>
+  </ul>
+
+  <h3>Linux</h3>
+  <p><a class="cta" href="https://github.com/benjamindehli/microsampler-editor-librarian/releases/latest/download/microSAMPLER_Library-x86_64.AppImage">Download the Library AppImage →</a></p>
+  <p>Make it executable (<code>chmod +x</code>, or "Allow launching" in your file manager) and run it.
+    Also available as a plain <a href="https://github.com/benjamindehli/microsampler-editor-librarian/releases/latest/download/microSAMPLER_Library-linux-x86_64.tar.gz">tar.gz</a>.
+    For the full editor on Linux, use the <a href="#linux">classic launcher</a> below.</p>
+
+  <div class="note">
+    <b class="label">WINDOWS</b>
+    <p>No app yet — use the <a href="#windows">classic launcher</a> below (experimental; device mode
+      needs a one-time driver swap).</p>
+  </div>
 
   <h2 id="requirements">Requirements</h2>
   <h3>Hardware</h3>
@@ -105,22 +138,23 @@
   <h3>Software</h3>
   <table>
     <tr><th scope="col">Component</th><th scope="col">Notes</th></tr>
-    <tr><td>Operating system</td><td>macOS (tested), Linux (should work), Windows (untested)</td></tr>
-    <tr><td>Python 3.8+</td><td>macOS: via the Xcode Command Line Tools (<code>xcode-select --install</code>) or <a href="https://python.org">python.org</a> — the only thing you install</td></tr>
+    <tr><td>Operating system</td><td>Apps: macOS 13+ / Linux x86-64. Classic launchers: macOS (tested), Linux (should work), Windows (untested)</td></tr>
+    <tr><td>Python 3.8+</td><td>Classic launchers only — the apps bundle their own runtime. macOS: via the Xcode Command Line Tools (<code>xcode-select --install</code>) or <a href="https://python.org">python.org</a></td></tr>
     <tr><td><code>pyusb</code> (BSD) + <code>libusb</code> (LGPL)</td><td>Bundled with the app — no <code>pip</code> or Homebrew step (a system copy is used instead if you have one)</td></tr>
     <tr><td>A modern browser</td><td>Chrome / Chromium recommended (Web MIDI needs Chrome, Edge or Firefox)</td></tr>
   </table>
   <p>The editor itself needs <strong>no installation and no build step</strong> — it's plain web files
     served by a small local helper (the "bridge").</p>
 
-  <h2 id="get">Get the app</h2>
-  <p>Grab it from GitHub — download the latest release ZIP, or clone the repository.</p>
+  <h2 id="get">The classic way — ZIP + launchers</h2>
+  <p>Everything also runs from a small ZIP with per-platform launchers, needing only Python 3.
+    This is the way on Windows, and for the full editor on Linux.</p>
   <p><a class="cta" href="https://github.com/benjamindehli/microsampler-editor-librarian/releases">Download the latest release →</a></p>
   <p>Unzip it, then open a terminal in the unzipped folder. Prefer git? Clone instead:</p>
   <pre><code>git clone https://github.com/benjamindehli/microsampler-editor-librarian.git
 cd microsampler-editor-librarian</code></pre>
 
-  <h2 id="macos">Install — macOS (the easy way)</h2>
+  <h2 id="macos">Launcher — macOS</h2>
   <p>Nothing to install — pyusb and libusb are bundled. Just use the launcher:</p>
   <ol class="steps">
     <li>Connect the microSAMPLER to your Mac with the USB cable and power it on.</li>
@@ -144,7 +178,7 @@ cd microsampler-editor-librarian</code></pre>
     <pre><code>xattr -dr com.apple.quarantine microsampler-editor-librarian</code></pre>
   </div>
 
-  <h2 id="linux">Install — Linux</h2>
+  <h2 id="linux">Launcher — Linux</h2>
   <p>pyusb and libusb are bundled (x86-64 and ARM64) — just use the launcher:</p>
   <ol class="steps">
     <li>Connect the microSAMPLER and power it on.</li>
@@ -155,7 +189,7 @@ cd microsampler-editor-librarian</code></pre>
     <li>The editor opens in your browser automatically.</li>
   </ol>
 
-  <h2 id="windows">Install — Windows <span style="color:var(--err)">(experimental)</span></h2>
+  <h2 id="windows">Launcher — Windows <span style="color:var(--err)">(experimental)</span></h2>
   <div class="note warn">
     <b class="label">UNTESTED — EXTRA SETUP REQUIRED</b>
     <p>Windows hasn't been verified, and libusb can't open the device until its USB driver is switched to

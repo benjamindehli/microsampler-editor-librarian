@@ -10,6 +10,20 @@ This app covers everything the original did, plus a few things it didn't.
 
 📖 **[Full documentation & guide →](https://benjamindehli.github.io/microsampler-editor-librarian/)**
 
+## Download
+
+**macOS (13+):** signed, notarized apps in a disk image, no Terminal needed:
+[Apple Silicon](https://github.com/benjamindehli/microsampler-editor-librarian/releases/latest/download/microSAMPLER-macos-arm64.dmg) ·
+[Intel](https://github.com/benjamindehli/microsampler-editor-librarian/releases/latest/download/microSAMPLER-macos-x86_64.dmg)
+(contains the full editor as a menu-bar app plus the hardware-free **Library** app).
+
+**Linux:** [Library AppImage](https://github.com/benjamindehli/microsampler-editor-librarian/releases/latest/download/microSAMPLER_Library-x86_64.AppImage)
+(also as [tar.gz](https://github.com/benjamindehli/microsampler-editor-librarian/releases/latest/download/microSAMPLER_Library-linux-x86_64.tar.gz));
+the full editor runs via the launcher in the release ZIP.
+
+**Any platform:** the [latest release](https://github.com/benjamindehli/microsampler-editor-librarian/releases/latest) ZIP
+has launchers for macOS, Linux and Windows, needing only Python 3.
+
 ## Features
 
 - **SAMPLES**:
