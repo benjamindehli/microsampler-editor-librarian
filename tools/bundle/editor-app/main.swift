@@ -59,6 +59,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func ensureService(interactive: Bool) {
         // SMAppService needs the app at a stable path; a translocated or
         // ad-hoc location makes register() fail confusingly — say so instead.
+        // App Translocation: a quarantined app can RUN from a randomized
+        // read-only path even though its file sits in /Applications (e.g. the
+        // zip was unpacked in place instead of Finder-dragging the app) — the
+        // fix is de-quarantining, not moving.
+        if interactive && Bundle.main.bundlePath.contains("/AppTranslocation/") {
+            alert("One more step",
+                  "macOS is running a temporary copy of this app (quarantine translocation), so the background service can’t be installed yet.\n\nFix it either way:\n• In Finder: drag the app from Applications to the Desktop, then drag it back, and open it again.\n• Or in Terminal:\nxattr -dr com.apple.quarantine \"/Applications/microSAMPLER Editor Librarian.app\"")
+            return
+        }
         if interactive && !Bundle.main.bundlePath.hasPrefix("/Applications") {
             alert("Move to Applications",
                   "Please move “microSAMPLER Editor Librarian” into the Applications folder, then open it again.\n\nmacOS only allows background services from apps installed in /Applications.")
@@ -68,26 +77,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         case .enabled:
             if interactive { openWhenBridgeUp() }
         case .requiresApproval:
-            if interactive {
-                alert("Approve the background service",
-                      "macOS needs a one-time approval for the microSAMPLER bridge.\n\nIn System Settings → General → Login Items & Extensions, enable “microSAMPLER Editor Librarian”, then reopen this app.")
-                SMAppService.openSystemSettingsLoginItems()
-            }
+            if interactive { promptApproval() }
         default:   // .notRegistered / .notFound
             do {
                 try service.register()
                 if service.status == .enabled {
                     if interactive { openWhenBridgeUp() }
                 } else if interactive {
-                    ensureService(interactive: true)   // now .requiresApproval
+                    promptApproval()
                 }
             } catch {
-                if interactive {
+                // QUIRK: for daemons register() THROWS "Operation not
+                // permitted" when user approval is PENDING — the registration
+                // landed and status is .requiresApproval. That's the normal
+                // first-run path, not a failure.
+                if service.status == .requiresApproval {
+                    if interactive { promptApproval() }
+                } else if interactive {
                     alert("Could not install the background service",
                           "\(error.localizedDescription)\n\nIf the app was just downloaded, move it to /Applications and open it again.")
                 }
             }
         }
+    }
+
+    func promptApproval() {
+        alert("Approve the background service",
+              "macOS needs a one-time approval for the microSAMPLER bridge.\n\nIn System Settings → General → Login Items & Extensions, enable “microSAMPLER Editor Librarian”, then reopen this app.")
+        SMAppService.openSystemSettingsLoginItems()
     }
 
     @objc func toggleService() {
