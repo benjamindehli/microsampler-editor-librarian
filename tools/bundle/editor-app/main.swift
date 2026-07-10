@@ -65,7 +65,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // fix is de-quarantining, not moving.
         if interactive && Bundle.main.bundlePath.contains("/AppTranslocation/") {
             alert("One more step",
-                  "macOS is running a temporary copy of this app (quarantine translocation), so the background service can’t be installed yet.\n\nFix it either way:\n• In Finder: drag the app from Applications to the Desktop, then drag it back, and open it again.\n• Or in Terminal:\nxattr -dr com.apple.quarantine \"/Applications/microSAMPLER Editor Librarian.app\"")
+                  "macOS is running a temporary copy of this app (quarantine translocation), so the background service can’t be installed yet.\n\nIn Terminal, run:\nxattr -d com.apple.quarantine \"/Applications/microSAMPLER Editor Librarian.app\"\n\nIf that says “Operation not permitted”, first enable Terminal under System Settings → Privacy & Security → App Management, then run it again. Reopen this app afterwards.")
             return
         }
         if interactive && !Bundle.main.bundlePath.hasPrefix("/Applications") {

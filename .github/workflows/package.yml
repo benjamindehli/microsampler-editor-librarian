@@ -153,7 +153,7 @@ jobs:
               --entitlements tools/bundle/entitlements.plist --sign "$IDENTITY" "$APP"
             codesign --verify --deep --strict "$APP"
           done
-      - name: Notarize + staple
+      - name: Notarize + staple the apps
         if: env.HAVE_SIGNING == 'true'
         timeout-minutes: 200
         env:
@@ -166,49 +166,37 @@ jobs:
           ditto "$APP_LIB" "build/notarize/$(basename "$APP_LIB")"
           ditto "$APP_ED" "build/notarize/$(basename "$APP_ED")"
           ditto -c -k build/notarize build/notarize.zip
-          # NOT `submit --wait`: its internal polling aborts the whole job on the
-          # first transient network error (seen: NSURLError -1009/-1001 after 1¾ h
-          # of an Apple-side slow queue). Submit, take the id, poll ourselves —
-          # a blip is then just one failed poll among many.
-          for attempt in 1 2 3; do
-            xcrun notarytool submit build/notarize.zip \
-              --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" \
-              --password "$APPLE_APP_PASSWORD" \
-              --output-format json > build/submit.json && break
-            echo "submit attempt $attempt failed — retrying in 30 s"
-            sleep 30
-          done
-          SUB_ID=$(python3 -c "import json; print(json.load(open('build/submit.json'))['id'])")
-          echo "submission id: $SUB_ID"
-          STATUS=Unknown
-          for i in $(seq 1 360); do              # ≤3 h, 30 s apart
-            sleep 30
-            STATUS=$( { xcrun notarytool info "$SUB_ID" \
-                --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" \
-                --password "$APPLE_APP_PASSWORD" --output-format json \
-              | python3 -c "import json,sys; print(json.load(sys.stdin).get('status','Unknown'))"; \
-              } 2>/dev/null || echo TransientError)
-            echo "[$i/360] $STATUS"
-            case "$STATUS" in
-              Accepted) break ;;
-              Invalid|Rejected)
-                xcrun notarytool log "$SUB_ID" \
-                  --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" \
-                  --password "$APPLE_APP_PASSWORD"
-                exit 1 ;;
-            esac
-          done
-          [ "$STATUS" = "Accepted" ]             # never Accepted within 3 h → fail
+          tools/bundle/notarize.sh build/notarize.zip
           xcrun stapler staple "$APP_LIB"
           xcrun stapler staple "$APP_ED"
 
-      - name: Zip the apps
+      # DMG, not zips: drag-installing from a mounted DMG is the one install
+      # path macOS never App-Translocates (the zip flow reliably did, blocking
+      # SMAppService until a manual de-quarantine — user-hit twice)
+      - name: Build DMG (both apps + Applications shortcut)
         run: |
-          ditto -c -k --keepParent "$APP_LIB" "dist/bundle/microSAMPLER_Library-macos-${{ matrix.arch }}.zip"
-          ditto -c -k --keepParent "$APP_ED" "dist/bundle/microSAMPLER_Editor_Librarian-macos-${{ matrix.arch }}.zip"
+          VERSION=$(node -p "require('./package.json').version")
+          mkdir -p build/dmg
+          ditto "$APP_LIB" "build/dmg/$(basename "$APP_LIB")"
+          ditto "$APP_ED" "build/dmg/$(basename "$APP_ED")"
+          ln -s /Applications build/dmg/Applications
+          hdiutil create -volname "microSAMPLER apps v$VERSION" \
+            -srcfolder build/dmg -ov -format UDZO \
+            "dist/bundle/microSAMPLER-macos-${{ matrix.arch }}.dmg"
+      - name: Sign + notarize + staple the DMG
+        if: env.HAVE_SIGNING == 'true'
+        timeout-minutes: 200
+        env:
+          IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          DMG="dist/bundle/microSAMPLER-macos-${{ matrix.arch }}.dmg"
+          codesign --force --timestamp --sign "$IDENTITY" "$DMG"
+          tools/bundle/notarize.sh "$DMG"
+          xcrun stapler staple "$DMG"
       - uses: actions/upload-artifact@v7
         with:
           name: microSAMPLER-apps-macos-${{ matrix.arch }}
-          path: |
-            dist/bundle/microSAMPLER_Library-macos-${{ matrix.arch }}.zip
-            dist/bundle/microSAMPLER_Editor_Librarian-macos-${{ matrix.arch }}.zip
+          path: dist/bundle/microSAMPLER-macos-${{ matrix.arch }}.dmg
