@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use or reference this software, please cite it as below."
+type: software
+title: "microSAMPLER Editor / Librarian"
+abstract: >-
+  A modern, unofficial editor and librarian for the Korg microSAMPLER:
+  sample editing, effects, patterns and full bank backup over USB,
+  rebuilt by reverse engineering the original 32-bit editor for
+  interoperability with the hardware. Includes a hardware-free library
+  mode for browsing and extracting bank backups.
+authors:
+  - family-names: "Dehli"
+    given-names: "Benjamin"
+    website: "https://www.dehlimusikk.no/"
+version: "1.14.1"
+license: GPL-3.0-or-later
+repository-code: "https://github.com/benjamindehli/microsampler-editor-librarian"
+url: "https://benjamindehli.github.io/microsampler-editor-librarian/"
+keywords:
+  - korg
+  - microsampler
+  - sampler
+  - midi
+  - sysex
+  - usb
+  - librarian
+  - music
+  - reverse-engineering

@@ -3,6 +3,7 @@
 //     and the JSON-LD softwareVersion.
 //   - native-tools/bridge.py: the VERSION constant the bridge reports via
 //     /api/status (the app's "update available" check compares against it).
+//   - CITATION.cff: the citation metadata's version field.
 //
 //   node tools/stamp-docs-version.mjs            # stamp in place
 //   node tools/stamp-docs-version.mjs --check    # exit 1 if out of sync (CI guard)
@@ -35,6 +36,9 @@ const targets = [
   { file: 'native-tools/bridge.py', patterns: [
       // VERSION = '...'  (value the bridge reports via /api/status)
       [new RegExp(`VERSION = '${V}'`), `VERSION = '${version}'`],
+  ] },
+  { file: 'CITATION.cff', patterns: [
+      [new RegExp(`^version: "${V}"`, 'm'), `version: "${version}"`],
   ] },
 ];
 

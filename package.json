@@ -12,7 +12,7 @@
     "lint:js": "eslint web-editor",
     "test": "node --import ./test/alias-register.mjs --test test/*.test.mjs",
     "stamp-version": "node tools/stamp-docs-version.mjs",
-    "version": "node tools/stamp-docs-version.mjs && git add docs/index.html native-tools/bridge.py"
+    "version": "node tools/stamp-docs-version.mjs && git add docs/index.html native-tools/bridge.py CITATION.cff"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
