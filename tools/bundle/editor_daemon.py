@@ -40,6 +40,16 @@ def main():
     os.makedirs(os.path.join(data, 'backups'), exist_ok=True)
     os.environ.setdefault('MSMPL_BACKUP_DIR', os.path.join(data, 'backups'))
 
+    if sys.platform == 'darwin' and os.geteuid() == 0:
+        # launchd creates our log dir/file root-only — open them up so users
+        # can `tail` without sudo (log content is transfer chatter, not secrets)
+        for path, mode in (('/Library/Logs/DehliMusikk', 0o755),
+                           ('/Library/Logs/DehliMusikk/msmpl-bridge.log', 0o644)):
+            try:
+                os.chmod(path, mode)
+            except OSError:
+                pass
+
     sys.path.insert(0, os.path.join(root, 'native-tools'))
     sys.argv = ['bridge.py', '--daemon', '--port', str(PORT)]
     import bridge
