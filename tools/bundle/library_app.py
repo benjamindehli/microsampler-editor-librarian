@@ -39,6 +39,8 @@ CHROMIUM_LINUX = ('google-chrome', 'microsoft-edge', 'brave-browser',
 def open_ui(url):
     """Open the UI in a Chromium app-mode window when one is installed (the
     same trick the .command launcher uses); otherwise the default browser."""
+    if os.environ.get('MSMPL_NO_OPEN') == '1':
+        return                       # CI smoke tests run headless
     if sys.platform == 'darwin':
         for app in CHROMIUM_MACOS:
             if subprocess.call(['open', '-na', app, '--args', '--app=' + url],

@@ -11,6 +11,7 @@
 set -euo pipefail
 FILE="$1"
 OUT=$(mktemp)
+trap 'rm -f "$OUT"' EXIT
 
 for attempt in 1 2 3; do
   xcrun notarytool submit "$FILE" \
@@ -20,6 +21,7 @@ for attempt in 1 2 3; do
   echo "submit attempt $attempt failed — retrying in 30 s"
   sleep 30
 done
+[ -s "$OUT" ] || { echo "ERROR: all submit attempts failed"; exit 1; }
 SUB_ID=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['id'])" "$OUT")
 echo "submission id: $SUB_ID ($FILE)"
 
