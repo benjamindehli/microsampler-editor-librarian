@@ -49,6 +49,17 @@ def main():
                 os.chmod(path, mode)
             except OSError:
                 pass
+        # a KeepAlive daemon logs for months — let macOS's newsyslog rotate it
+        # (checked hourly: rotate at 5 MB, keep 3 bzip2'd generations)
+        conf = '/etc/newsyslog.d/no.dehlimusikk.msmpl.conf'
+        if not os.path.exists(conf):
+            try:
+                with open(conf, 'w') as f:
+                    f.write('# microSAMPLER bridge daemon log rotation\n'
+                            '/Library/Logs/DehliMusikk/msmpl-bridge.log'
+                            ' 644 3 5120 * J\n')
+            except OSError:
+                pass
 
     sys.path.insert(0, os.path.join(root, 'native-tools'))
     sys.argv = ['bridge.py', '--daemon', '--port', str(PORT)]

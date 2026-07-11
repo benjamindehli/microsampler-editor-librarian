@@ -117,7 +117,13 @@ def main():
 
     if getattr(sys, 'frozen', False):
         # windowed bundles may have no stdio — keep a log for troubleshooting
-        log = open(os.path.join(data, 'library.log'), 'a', buffering=1)
+        log_path = os.path.join(data, 'library.log')
+        try:
+            if os.path.getsize(log_path) > 5 * 1024 * 1024:
+                os.replace(log_path, log_path + '.old')   # keep one generation
+        except OSError:
+            pass
+        log = open(log_path, 'a', buffering=1)
         sys.stdout = sys.stderr = log
         print('--- microSAMPLER Library started', time.strftime('%Y-%m-%d %H:%M:%S'))
 

@@ -134,19 +134,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// Open the editor in a Chromium "app mode" window when one is installed
     /// (own window, no tabs/URL bar — app-like, keeps Web MIDI + downloads);
-    /// otherwise the default browser.
+    /// otherwise the default browser. Runs off the main thread: each `open`
+    /// probe waits for exit, and a LaunchServices stall must not beachball
+    /// the menu bar.
     func openUI() {
-        for app in ["Google Chrome", "Microsoft Edge", "Brave Browser", "Chromium"] {
-            let p = Process()
-            p.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-            p.arguments = ["-na", app, "--args", "--app=" + bridgeURL.absoluteString]
-            p.standardOutput = FileHandle.nullDevice
-            p.standardError = FileHandle.nullDevice
-            do { try p.run() } catch { continue }
-            p.waitUntilExit()
-            if p.terminationStatus == 0 { return }
+        DispatchQueue.global(qos: .userInitiated).async {
+            for app in ["Google Chrome", "Microsoft Edge", "Brave Browser", "Chromium"] {
+                let p = Process()
+                p.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+                p.arguments = ["-na", app, "--args", "--app=" + bridgeURL.absoluteString]
+                p.standardOutput = FileHandle.nullDevice
+                p.standardError = FileHandle.nullDevice
+                do { try p.run() } catch { continue }
+                p.waitUntilExit()
+                if p.terminationStatus == 0 { return }
+            }
+            DispatchQueue.main.async { NSWorkspace.shared.open(bridgeURL) }
         }
-        NSWorkspace.shared.open(bridgeURL)
     }
 
     @objc func releaseDevice() {
@@ -209,6 +213,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func alert(_ title: String, _ text: String) {
+        // an .accessory (menu-bar) app isn't frontmost — without activating,
+        // first-run alerts can appear behind other windows
+        NSApp.activate(ignoringOtherApps: true)
         let a = NSAlert()
         a.messageText = title
         a.informativeText = text
