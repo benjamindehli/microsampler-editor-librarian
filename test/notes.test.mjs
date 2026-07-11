@@ -1,4 +1,4 @@
-// Unit tests for the pure note/keyboard theory (web-editor/js/notes.js).
+// Unit tests for the pure note/keyboard theory (web-editor/functions/notes.js).
 // Built-in node:test — no deps. Run: node --test test/*.test.mjs  (or: npm test)
 import assert from 'node:assert/strict';
 import test from 'node:test';

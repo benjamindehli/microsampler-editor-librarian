@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Extract the complete EFFECT parameter tables from the original editor binary
-and emit web-editor/js/fxData.js.
+and emit web-editor/functions/fxData.js.
 
 The tables live in BSS (EffectParameterTable::m_fxTypes @0x39f420, 22 x 68B;
 ::m_fxParameters @0x399120, 22 x 32 x 36B) and are populated by static-init
@@ -33,7 +33,7 @@ import capstone               # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 XML = os.path.join(os.path.dirname(D.BIN), '..', 'Resources', 'ParameterStrings.xml')
-OUT = os.path.join(REPO, 'web-editor', 'js', 'fxData.js')
+OUT = os.path.join(REPO, 'web-editor', 'functions', 'fxData.js')
 
 PARAMS_BASE, TYPES_BASE = 0x399120, 0x39f420
 INIT_START, INIT_END = 0x24d17a, 0x259244
