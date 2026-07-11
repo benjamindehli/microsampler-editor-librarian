@@ -105,6 +105,7 @@ class Device:
         self._stop = threading.Event()
         self._reader = None
         self._claim_fail_at = 0.0          # maybe_claim() failure throttle
+        self._claim_lock = threading.Lock()  # serializes claim attempts
         self._clock_stop = None             # threading.Event while sending MIDI clock
 
     # -- lifecycle ----------------------------------------------------------
@@ -211,18 +212,27 @@ class Device:
         """DAEMON mode: lazily (re)claim the device — called when the editor
         page loads or the bank is (re)read, NOT on passive status polls (the
         menu-bar app polls /api/status and must never grab the USB device).
-        Failed attempts are throttled: repeated fast open() cycles are exactly
-        what wedges the device's USB stack (see the reopen-wedge gotcha)."""
+        Failed attempts are throttled and attempts are SERIALIZED: repeated
+        fast open() cycles are exactly what wedges the device's USB stack
+        (see the reopen-wedge gotcha), so a second concurrent trigger (two
+        tabs, page load + focus resync) must wait and then see the first
+        attempt's outcome instead of queueing its own escalation."""
         if self.ms is not None:
             return
-        if time.time() - self._claim_fail_at < 10:
-            return
-        try:
-            self.open()
-            self.open_error = None
-        except Exception as e:
+        with self._claim_lock:
+            if self.ms is not None:
+                return
+            if time.time() - self._claim_fail_at < 10:
+                return
+            # stamp BEFORE opening, not after failing — so triggers that
+            # arrive during a failing attempt are throttled too
             self._claim_fail_at = time.time()
-            self.open_error = str(e)
+            try:
+                self.open()
+                self.open_error = None
+                self._claim_fail_at = 0.0
+            except Exception as e:
+                self.open_error = str(e)
 
     def release(self):
         """Release the USB device but keep serving (daemon idle-release + the
@@ -230,6 +240,14 @@ class Device:
         again; the next editor visit re-claims via maybe_claim()."""
         was = self.ms is not None
         if was:
+            try:
+                # leave the freed device SILENT: close() stops our clock, but
+                # without a MIDI Stop the slave sequencer stays "running" and
+                # resumes the pattern on the next external clock — i.e. from
+                # the DAW this release is freeing the device FOR
+                self.stop_pattern()
+            except Exception:
+                pass
             self.close()
         self.open_error = None          # deliberate release ≠ an open failure
         self._claim_fail_at = 0.0       # a re-claim may happen immediately
@@ -435,6 +453,10 @@ class Device:
         failed the bridge still serves, so ops must fail with a clear 503
         instead of an opaque NoneType AttributeError."""
         if self.ms is None:
+            if DAEMON and not self.open_error:
+                # idle-released, not failed — reconnecting is one reload away
+                raise DeviceGone('device not claimed — reload the editor '
+                                 'page (or press RETRY) to reconnect')
             raise DeviceGone('device not connected%s — power-cycle it and '
                              'press RETRY' % (' (%s)' % self.open_error
                                               if self.open_error else ''))
@@ -1863,6 +1885,9 @@ def main():
                 if DEVICE.listeners or DEVICE.ms is None:
                     empty_since = None            # UI connected / nothing held
                     continue
+                if DEVICE.op and not DEVICE.op['done']:
+                    empty_since = None            # headless backup/restore —
+                    continue                      # never release mid-transfer
                 empty_since = empty_since or time.monotonic()
                 if time.monotonic() - empty_since >= IDLE_RELEASE_SECS:
                     print('no UI for %ds — releasing the device'

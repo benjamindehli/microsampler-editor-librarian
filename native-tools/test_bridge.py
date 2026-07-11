@@ -1,5 +1,5 @@
 """Offline test of bridge.py: mock device + real HTTP round-trips."""
-import sys, os, io, json, math, struct, threading, time, wave
+import sys, os, io, json, math, struct, threading, time, types, wave
 import http.client
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -23,6 +23,9 @@ def req(method, path, body=None, headers=None):
 
 
 # --- status -------------------------------------------------------------------
+B.ALLOW_SHUTDOWN = B.DAEMON = False    # env-independent: a shell that still
+#                                        exports MSMPL_* (after bundle testing)
+#                                        must not fail the offline suite
 st, ct, data = req('GET', '/api/status')
 status = json.loads(data)
 assert st == 200 and status['mock'] is True
@@ -32,24 +35,24 @@ assert status['shutdown'] is False and status['daemon'] is False
 st, _, data = req('POST', '/api/release')       # nothing claimed → safe no-op
 assert st == 200 and json.loads(data) == {'released': True, 'was_claimed': False}
 
-_dev = B.Device.__new__(B.Device)               # bare instance for unit checks
-_dev.ms = None
-_dev.open_error = None
-_dev._claim_fail_at = 0.0
+_dev = B.Device(reader=False)                   # real ctor — no USB touched
 _attempts = []
-_dev.open = lambda: (_attempts.append(1), (_ for _ in ()).throw(RuntimeError('no usb')))[1]
+def _fail_open():
+    _attempts.append(1)
+    raise RuntimeError('no usb')
+_dev.open = _fail_open
 _dev.maybe_claim()                              # attempt 1: fails, records time
 _dev.maybe_claim()                              # within throttle → NO attempt 2
 assert len(_attempts) == 1 and 'no usb' in _dev.open_error
 _dev._claim_fail_at = 0                         # throttle expired
 _dev.maybe_claim()
 assert len(_attempts) == 2
-_dev.close = lambda: None
 out = _dev.release()                            # release resets the throttle…
 assert out == {'released': True, 'was_claimed': False}
 assert _dev._claim_fail_at == 0.0 and _dev.open_error is None
-_dev.ms = object()
-assert _dev.release()['was_claimed'] is True    # …and reports a real release
+_dev.ms = types.SimpleNamespace(close=lambda: None)   # "claimed" stub: release
+out = _dev.release()                            # must silence + close it
+assert out['was_claimed'] is True and _dev.ms is None
 print('daemon-mode primitives: OK')
 
 # --- bank summary ---------------------------------------------------------------
