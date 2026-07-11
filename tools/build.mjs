@@ -12,10 +12,9 @@
 // Dev/RE-only files (tools/re, .pkg, tests, .github) are left out.
 //
 // Only dependency: esbuild (MIT), dev-only — never shipped or imported at
-// runtime. Run via `npx esbuild` so nothing is committed to node_modules.
+// runtime (imported from node_modules; `npm install` once).
 import { build, transform } from 'esbuild';
-import { readFileSync, writeFileSync, rmSync, mkdirSync, cpSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { readFileSync, writeFileSync, rmSync, mkdirSync, cpSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -99,7 +98,7 @@ for (const f of ['README.md', 'LICENSE']) cpSync(r(f), d(f));
 
 // ── report ───────────────────────────────────────────────────────────────
 const sheetCount = cssLinks.length;
-const sz = p => execFileSync('wc', ['-c', p]).toString().trim().split(/\s+/)[0] | 0;
+const sz = p => statSync(p).size;
 console.log('built dist/:');
 console.log(`  app.js      ${kb(sz(d('web-editor/app.js')))}  (bundled+minified)`);
 console.log(`  css/app.css ${kb(sz(d('web-editor/css/app.css')))}  (${sheetCount} sheets merged)`);

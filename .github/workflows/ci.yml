@@ -56,6 +56,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "24.18.0"
+          cache: npm
       - name: JS syntax check
         run: |
           find web-editor -name '*.js' -print0 | while IFS= read -r -d '' f; do
@@ -70,7 +71,7 @@ jobs:
             console.log('fxData:', m.FX_TYPES.length, 'fx types'));"
       - name: unit tests (pure modules)
         run: |
-          npm install
+          npm ci
           npm test
 
   lint:
@@ -88,9 +89,10 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "24.18.0"   # ESLint 10 needs ^20.19 || ^22.13 || >=24
+          cache: npm
       - name: ESLint (js)
         run: |
-          npm install
+          npm ci
           npm run lint:js
       # the docs download link / structured data must match package.json's
       # version (npm version stamps it; this catches a manual bump that forgot)
@@ -105,10 +107,17 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - name: Install Playwright + Chromium
-        run: |
-          pip install playwright
-          python -m playwright install --with-deps chromium
+      - name: Install Playwright
+        run: pip install playwright
+      - name: Get Playwright version
+        id: pw
+        run: echo "version=$(python -c 'import playwright; print(playwright.__version__)')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.pw.outputs.version }}
+      - name: Install Chromium
+        run: python -m playwright install --with-deps chromium   # no-op download on cache hit
       # smoke.py boots the mock bridge itself, drives the app headless, and
       # fails on any page/console error or broken core interaction
       - name: Browser smoke (mock device)

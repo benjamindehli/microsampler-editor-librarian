@@ -19,6 +19,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "24.18.0"
+          cache: npm
       - run: npm ci
 
       # guard: the release tag (vX.Y.Z) must match package.json, and the docs

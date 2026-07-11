@@ -7,7 +7,6 @@
 // `zip` binary and it behaves the same on macOS/Linux/Windows. Unix file modes are
 // carried into the archive's external attributes, so the launchers stay executable
 // after unzip.
-import { execFileSync } from 'node:child_process';
 import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -97,5 +96,5 @@ rmSync(REL, { recursive: true, force: true });
 mkdirSync(REL, { recursive: true });
 const files = walk(DIST);
 writeFileSync(zipPath, buildZip(files));
-const kb = (execFileSync('wc', ['-c', zipPath]).toString().trim().split(/\s+/)[0] | 0) / 1024;
+const kb = statSync(zipPath).size / 1024;
 console.log(`packaged → release/${base}.zip  (${files.length} files, ${kb.toFixed(0)} kB)`);
