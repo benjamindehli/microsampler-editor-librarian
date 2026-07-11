@@ -2,11 +2,12 @@
 """
 microSAMPLER local bridge — owns the USB device and serves the web app.
 
-While the bridge runs it is the SINGLE owner of the microSAMPLER (libusb), so
-the browser does everything through it: live parameter edits, sample
-transfer, bank summary, and a live event stream of panel edits (for Learn).
-The web editor's pure Web-MIDI mode remains available when the bridge is NOT
-running — never run both at once.
+While the bridge HOLDS the device it is its single owner (libusb), and the
+browser does everything through it: live parameter edits, sample transfer,
+bank summary, and a live event stream of panel edits. In --daemon mode (the
+macOS Editor app's background service) the device is only held while the
+editor UI is open: claimed lazily on page load, auto-released after
+MSMPL_IDLE_RELEASE seconds (default 300) with no UI, or on POST /api/release.
 
 Stdlib only (Python 3.8 compatible). Run with sudo (CoreMIDI owns the
 interface otherwise):
@@ -14,6 +15,8 @@ interface otherwise):
     sudo python3 bridge.py                # http://localhost:8765
     sudo python3 bridge.py --port 9000
     python3 bridge.py --mock              # UI development without hardware
+    python3 bridge.py --library           # no-USB backup librarian (:8766)
+    sudo python3 bridge.py --daemon       # claim-on-demand background service
 
 API (JSON unless noted):
   GET  /api/status            device inquiry result + bridge state

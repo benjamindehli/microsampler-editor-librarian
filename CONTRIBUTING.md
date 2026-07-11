@@ -36,8 +36,8 @@ real device.
 # UI / app work — no hardware, no extra deps:
 python3 native-tools/bridge.py --mock        # then open http://localhost:8765
 
-# With a real microSAMPLER (needs pyusb + libusb, and sudo to claim the USB iface):
-pip3 install pyusb       # brew install libusb
+# With a real microSAMPLER (sudo claims the USB iface; pyusb + libusb are
+# bundled in native-tools/vendor/ — no pip or brew step):
 sudo python3 native-tools/bridge.py
 ```
 
@@ -98,6 +98,10 @@ can't packet-capture. So:
   you could and couldn't test on a real device**.
 - The `tools/re/` reverse-engineering toolkit needs Korg's original `.pkg`
   (gitignored, not distributed) and isn't required for most contributions.
+- The **packaged desktop apps** live in `tools/bundle/` (PyInstaller specs,
+  entry scripts, the Swift menu-bar shell) and are built/signed/notarized by
+  `.github/workflows/package.yml` — run that workflow manually to validate
+  packaging changes before a release.
 
 ## Regenerating docs assets
 

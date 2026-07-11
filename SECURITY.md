@@ -4,8 +4,10 @@
 a Python bridge (`native-tools/bridge.py`) that serves a browser UI on
 `http://localhost:8765` and talks to a Korg microSAMPLER over USB. It is not a
 hosted service — it runs entirely on the user's own machine — but it does open a
-local HTTP server, run with `sudo` (to claim the USB interface), and process
-some untrusted input (imported backup `.zip` archives, uploaded `.wav` files).
+local HTTP server, claim the USB interface with elevated rights (typed `sudo`
+for the classic launchers; the macOS app uses a one-time-approved background
+helper instead), and process some untrusted input (imported backup `.zip`
+archives, uploaded `.wav` files).
 Security reports are welcome.
 
 ## Supported Versions
@@ -16,7 +18,7 @@ maintained release branches, and older releases are not back-patched.
 
 | Version                  | Supported          |
 | ------------------------ | ------------------ |
-| latest release (v1.0.0)  | :white_check_mark: |
+| latest release           | :white_check_mark: |
 | latest `main`            | :white_check_mark: |
 | older releases / commits | :x:                |
 

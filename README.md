@@ -99,6 +99,9 @@ has launchers for macOS, Linux and Windows, needing only Python 3.
 
 ## Requirements
 
+**The desktop apps above bundle everything** (macOS 13+ / Linux x86-64) — the
+requirements below apply to the classic ZIP + launchers:
+
 - macOS (tested), Linux (should work) or Windows (untested)
 - **Python 3.8+** — that's the only thing you install.
   [pyusb](https://github.com/pyusb/pyusb) (BSD) and
@@ -111,6 +114,10 @@ has launchers for macOS, Linux and Windows, needing only Python 3.
 - A Korg microSAMPLER connected with USB
 
 ## Run
+
+**Installed the apps?** Just open them — the Editor app puts a ♪ in the menu
+bar and opens the editor; the Library app opens straight into the librarian.
+The rest of this section is the classic ZIP way:
 
 Open the folder for your platform — **`macOS/`**, **`Linux/`**, or **`Windows/`**
 — and double-click **`microSAMPLER Editor Librarian`** (`.command` / `.sh` /
@@ -195,7 +202,10 @@ native-tools/                 Python bridge + CLI tools (libusb USB-MIDI):
   test_*.py                     offline regression suite (mock device)
 tools/re/                     reverse-engineering toolkit (needs the original
                               Korg installer, not included) — regenerates
-                              web-editor/js/fxData.js etc.
+                              web-editor/functions/fxData.js etc.
+tools/bundle/                 the desktop apps: PyInstaller specs + entries,
+                              the Swift menu-bar shell, DMG/AppImage/notarize
+                              scripts (built by workflows/package.yml)
 tools/make_app_icon.sh        give the launcher its icon (run once, macOS)
 ```
 
@@ -238,7 +248,7 @@ honest — they catch undefined names, unused imports, etc. CI runs both.
 # Python (native-tools/ + tools/) — needs ruff (pip install ruff)
 ruff check
 
-# JavaScript (web-editor/js/) — needs the dev deps (npm install)
+# JavaScript (web-editor/) — needs the dev deps (npm install)
 npm run lint:js
 ```
 
@@ -275,11 +285,12 @@ other way.
 2. Push the commit and the tag.
 3. Publish a GitHub release for that tag (write the notes).
 
-Publishing triggers the **Release** workflow
-(`.github/workflows/release.yml`), which verifies the tag matches `package.json`,
-runs `npm run pack`, and attaches `microsampler-editor-librarian-vX.Y.Z.zip` to the
-release. (You can also run `npm run pack` locally and upload the ZIP from
-`release/` by hand.)
+Publishing triggers two workflows: **Release**
+(`.github/workflows/release.yml`) attaches the source ZIP
+(`microsampler-editor-librarian-vX.Y.Z.zip`), and **Package apps**
+(`.github/workflows/package.yml`) builds, signs, notarizes and attaches the
+macOS DMGs and the Linux AppImage + tar.gz. Both verify the tag matches
+`package.json` first.
 
 ## Disclaimer
 

@@ -53,8 +53,9 @@ offline self-test). The USB transport is **`native-tools/msusb.py`**.
 | `native-tools/protocol.py` | Korg SysEx/bulk codec + builders (pure). |
 | `native-tools/msusb.py` | libusb transport (USB-MIDI packetisation, inquiry). |
 | `native-tools/{download,upload,bank}.py` | Single-sample + full-bank transfer flows (also CLIs). |
-| `web-editor/js/` | The browser app — ES modules, no build step. |
-| `web-editor/css/` | Per-component stylesheets, cascade-ordered in `app.html`. |
+| `native-tools/msmpl_bank.py` | Reader for original Korg `.msmpl_bank` backups (library mode + CLI). |
+| `web-editor/` | The browser app — ES modules, no build step: `app.js` entry, pure leaves in `functions/`, one folder per feature in `components/<name>/` (JS + CSS), globals in `styles/`. |
+| `tools/bundle/` | The packaged desktop apps: PyInstaller specs + entry scripts, the Swift menu-bar shell for the macOS Editor app, AppImage/DMG/notarization scripts (built by `.github/workflows/package.yml`). |
 | `tools/re/` | Reverse-engineering toolkit (needs Korg's `.pkg`; not distributed). |
 
 ### Bridge internals (`bridge.py`)
@@ -72,25 +73,50 @@ offline self-test). The USB transport is **`native-tools/msusb.py`**.
   `bridge.py` / `download.py`.
 - **`--mock`** swaps in a `MockDevice` that serves fake data with no hardware,
   so the whole UI (and the e2e smoke + most tests) run without a device.
+- **`--library`** (port 8766) swaps in a `LibraryDevice`: no USB at all, just
+  browsing/exporting bank backups — what the Library desktop app runs.
+- **`--daemon`** is how the macOS Editor app's background service runs the
+  bridge: the device starts **unclaimed**, is claimed lazily when the editor
+  page opens, and is auto-released after a few idle minutes with no UI — so
+  the always-on daemon doesn't hog the microSAMPLER from DAWs. `POST
+  /api/release` releases it on demand (the menu bar's *Release Device*).
 
-### Frontend (`web-editor/js/`)
+### Frontend (`web-editor/`)
 
-Plain ES modules, loaded by `app.html`; **no bundler in dev**. Circular imports
-exist but are runtime-only (used inside functions), so they're safe.
+Plain ES modules, loaded by `app.html`; **no bundler in dev**. Modules import
+through bare aliases (`functions/…`, `components/…`, `app.js`), resolved by an
+import map in `app.html` (dev), esbuild aliases (dist), and a Node hook
+(tests) — so moving a file never touches its importers. Circular imports exist
+but are runtime-only (used inside functions), so they're safe.
 
 - `app.js` — entry: boot, view switching, `refreshBank()`, focus re-sync.
-- `state.js` — the single shared mutable `state` (bank, selection, decoded
-  audio buffers, formats, AudioContext).
-- `util.js` — DOM/format/`api()` helpers (`api`, `apiJson`, `jsonBody`,
-  `confirmDialog`).
-- View/feature modules: `pads`, `slot`, `waveform`, `controls`, `meter`,
-  `effect`, `patterns`, `utility`, `dialogs`, `slotops`, `ux`.
-- `events.js` — routes SSE messages onto the right module.
-- `valueTables.js` + `fxData.js` — **generated** data (from `tools/re/`), don't
-  hand-edit.
+- `functions/` — pure leaves: `state` (the single shared mutable state),
+  `util` (DOM/`api()` helpers), `events` (routes SSE messages onto the right
+  module), `ticker`, `notes`, `audioTools` (upload DSP), `smfWrite`, and the
+  **generated** `valueTables` + `fxData` (from `tools/re/` — don't hand-edit).
+- `components/<name>/` — one folder per feature (`<name>.js` + `<name>.css`):
+  `pads`, `sample-editor` (slot/waveform/sampleLoad/slotops/slice),
+  `controls`, `meter`, `effect`, `patterns`, `pattern-editor`, `keyboard`,
+  `dialogs`, `utility`, `library`, `update`, `ux`.
+- `styles/` — global sheets: `base` (tokens), `layout`, `fonts`.
 
 A production build (`npm run build`, esbuild) bundles/minifies into `dist/` for
 releases, but it's optional — the source runs as-is.
+
+### Packaged apps (`tools/bundle/`)
+
+The same bridge + web app, frozen with PyInstaller into double-clickable apps
+(built, signed and notarized by `.github/workflows/package.yml`):
+
+- **microSAMPLER Library** — `library_app.py` + `library.spec`: the bridge in
+  `--library` mode with a bundled runtime; macOS `.app` and Linux
+  AppImage/tar.gz. No USB, no privileges.
+- **microSAMPLER Editor Librarian** (macOS 13+) — a small Swift menu-bar app
+  (`editor-app/main.swift`) that registers a root **launchd daemon** via
+  `SMAppService` (one-time approval in Login Items); the daemon is the frozen
+  bridge in `--daemon` mode (`editor_daemon.py` + `editor.spec`), so no typed
+  `sudo` and no terminal. Both apps ship in one notarized DMG per
+  architecture.
 
 ## Data flow
 
