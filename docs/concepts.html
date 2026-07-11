@@ -34,7 +34,7 @@
   "author": { "@type": "Person", "name": "Benjamin Dehli", "url": "https://www.dehlimusikk.no/" },
   "image": "https://benjamindehli.github.io/microsampler-editor-librarian/assets/og/concepts.jpg",
   "datePublished": "2026-06-27",
-  "dateModified": "2026-07-06",
+  "dateModified": "2026-07-11",
   "mainEntityOfPage": "https://benjamindehli.github.io/microsampler-editor-librarian/concepts.html" }
 </script>
 <script type="application/ld+json">
@@ -219,8 +219,9 @@
     <li><strong>MIDI clock</strong> advances the sequencer (above).</li>
   </ul>
   <p>The editor itself never touches your computer's MIDI directly — a small local <strong>bridge</strong> owns
-    the USB connection and the browser talks to it over HTTP, which is why the bridge needs administrator
-    rights while it runs.</p>
+    the USB connection and the browser talks to it over HTTP, which is why the bridge needs elevated rights
+    while it holds the device (the macOS app's background service handles that after a one-time approval;
+    the classic launchers ask for <code>sudo</code>).</p>
 
   <h2 id="audio">Audio format</h2>
   <p>The microSAMPLER stores samples as <strong>16-bit audio</strong> at one of four sample rates

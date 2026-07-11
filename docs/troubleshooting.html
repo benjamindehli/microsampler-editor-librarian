@@ -30,7 +30,7 @@
 { "@context": "https://schema.org", "@type": "FAQPage",
   "mainEntity": [
     { "@type": "Question", "name": "Why does it need administrator rights (sudo)?",
-      "acceptedAnswer": { "@type": "Answer", "text": "The operating system's MIDI driver owns the device's USB interface. The bridge needs elevated rights to take it over while it runs, and it hands control back when it exits." } },
+      "acceptedAnswer": { "@type": "Answer", "text": "The operating system's MIDI driver owns the device's USB interface, so claiming it needs elevated rights. The macOS Editor app handles this with a background service approved once in System Settings; the classic launchers ask for sudo each start. The Library app never touches USB and needs no elevation." } },
     { "@type": "Question", "name": "Pattern playback does nothing — why?",
       "acceptedAnswer": { "@type": "Answer", "text": "The microSAMPLER's sequencer advances on incoming MIDI clock. Set GLOBAL > MIDI CLK = AUTO (or EXT MIDI) on the device so it follows the editor's transport." } },
     { "@type": "Question", "name": "Do my edits save automatically?",
@@ -103,13 +103,16 @@
             and click Retry — no need to restart the bridge. The bridge also retries (incl. a USB reset) on its
             own first.</td></tr>
     <tr><td>"BRIDGE OFFLINE"</td>
-        <td>The local bridge isn't running — start it with the launcher (or
-            <code>sudo python3 native-tools/bridge.py</code>); the page reconnects by itself.</td></tr>
+        <td>The local bridge isn't running — open the app (menu bar ♪ → Open Editor), or start the
+            classic launcher (or <code>sudo python3 native-tools/bridge.py</code>); the page reconnects
+            by itself.</td></tr>
     <tr><td>macOS won't open the launcher ("unidentified developer")</td>
-        <td>It's unsigned — approve it once: right-click (Control-click) → <strong>Open</strong> →
-            <strong>Open</strong>. On newer macOS without that option, double-click once, then
-            <strong>System Settings → Privacy &amp; Security → Open Anyway</strong>. See
-            <a href="getting-started.html#macos">Getting started</a> for the Terminal alternative.</td></tr>
+        <td>Only the classic ZIP's launcher scripts are unsigned (the <a href="getting-started.html#download">
+            desktop apps</a> are signed and notarized — no approval dance). Approve the launcher once:
+            right-click (Control-click) → <strong>Open</strong> → <strong>Open</strong>. On newer macOS
+            without that option, double-click once, then <strong>System Settings → Privacy &amp;
+            Security → Open Anyway</strong>. See <a href="getting-started.html#macos">Getting started</a>
+            for the Terminal alternative.</td></tr>
     <tr><td>Device not found / permission error</td>
         <td>Run with administrator rights (the launcher does this), check the cable, and close any other MIDI
             app holding the device. On Windows, switch the driver to WinUSB with
@@ -136,8 +139,10 @@
     Korg software or firmware. The protocol was reverse-engineered for interoperability with hardware you own.</p>
 
   <h3>Why does it need administrator rights (sudo)?</h3>
-  <p>Your operating system's MIDI driver normally owns the device's USB interface. The bridge needs elevated
-    rights to take it over while it runs; it releases the device when it exits.</p>
+  <p>Your operating system's MIDI driver normally owns the device's USB interface, so taking it over needs
+    elevated rights. The macOS Editor app handles this with a background service you approve once (no
+    typed password); the classic launchers ask for <code>sudo</code> each start. The Library app and
+    library mode never touch USB, so they need no elevation at all.</p>
 
   <h3>Do my edits save automatically?</h3>
   <p>No — edits go to the <a href="concepts.html#persistence">current bank, which is RAM</a>. WRITE to a user
