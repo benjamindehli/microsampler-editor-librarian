@@ -20,11 +20,48 @@ import Foundation
 let uiURL = URL(string: "http://localhost:8766")!
 let statusURL = URL(string: "http://localhost:8766/api/status")!
 
+// timestamped shell log next to the bridge's own library.log, so a slow or
+// failed launch pins the exact step (which browser, how long) instead of
+// leaving us guessing — this whole file has no other visible output.
+let shellLogPath = ("~/Library/Application Support/DehliMusikk/microSAMPLER Library/shell.log"
+                    as NSString).expandingTildeInPath
+
+func shellLog(_ msg: String) {
+    let stamp = ISO8601DateFormatter().string(from: Date())
+    guard let data = "\(stamp)  \(msg)\n".data(using: .utf8) else { return }
+    if let fh = FileHandle(forWritingAtPath: shellLogPath) {
+        fh.seekToEndOfFile(); fh.write(data); try? fh.close()
+    } else {
+        try? data.write(to: URL(fileURLWithPath: shellLogPath))
+    }
+}
+
+// The user's DEFAULT browser first when it's a Chromium (already running &
+// healthy → its app-mode window opens instantly); otherwise probe the known
+// Chromium browsers. Forcing a non-default, possibly-cold Chrome via a new
+// instance was the cause of multi-minute stalls before an app window appeared.
+func browserOrder() -> [String] {
+    let byBundleID = ["com.google.Chrome": "Google Chrome",
+                      "com.microsoft.edgemac": "Microsoft Edge",
+                      "com.brave.Browser": "Brave Browser",
+                      "org.chromium.Chromium": "Chromium"]
+    var order: [String] = []
+    if let def = NSWorkspace.shared.urlForApplication(toOpen: uiURL),
+       let bid = Bundle(url: def)?.bundleIdentifier,
+       let name = byBundleID[bid] {
+        order.append(name)
+    }
+    for name in ["Google Chrome", "Microsoft Edge", "Brave Browser", "Chromium"]
+        where !order.contains(name) { order.append(name) }
+    return order
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate {
     var child: Process?
     var quitting = false
 
     func applicationDidFinishLaunching(_ note: Notification) {
+        shellLog("shell launched")
         buildMenu()
         openOrStart()
     }
@@ -49,6 +86,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         URLSession.shared.dataTask(with: statusURL) { data, _, _ in
             DispatchQueue.main.async {
                 if data != nil {
+                    shellLog("bridge already up — opening UI")
                     self.openUI()          // bridge already up (ours or a CLI one)
                 } else {
                     self.startChild()
@@ -60,17 +98,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func startChild() {
         if let c = child, c.isRunning { return }
+        shellLog("starting child bridge")
         let p = Process()
         p.executableURL = Bundle.main.resourceURL!
             .appendingPathComponent("bridge/microSAMPLER Library")
         var env = ProcessInfo.processInfo.environment
         env["MSMPL_NO_OPEN"] = "1"         // the shell opens the UI itself
         p.environment = env
-        p.terminationHandler = { _ in
+        p.terminationHandler = { proc in
             DispatchQueue.main.async {
                 // the bridge ended on its own (web QUIT button, idle-exit, or
                 // a crash) — the Dock icon must not outlive the server
-                if !self.quitting { NSApp.terminate(nil) }
+                if !self.quitting {
+                    shellLog("child bridge exited (status \(proc.terminationStatus)) — quitting shell")
+                    NSApp.terminate(nil)
+                }
             }
         }
         do {
@@ -84,6 +126,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func pollBridge(attempt: Int) {
         if attempt > 40 {   // ~20 s
+            shellLog("bridge never answered after \(attempt) polls")
             alert("Library not responding",
                   "The bridge started but isn't answering on port 8766. Check ~/Library/Application Support/DehliMusikk/microSAMPLER Library/library.log")
             return
@@ -91,6 +134,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         URLSession.shared.dataTask(with: statusURL) { data, _, _ in
             DispatchQueue.main.async {
                 if data != nil {
+                    shellLog("bridge up after \(attempt) poll(s) — opening UI")
                     self.openUI()
                 } else {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -101,21 +145,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }.resume()
     }
 
-    /// Open the UI in a Chromium "app mode" window when one is installed
-    /// (own window, no tabs/URL bar); otherwise the default browser. Off the
-    /// main thread: each `open` probe waits for exit.
+    /// Open the UI in a Chromium "app mode" window — the user's default browser
+    /// first when it's Chromium (see browserOrder), else the known list; falls
+    /// back to the plain default browser. Off the main thread: each `open`
+    /// probe waits for exit.
     func openUI() {
         DispatchQueue.global(qos: .userInitiated).async {
-            for app in ["Google Chrome", "Microsoft Edge", "Brave Browser", "Chromium"] {
+            for app in browserOrder() {
+                shellLog("opening UI via \(app)…")
                 let p = Process()
                 p.executableURL = URL(fileURLWithPath: "/usr/bin/open")
                 p.arguments = ["-na", app, "--args", "--app=" + uiURL.absoluteString]
                 p.standardOutput = FileHandle.nullDevice
                 p.standardError = FileHandle.nullDevice
-                do { try p.run() } catch { continue }
+                do { try p.run() } catch {
+                    shellLog("  \(app): \(error.localizedDescription)")
+                    continue
+                }
                 p.waitUntilExit()
+                shellLog("  \(app): open exited \(p.terminationStatus)")
                 if p.terminationStatus == 0 { return }
             }
+            shellLog("no Chromium app-mode browser — using the default browser")
             DispatchQueue.main.async { NSWorkspace.shared.open(uiURL) }
         }
     }
