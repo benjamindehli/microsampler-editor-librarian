@@ -99,9 +99,9 @@
   <table>
     <tr><th scope="col">Symptom</th><th scope="col">Fix</th></tr>
     <tr><td>"microSAMPLER not responding" / "no inquiry reply"</td>
-        <td>The app shows a panel with a <strong>Retry</strong> button: power-cycle the device (off, then on)
-            and click Retry — no need to restart the bridge. The bridge also retries (incl. a USB reset) on its
-            own first.</td></tr>
+        <td>Usually a brief hiccup while claiming the USB connection, not a real fault. Click
+            <strong>Retry</strong> in the panel first (the bridge also retries, including a USB reset, on its
+            own). Only power-cycle the device if it keeps failing.</td></tr>
     <tr><td>"BRIDGE OFFLINE"</td>
         <td>The local bridge isn't running — open the app (menu bar ♪ → Open Editor), or start the
             classic launcher (or <code>sudo python3 native-tools/bridge.py</code>); the page reconnects
@@ -131,6 +131,10 @@
     <tr><td>USB seems stuck after many reconnects</td>
         <td>Power-cycle the microSAMPLER — heavy connect/disconnect churn can wedge its USB firmware, which only
             a power-cycle fully resets.</td></tr>
+    <tr><td>macOS app won't reopen, launches slowly, or lingers in the background</td>
+        <td>Update to <strong>v1.15.1 or later</strong>, which fixes several app lifecycle issues (instant
+            launch, clean quit, reliable reopen). After updating the Editor app it refreshes its background
+            helper on the next launch; if it shows a one-time error right after an update, quit and reopen it.</td></tr>
   </table>
 
   <h2 id="faq">FAQ</h2>
