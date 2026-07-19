@@ -93,6 +93,11 @@ def library_bridge_at(port):
 def port_free(port):
     try:
         s = socket.socket()
+        # SO_REUSEADDR so this pre-check matches the actual server (HTTPServer
+        # sets allow_reuse_address): without it, a just-killed bridge's socket
+        # in TIME_WAIT makes this falsely report "busy", which sent the child
+        # to a random port the shell can't find → "Library not responding".
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind(('127.0.0.1', port))
         s.close()
         return True
@@ -127,15 +132,19 @@ def main():
         sys.stdout = sys.stderr = log
         print('--- microSAMPLER Library started', time.strftime('%Y-%m-%d %H:%M:%S'))
 
+    # under the Swift shell (macOS .app) the shell owns the browser + only knows
+    # PORT, so the child must NOT wander to a random port — bind PORT or fail.
+    shell_mode = os.environ.get('MSMPL_NO_OPEN') == '1'
     port = PORT
     if not port_free(port):
         if library_bridge_at(port):     # already running → just open its UI
             open_ui('http://localhost:%d' % port)
             return 0
-        s = socket.socket()             # something else owns 8766 → any free port
-        s.bind(('127.0.0.1', 0))
-        port = s.getsockname()[1]
-        s.close()
+        if not shell_mode:              # standalone: 8766 taken → any free port
+            s = socket.socket()
+            s.bind(('127.0.0.1', 0))
+            port = s.getsockname()[1]
+            s.close()
 
     root = resource_root()
     os.environ['MSMPL_WEB_ROOT'] = os.path.join(root, 'web-editor')
