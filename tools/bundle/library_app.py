@@ -141,6 +141,10 @@ def main():
     os.environ['MSMPL_WEB_ROOT'] = os.path.join(root, 'web-editor')
     os.environ.setdefault('MSMPL_BACKUP_DIR', os.path.join(data, 'backups'))
     os.environ['MSMPL_ALLOW_SHUTDOWN'] = '1'
+    # exit ~2 min after the last UI window closes — the app must not linger as
+    # an invisible background process (ghost processes also confuse macOS
+    # LaunchServices into "app is not open anymore" states)
+    os.environ.setdefault('MSMPL_IDLE_EXIT', '120')
 
     threading.Thread(target=open_when_up,
                      args=('http://localhost:%d' % port, port),

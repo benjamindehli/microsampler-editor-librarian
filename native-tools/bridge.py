@@ -75,6 +75,10 @@ ALLOW_SHUTDOWN = os.environ.get('MSMPL_ALLOW_SHUTDOWN') == '1'
 # can run 24/7 without hogging the microSAMPLER from DAWs. Also --daemon.
 DAEMON = os.environ.get('MSMPL_DAEMON') == '1'
 IDLE_RELEASE_SECS = float(os.environ.get('MSMPL_IDLE_RELEASE', '300'))
+# the bundled LIBRARY app EXITS after this long with no UI connected (its
+# window is a browser; closing it must not leave a ghost server running
+# forever). 0/unset = never (CLI, launchers, mock, daemon).
+IDLE_EXIT_SECS = float(os.environ.get('MSMPL_IDLE_EXIT', '0'))
 SRV = None           # the running HTTP server (set in main; /api/shutdown stops it)
 MIME = {'.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
         '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml',
@@ -1471,6 +1475,26 @@ def list_backups():
 DEVICE = None        # set in main()
 
 
+def _watch_idle_exit(srv, secs, poll=5):
+    """Stop `srv` (→ clean process exit) once no SSE listener has been
+    connected for `secs`. The web UI holds an EventSource while open — in
+    library mode too — and the SSE handler removes dead queues within one
+    ~15 s keepalive cycle of a tab closing. Startup counts as idle, so `secs`
+    doubles as the grace period for the browser's first connect."""
+    empty_since = time.monotonic()
+    while True:
+        time.sleep(poll)
+        if DEVICE.listeners:
+            empty_since = None
+            continue
+        if empty_since is None:
+            empty_since = time.monotonic()
+        if time.monotonic() - empty_since >= secs:
+            print('no UI connected for %ds — exiting' % secs)
+            srv.shutdown()
+            return
+
+
 class BridgeServer(ThreadingHTTPServer):
     def handle_error(self, request, client_address):
         """A client dropping mid-request (tab closed, EventSource aborted,
@@ -1931,6 +1955,11 @@ def main():
 
     global SRV
     srv = SRV = BridgeServer(('127.0.0.1', port), Handler)
+    if IDLE_EXIT_SECS > 0 and not DAEMON:
+        threading.Thread(target=_watch_idle_exit,
+                         args=(srv, IDLE_EXIT_SECS), daemon=True).start()
+        print('idle-exit armed: quitting after %ds with no UI'
+              % IDLE_EXIT_SECS)
     print('bridge ready: http://localhost:%d  (Ctrl+C to stop)' % port)
     try:
         srv.serve_forever()

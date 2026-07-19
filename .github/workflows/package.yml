@@ -118,8 +118,10 @@ jobs:
           done
           iconutil -c icns build/icon.iconset -o build/AppIcon.icns
           echo "MSMPL_ICNS=$PWD/build/AppIcon.icns" >> "$GITHUB_ENV"
-      - name: Build Library app (PyInstaller .app)
-        run: pyinstaller --noconfirm --distpath dist/bundle --workpath build/bundle tools/bundle/library.spec
+      - name: Build Library bridge (PyInstaller onedir) + assemble the .app
+        run: |
+          pyinstaller --noconfirm --distpath dist/bundle --workpath build/bundle tools/bundle/library.spec
+          tools/bundle/make_library_app.sh
       - name: Build Editor bridge (PyInstaller onedir) + assemble the .app
         run: |
           pyinstaller --noconfirm --distpath dist/bundle --workpath build/bundle tools/bundle/editor.spec
@@ -128,7 +130,7 @@ jobs:
         env:
           MSMPL_NO_OPEN: "1"        # no browser on a headless runner
         run: |
-          "./$APP_LIB/Contents/MacOS/microSAMPLER Library" &
+          "./$APP_LIB/Contents/Resources/bridge/microSAMPLER Library" &
           for i in $(seq 1 40); do
             curl -sf http://localhost:8766/api/status > /dev/null && break
             sleep 0.5
