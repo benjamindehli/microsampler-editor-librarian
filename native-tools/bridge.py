@@ -186,8 +186,10 @@ class Device:
                         break
             if not reply:
                 ms.close()
-                raise RuntimeError('no inquiry reply — device off or wedged '
-                                   '(power-cycle it)')
+                raise RuntimeError('no inquiry reply — the device did not answer '
+                                   '(often a transient USB claim glitch; press '
+                                   'RETRY, or power-cycle the device only if it '
+                                   'keeps failing)')
             self.ms, self.cable = ms, cable
             self.ms.cable = cable
             self.channel = reply[2] & 0x0f
@@ -475,8 +477,9 @@ class Device:
         self._require_device()
         reply, _ = self.ms.device_inquiry(timeout_ms=2000, cables=(self.cable,))
         if not reply:
-            raise RuntimeError('device inquiry failed — device off or wedged '
-                               '(power-cycle it)')
+            raise RuntimeError('device inquiry failed — the device did not answer '
+                               '(often transient; press RETRY, or power-cycle it '
+                               'only if it keeps failing)')
         self.channel = reply[2] & 0x0f
 
     def send_param(self, obj, param, value):
