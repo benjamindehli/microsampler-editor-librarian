@@ -58,7 +58,7 @@ class DeviceGone(RuntimeError):
     claimed) — mapped to HTTP 503 so the UI can tell 'not connected' from a
     bad request."""
 
-VERSION = '1.15.0'   # current app version; kept in sync by tools/stamp-docs-version.mjs
+VERSION = '1.15.1'   # current app version; kept in sync by tools/stamp-docs-version.mjs
 # static root; MSMPL_WEB_ROOT overrides for the bundled app (PyInstaller datas)
 WEB_ROOT = os.environ.get('MSMPL_WEB_ROOT') or \
     os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
