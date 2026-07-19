@@ -18,7 +18,28 @@ import AppKit
 import Foundation
 
 let uiURL = URL(string: "http://localhost:8766")!
-let statusURL = URL(string: "http://localhost:8766/api/status")!
+let bridgePort: UInt16 = 8766
+
+// Is the bridge accepting connections? A raw socket connect to an explicit
+// IPv4 127.0.0.1 — NOT URLSession, whose per-request proxy discovery + IPv6
+// (localhost → ::1) attempt stalled ~60 s EACH on localhost here, so the two
+// launch-time checks cost ~2 min before the window appeared (measured). A
+// POSIX connect is instant: immediate refusal when nothing listens, immediate
+// accept when it's up. Same approach the Python side already uses.
+func bridgeIsUp() -> Bool {
+    let fd = socket(AF_INET, SOCK_STREAM, 0)
+    if fd < 0 { return false }
+    defer { close(fd) }
+    var addr = sockaddr_in()
+    addr.sin_family = sa_family_t(AF_INET)
+    addr.sin_port = bridgePort.bigEndian
+    addr.sin_addr.s_addr = inet_addr("127.0.0.1")
+    return withUnsafePointer(to: &addr) { ptr in
+        ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sa in
+            connect(fd, sa, socklen_t(MemoryLayout<sockaddr_in>.size)) == 0
+        }
+    }
+}
 
 // timestamped shell log next to the bridge's own library.log, so a slow or
 // failed launch pins the exact step (which browser, how long) instead of
@@ -83,9 +104,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // ── lifecycle ────────────────────────────────────────────────────────────
     func openOrStart() {
-        URLSession.shared.dataTask(with: statusURL) { data, _, _ in
+        DispatchQueue.global(qos: .userInitiated).async {
+            let up = bridgeIsUp()
             DispatchQueue.main.async {
-                if data != nil {
+                if up {
                     shellLog("bridge already up — opening UI")
                     self.openUI()          // bridge already up (ours or a CLI one)
                 } else {
@@ -93,7 +115,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self.pollBridge(attempt: 0)
                 }
             }
-        }.resume()
+        }
     }
 
     func startChild() {
@@ -125,24 +147,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func pollBridge(attempt: Int) {
-        if attempt > 40 {   // ~20 s
-            shellLog("bridge never answered after \(attempt) polls")
+        if attempt > 60 {   // ~18 s at 0.3 s spacing
+            shellLog("bridge never came up after \(attempt) polls")
             alert("Library not responding",
                   "The bridge started but isn't answering on port 8766. Check ~/Library/Application Support/DehliMusikk/microSAMPLER Library/library.log")
             return
         }
-        URLSession.shared.dataTask(with: statusURL) { data, _, _ in
+        DispatchQueue.global(qos: .userInitiated).async {
+            let up = bridgeIsUp()
             DispatchQueue.main.async {
-                if data != nil {
+                if up {
                     shellLog("bridge up after \(attempt) poll(s) — opening UI")
                     self.openUI()
                 } else {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         self.pollBridge(attempt: attempt + 1)
                     }
                 }
             }
-        }.resume()
+        }
     }
 
     /// Open the UI in a Chromium "app mode" window — the user's default browser
