@@ -104,7 +104,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         switch service.status {
         case .enabled:
-            if interactive { openWhenBridgeUp() }
+            if interactive { reloadIfStaleThenOpen() }
         case .requiresApproval:
             if interactive { promptApproval() }
         default:   // .notRegistered / .notFound
@@ -127,6 +127,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                           "\(error.localizedDescription)\n\nIf the app was just downloaded, move it to /Applications and open it again.")
                 }
             }
+        }
+    }
+
+    // The service is .enabled, but the running daemon may be a PREVIOUS app
+    // version's binary: SMAppService doesn't reload the daemon when the app is
+    // updated, and we skip register() when already enabled — so a stale daemon
+    // keeps running old code against the new on-disk bundle, which fails in
+    // confusing ways (e.g. a replaced PyInstaller archive → zlib import errors).
+    // Compare the running daemon's reported version to ours and reload it on a
+    // mismatch; otherwise just open the editor.
+    func reloadIfStaleThenOpen() {
+        let appVer = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+        localSession.dataTask(with: statusURL) { data, _, _ in
+            var stale = false
+            if let appVer = appVer, let d = data,
+               let obj = try? JSONSerialization.jsonObject(with: d) as? [String: Any],
+               let daemonVer = obj["version"] as? String {
+                stale = daemonVer != appVer   // only reload when we can confirm a mismatch
+            }
+            DispatchQueue.main.async {
+                if stale { self.reloadDaemon() } else { self.openWhenBridgeUp() }
+            }
+        }.resume()
+    }
+
+    func reloadDaemon() {
+        // unregister + re-register makes launchd load the NEW binary; the old
+        // daemon gets SIGTERM and releases the USB device cleanly on the way out.
+        try? service.unregister()
+        do {
+            try service.register()
+        } catch {
+            // approval may have reset on re-register — the catch path checks it
+        }
+        switch service.status {
+        case .enabled:        openWhenBridgeUp()
+        case .requiresApproval: promptApproval()
+        default:              openWhenBridgeUp()   // give the fresh daemon a chance
         }
     }
 
