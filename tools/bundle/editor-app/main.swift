@@ -14,10 +14,39 @@ import AppKit
 import Foundation
 import ServiceManagement
 
-let bridgeURL = URL(string: "http://localhost:8765")!
-let statusURL = URL(string: "http://localhost:8765/api/status")!
-let releaseURL = URL(string: "http://localhost:8765/api/release")!
+let bridgeURL = URL(string: "http://localhost:8765")!               // opened in the browser
+let statusURL = URL(string: "http://127.0.0.1:8765/api/status")!   // internal: explicit IPv4
+let releaseURL = URL(string: "http://127.0.0.1:8765/api/release")! // (no localhost/::1 + proxy)
+let bridgePort: UInt16 = 8765
 let daemonPlist = "no.dehlimusikk.msmpl.bridge.plist"
+
+// URLSession that bypasses the system/PAC proxy and times out fast: a plain
+// URLSession to `localhost` ran proxy discovery + tried IPv6 ::1, stalling
+// ~60 s per request on some Macs. For the two calls that need a body; pure
+// reachability uses a raw socket (bridgeIsUp).
+let localSession: URLSession = {
+    let cfg = URLSessionConfiguration.ephemeral
+    cfg.connectionProxyDictionary = [:]
+    cfg.timeoutIntervalForRequest = 4
+    return URLSession(configuration: cfg)
+}()
+
+// Is the bridge accepting connections on 127.0.0.1:bridgePort? Raw socket —
+// instant, no proxy/DNS/IPv6 detour.
+func bridgeIsUp() -> Bool {
+    let fd = socket(AF_INET, SOCK_STREAM, 0)
+    if fd < 0 { return false }
+    defer { close(fd) }
+    var addr = sockaddr_in()
+    addr.sin_family = sa_family_t(AF_INET)
+    addr.sin_port = bridgePort.bigEndian
+    addr.sin_addr.s_addr = inet_addr("127.0.0.1")
+    return withUnsafePointer(to: &addr) { ptr in
+        ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sa in
+            connect(fd, sa, socklen_t(MemoryLayout<sockaddr_in>.size)) == 0
+        }
+    }
+}
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var statusItem: NSStatusItem!
@@ -156,7 +185,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc func releaseDevice() {
         var req = URLRequest(url: releaseURL)
         req.httpMethod = "POST"
-        URLSession.shared.dataTask(with: req).resume()
+        localSession.dataTask(with: req).resume()
     }
 
     func openWhenBridgeUp() {
@@ -165,22 +194,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func pollBridge(attempt: Int) {
-        if attempt > 40 {   // ~20 s — daemon should be up long before this
+        if attempt > 60 {   // ~18 s — daemon should be up long before this
             alert("Bridge not responding",
                   "The background service is installed but not answering on port 8765. Check /Library/Logs/DehliMusikk/msmpl-bridge.log")
             return
         }
-        URLSession.shared.dataTask(with: statusURL) { data, _, _ in
+        DispatchQueue.global(qos: .userInitiated).async {
+            let up = bridgeIsUp()
             DispatchQueue.main.async {
-                if data != nil {
+                if up {
                     self.openUI()
                 } else {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         self.pollBridge(attempt: attempt + 1)
                     }
                 }
             }
-        }.resume()
+        }
     }
 
     // ── live status in the menu ──────────────────────────────────────────────
@@ -196,7 +226,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         serviceLine.action = #selector(toggleService)
 
         deviceLine.title = "Bridge: checking…"
-        URLSession.shared.dataTask(with: statusURL) { data, _, _ in
+        localSession.dataTask(with: statusURL) { data, _, _ in
             var line = "Bridge: not running"
             if let d = data,
                let obj = try? JSONSerialization.jsonObject(with: d) as? [String: Any] {
