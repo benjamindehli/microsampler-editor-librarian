@@ -1,12 +1,15 @@
 # -*- mode: python ; coding: utf-8 -*-
-# PyInstaller spec for the BUNDLED 'microSAMPLER Library' app (hardware-free
+# PyInstaller spec for the BUNDLED 'microSAMPLER Library' bridge (hardware-free
 # librarian; no USB, no sudo). Build (from the repo, PyInstaller installed):
 #
 #   pyinstaller --noconfirm tools/bundle/library.spec
 #
-# → dist/microSAMPLER Library/          (Linux/Windows onedir)
-# → dist/microSAMPLER Library.app       (macOS bundle; sign+notarize in CI —
-#                                        see .github/workflows/package.yml)
+# → dist/bundle/microSAMPLER Library/   onedir: the Linux AppImage payload, AND
+#                                       what make_library_app.sh embeds into the
+#                                       macOS .app. A Swift shell supervises it
+#                                       there — a plain frozen process has no
+#                                       macOS app lifecycle: no reopen handling,
+#                                       no ⌘Q, ghost "not open anymore" states.
 #
 # Bundles the RAW web-editor/ (no build step — served as-is like in dev) and
 # the native-tools python modules. vendor/ (pyusb + libusb) is deliberately
@@ -14,7 +17,6 @@
 # lazily when real hardware is opened.
 import json
 import os
-import sys
 
 ROOT = os.path.normpath(os.path.join(SPECPATH, '..', '..'))      # repo root
 NATIVE = os.path.join(ROOT, 'native-tools')
@@ -41,26 +43,9 @@ exe = EXE(
     a.scripts,
     exclude_binaries=True,
     name=APP_NAME,
-    console=False,                       # windowed: no terminal; logs go to the
-    icon=ICON,                           # user-data dir (see library_app.py)
-    codesign_identity=None,              # signing happens in CI, post-build
-    entitlements_file=None,
+    console=True,                        # a supervised child process, not a GUI
+    icon=ICON,                           # app; logs go to the user-data dir
+    codesign_identity=None,              # (see library_app.py). Signing happens
+    entitlements_file=None,              # in CI, post-assembly.
 )
 coll = COLLECT(exe, a.binaries, a.datas, name=APP_NAME)
-
-if sys.platform == 'darwin':
-    app = BUNDLE(
-        coll,
-        name=APP_NAME + '.app',
-        icon=ICON,
-        bundle_identifier='no.dehlimusikk.microsampler-library',
-        version=VERSION,
-        info_plist={
-            # agent-style app: no Dock icon / menu bar — the browser tab IS the
-            # UI, and its QUIT button stops the bridge (POST /api/shutdown)
-            'LSUIElement': True,
-            'NSHighResolutionCapable': True,
-            'CFBundleShortVersionString': VERSION,
-            'LSApplicationCategoryType': 'public.app-category.music',
-        },
-    )
