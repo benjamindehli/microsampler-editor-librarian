@@ -44,6 +44,9 @@ async function boot() {
 
 function enterLibraryMode(st) {
   document.body.classList.add('library-mode');    // CSS hides device-only chrome
+  // subscribe SSE here too: no device events will arrive, but the open stream
+  // tells the bundled app a UI is connected (its idle-exit watches listeners)
+  if (!subscribed) { subscribeEvents(); subscribed = true; }
   $('#conn-caption').textContent = 'LIBRARY';
   document.title = 'microSAMPLER Library';         // this app is the librarian only
   document.querySelector('.brand-sub').textContent = 'LIBRARY';

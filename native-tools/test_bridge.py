@@ -55,6 +55,20 @@ out = _dev.release()                            # must silence + close it
 assert out['was_claimed'] is True and _dev.ms is None
 print('daemon-mode primitives: OK')
 
+# --- library idle-exit watcher (bundled app must not linger after the UI) ------
+class _FakeSrv:
+    def __init__(self): self.stopped = False
+    def shutdown(self): self.stopped = True
+_fs = _FakeSrv()
+B.DEVICE.listeners.append(object())              # a UI is connected → no exit
+t = threading.Thread(target=B._watch_idle_exit, args=(_fs, 0.15, 0.05), daemon=True)
+t.start(); time.sleep(0.4)
+assert not _fs.stopped, 'must not exit while a listener is connected'
+B.DEVICE.listeners.clear()                       # UI gone → exits after `secs`
+t.join(timeout=3)
+assert _fs.stopped and not t.is_alive()
+print('library idle-exit watcher: OK')
+
 # --- bank summary ---------------------------------------------------------------
 st, ct, data = req('GET', '/api/bank')
 bank = json.loads(data)
