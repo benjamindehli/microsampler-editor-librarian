@@ -12,7 +12,7 @@ authors:
   - family-names: "Dehli"
     given-names: "Benjamin"
     website: "https://www.dehlimusikk.no/"
-version: "1.15.1"
+version: "1.16.0"
 license: GPL-3.0-or-later
 repository-code: "https://github.com/benjamindehli/microsampler-editor-librarian"
 url: "https://benjamindehli.github.io/microsampler-editor-librarian/"
