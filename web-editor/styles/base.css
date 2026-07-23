@@ -122,6 +122,17 @@ body {
               color-mix(in srgb, rgb(var(--amber-rgb)) 82%, #000));
   border-color: var(--amber-dk); text-shadow: 0 1px 0 rgba(255,255,255,.25);
 }
+/* accent caps stay dark-on-amber; the generic hover recolours the cap to light
+   amber, which vanishes on the amber fill — keep it dark and signal hover with a
+   brighter fill + glow instead */
+.hw-btn.accent:not(:disabled):hover .hw-btn-cap {
+  color: #1a0d00;
+  background: linear-gradient(180deg,
+              color-mix(in srgb, #fff 26%, var(--amber-hi)), var(--amber) 60%,
+              color-mix(in srgb, rgb(var(--amber-rgb)) 82%, #000));
+  box-shadow: 0 2px 0 #000, inset 0 1px 0 rgba(255,255,255,.1),
+              0 0 12px rgba(var(--amber-rgb),.4);
+}
 .hw-btn[aria-busy="true"] .hw-btn-cap { opacity: .5; pointer-events: none; }
 
 /* PLAY/STOP icon buttons (sample audition + pattern cards): matched-size SVG
