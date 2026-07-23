@@ -940,6 +940,14 @@ class MockDevice(Device):
                            for j in range(n))
             self._slots[i] = {'name': name, 'rate': 48000, 'stereo': False,
                               'pcm': pcm, 'tempo': 120.0}
+        # one stereo slot so the two-lane waveform is exercised in UI dev:
+        # L = slow, full sine; R = faster, quieter sine (interleaved LE)
+        spcm = b''.join(struct.pack('<hh',
+                        int(12000 * math.sin(j * 0.03)),
+                        int(5000 * math.sin(j * 0.13)))
+                        for j in range(24000))
+        self._slots[3] = {'name': 'STEREOPD', 'rate': 48000, 'stereo': True,
+                          'pcm': spcm, 'tempo': 120.0}
         # stateful effect for UI dev: Filter w/ a few non-default bytes
         self._effect = {'type': 2, 'knobs': [2, 3],
                         'params': [100, 2, 63, 20, 64, 0, 30, 1, 20, 2,
@@ -1137,7 +1145,7 @@ class MockDevice(Device):
             if not s:
                 slots.append({'slot': i, 'empty': True})
                 continue
-            frames = len(s['pcm']) // 2
+            frames = len(s['pcm']) // 2 // (2 if s['stereo'] else 1)
             start, end = s.get('points', (0, frames - 2))
             # NB: like the real bank summary, do NOT include rate/stereo/
             # frames/seconds — those aren't in the bank blob and only become
