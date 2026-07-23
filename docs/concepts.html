@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>How the Korg microSAMPLER works — banks, modes, effects, sequencer</title>
 <meta name="description" content="A plain-English guide to how the Korg microSAMPLER works: banks, sample vs keyboard mode, BPM-sync, sampling, effects, the pattern sequencer and MIDI.">
-<link rel="canonical" href="https://benjamindehli.github.io/microsampler-editor-librarian/concepts.html">
+<link rel="canonical" href="https://benjamindehli.github.io/microsampler-editor-librarian/concepts">
 <meta name="robots" content="index, follow">
 <meta name="theme-color" content="#0b0b0d">
 <link rel="icon" type="image/svg+xml" href="assets/appicon.svg">
@@ -15,7 +15,7 @@
 <meta property="og:site_name" content="microSAMPLER Editor / Librarian">
 <meta property="og:title" content="How the Korg microSAMPLER works">
 <meta property="og:description" content="Banks &amp; memory, sample vs keyboard mode, BPM-sync, sampling, effects, the sequencer and MIDI — explained.">
-<meta property="og:url" content="https://benjamindehli.github.io/microsampler-editor-librarian/concepts.html">
+<meta property="og:url" content="https://benjamindehli.github.io/microsampler-editor-librarian/concepts">
 <meta property="og:image" content="https://benjamindehli.github.io/microsampler-editor-librarian/assets/og/concepts.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -35,28 +35,28 @@
   "image": "https://benjamindehli.github.io/microsampler-editor-librarian/assets/og/concepts.jpg",
   "datePublished": "2026-06-27",
   "dateModified": "2026-07-11",
-  "mainEntityOfPage": "https://benjamindehli.github.io/microsampler-editor-librarian/concepts.html" }
+  "mainEntityOfPage": "https://benjamindehli.github.io/microsampler-editor-librarian/concepts" }
 </script>
 <script type="application/ld+json">
 { "@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
   {"@type":"ListItem","position":1,"name":"Home","item":"https://benjamindehli.github.io/microsampler-editor-librarian/"},
-  {"@type":"ListItem","position":2,"name":"Concepts","item":"https://benjamindehli.github.io/microsampler-editor-librarian/concepts.html"}]}
+  {"@type":"ListItem","position":2,"name":"Concepts","item":"https://benjamindehli.github.io/microsampler-editor-librarian/concepts"}]}
 </script>
 </head>
 <body>
 
 <header class="topnav" id="top">
-  <a class="brand" href="index.html">
+  <a class="brand" href="./">
     <img src="assets/logo.svg" alt="Dehli Musikk">
     <b>microSAMPLER <span>Editor / Librarian</span></b>
   </a>
   <button class="menu-btn" aria-label="Toggle menu">MENU</button>
   <nav>
-    <a href="index.html">Home</a>
-    <a href="getting-started.html">Getting started</a>
-    <a href="guide.html">Guide</a>
-    <a href="concepts.html" class="active">Concepts</a>
-    <a href="troubleshooting.html">Troubleshooting</a>
+    <a href="./">Home</a>
+    <a href="getting-started">Getting started</a>
+    <a href="guide">Guide</a>
+    <a href="concepts" class="active">Concepts</a>
+    <a href="troubleshooting">Troubleshooting</a>
     <a class="gh" href="https://github.com/benjamindehli/microsampler-editor-librarian" target="_blank" rel="noopener">GitHub ↗</a>
   </nav>
 </header>
@@ -106,7 +106,7 @@
     <b class="label">EDITS ARE TEMPORARY UNTIL YOU SAVE</b>
     <p>The editor writes to the device's <strong>current bank, which is RAM</strong>. Those changes are lost on
       power-off or a bank switch. To keep them: do a <strong>WRITE</strong> on the device to a user bank, or
-      restore a backup into a user bank from the editor's <a href="guide.html#utility">Utility</a> view. Always
+      restore a backup into a user bank from the editor's <a href="guide#utility">Utility</a> view. Always
       <strong>back up a bank</strong> before bulk operations, and never disconnect mid-transfer.</p>
   </div>
   <p>This RAM model is why the editor can be non-destructive: previewing a pattern, for instance, writes it to
@@ -165,7 +165,7 @@
 
   <h2 id="sampling">Sampling on the device</h2>
   <p>Sampling itself happens on the hardware (the editor can remotely trigger it via the
-    <a href="guide.html#utility">Utility</a> view, but you watch the device screen). A few concepts shape how a
+    <a href="guide#utility">Utility</a> view, but you watch the device screen). A few concepts shape how a
     recording turns into a playable slot:</p>
   <ul>
     <li><strong>Input</strong> — record from the audio input(s) or the built-in mic, or <strong>resample</strong>
@@ -201,7 +201,7 @@
     <b class="label">THE SEQUENCER IS A CLOCK SLAVE</b>
     <p>The device's sequencer doesn't run on its own clock when driven externally — it advances on incoming MIDI
       clock. That's why the editor streams clock at the bank tempo to play a pattern, and why the device needs
-      <code>GLOBAL → MIDI CLK = AUTO</code>. See <a href="getting-started.html#device-setup">device setup</a>.</p>
+      <code>GLOBAL → MIDI CLK = AUTO</code>. See <a href="getting-started#device-setup">device setup</a>.</p>
   </div>
 
   <h2 id="midi">MIDI &amp; the USB link</h2>
@@ -230,16 +230,16 @@
     WAV back. Total sample time depends on the rate and on mono vs stereo, which is what the memory meter is
     tracking.</p>
 
-  <p>Ready to use it? Head to <a href="guide.html">the guide</a> for each view, or
-    <a href="getting-started.html">get set up</a> first.</p>
+  <p>Ready to use it? Head to <a href="guide">the guide</a> for each view, or
+    <a href="getting-started">get set up</a> first.</p>
 
   <footer>
     <nav>
-      <a href="index.html">Home</a>
-      <a href="getting-started.html">Getting started</a>
-      <a href="guide.html">Guide</a>
-      <a href="concepts.html">Concepts</a>
-      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="./">Home</a>
+      <a href="getting-started">Getting started</a>
+      <a href="guide">Guide</a>
+      <a href="concepts">Concepts</a>
+      <a href="troubleshooting">Troubleshooting</a>
       <a href="https://github.com/benjamindehli/microsampler-editor-librarian/releases">Releases &amp; changelog ↗</a>
     </nav>
     <img class="logo" src="assets/logo.svg" alt="Dehli Musikk">

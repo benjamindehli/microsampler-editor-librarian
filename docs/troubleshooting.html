@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Korg microSAMPLER editor — troubleshooting &amp; FAQ</title>
 <meta name="description" content="Fixes for connection and USB issues on the Korg microSAMPLER editor, the MIDI-clock setting, persistence, macOS Gatekeeper, and common questions answered.">
-<link rel="canonical" href="https://benjamindehli.github.io/microsampler-editor-librarian/troubleshooting.html">
+<link rel="canonical" href="https://benjamindehli.github.io/microsampler-editor-librarian/troubleshooting">
 <meta name="robots" content="index, follow">
 <meta name="theme-color" content="#0b0b0d">
 <link rel="icon" type="image/svg+xml" href="assets/appicon.svg">
@@ -15,7 +15,7 @@
 <meta property="og:site_name" content="microSAMPLER Editor / Librarian">
 <meta property="og:title" content="Korg microSAMPLER editor — troubleshooting &amp; FAQ">
 <meta property="og:description" content="Connection and USB issues, the MIDI-clock setting, persistence, and common questions answered.">
-<meta property="og:url" content="https://benjamindehli.github.io/microsampler-editor-librarian/troubleshooting.html">
+<meta property="og:url" content="https://benjamindehli.github.io/microsampler-editor-librarian/troubleshooting">
 <meta property="og:image" content="https://benjamindehli.github.io/microsampler-editor-librarian/assets/og/troubleshooting.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -42,23 +42,23 @@
 <script type="application/ld+json">
 { "@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
   {"@type":"ListItem","position":1,"name":"Home","item":"https://benjamindehli.github.io/microsampler-editor-librarian/"},
-  {"@type":"ListItem","position":2,"name":"Troubleshooting","item":"https://benjamindehli.github.io/microsampler-editor-librarian/troubleshooting.html"}]}
+  {"@type":"ListItem","position":2,"name":"Troubleshooting","item":"https://benjamindehli.github.io/microsampler-editor-librarian/troubleshooting"}]}
 </script>
 </head>
 <body>
 
 <header class="topnav" id="top">
-  <a class="brand" href="index.html">
+  <a class="brand" href="./">
     <img src="assets/logo.svg" alt="Dehli Musikk">
     <b>microSAMPLER <span>Editor / Librarian</span></b>
   </a>
   <button class="menu-btn" aria-label="Toggle menu">MENU</button>
   <nav>
-    <a href="index.html">Home</a>
-    <a href="getting-started.html">Getting started</a>
-    <a href="guide.html">Guide</a>
-    <a href="concepts.html">Concepts</a>
-    <a href="troubleshooting.html" class="active">Troubleshooting</a>
+    <a href="./">Home</a>
+    <a href="getting-started">Getting started</a>
+    <a href="guide">Guide</a>
+    <a href="concepts">Concepts</a>
+    <a href="troubleshooting" class="active">Troubleshooting</a>
     <a class="gh" href="https://github.com/benjamindehli/microsampler-editor-librarian" target="_blank" rel="noopener">GitHub ↗</a>
   </nav>
 </header>
@@ -84,7 +84,7 @@
     <p>Edits and uploads go to the device's <strong>current bank, which is RAM</strong> — they're lost on
       power-off or bank-switch. To keep them: do a <strong>WRITE</strong> on the device, or restore to a user
       bank from the editor. <strong>Back up your bank</strong> (Utility → BACKUP) before bulk operations, and
-      never disconnect mid-transfer. More in <a href="concepts.html#persistence">RAM vs saved</a>.</p>
+      never disconnect mid-transfer. More in <a href="concepts#persistence">RAM vs saved</a>.</p>
   </div>
   <ul>
     <li><strong>One USB owner at a time</strong> — close other MIDI applications (and Korg's editor) while the
@@ -107,11 +107,11 @@
             classic launcher (or <code>sudo python3 native-tools/bridge.py</code>); the page reconnects
             by itself.</td></tr>
     <tr><td>macOS won't open the launcher ("unidentified developer")</td>
-        <td>Only the classic ZIP's launcher scripts are unsigned (the <a href="getting-started.html#download">
+        <td>Only the classic ZIP's launcher scripts are unsigned (the <a href="getting-started#download">
             desktop apps</a> are signed and notarized — no approval dance). Approve the launcher once:
             right-click (Control-click) → <strong>Open</strong> → <strong>Open</strong>. On newer macOS
             without that option, double-click once, then <strong>System Settings → Privacy &amp;
-            Security → Open Anyway</strong>. See <a href="getting-started.html#macos">Getting started</a>
+            Security → Open Anyway</strong>. See <a href="getting-started#macos">Getting started</a>
             for the Terminal alternative.</td></tr>
     <tr><td>Device not found / permission error</td>
         <td>Run with administrator rights (the launcher does this), check the cable, and close any other MIDI
@@ -149,12 +149,12 @@
     library mode never touch USB, so they need no elevation at all.</p>
 
   <h3>Do my edits save automatically?</h3>
-  <p>No — edits go to the <a href="concepts.html#persistence">current bank, which is RAM</a>. WRITE to a user
+  <p>No — edits go to the <a href="concepts#persistence">current bank, which is RAM</a>. WRITE to a user
     bank on the device, or restore a backup into a user bank from the Utility view, to keep them across power
     cycles. Back up before bulk changes.</p>
 
   <h3>Can I use it without a microSAMPLER?</h3>
-  <p>Yes. <a href="guide.html#library">Library mode</a> opens bank backups (Korg <code>.msmpl_bank</code> files
+  <p>Yes. <a href="guide#library">Library mode</a> opens bank backups (Korg <code>.msmpl_bank</code> files
     or this app's ZIPs) and extracts their samples as WAVs and patterns as MIDI, with no hardware. There's also
     a <code>--mock</code> mode for exploring the interface.</p>
 
@@ -165,7 +165,7 @@
 
   <h3>Will it work on Windows?</h3>
   <p>It's experimental and untested there. libusb can't open the device until its USB driver is switched to
-    WinUSB with <a href="https://zadig.akeo.ie/">Zadig</a> — see <a href="getting-started.html#windows">Getting
+    WinUSB with <a href="https://zadig.akeo.ie/">Zadig</a> — see <a href="getting-started#windows">Getting
     started</a>.</p>
 
   <h3>Is my data safe?</h3>
@@ -178,11 +178,11 @@
 
   <footer>
     <nav>
-      <a href="index.html">Home</a>
-      <a href="getting-started.html">Getting started</a>
-      <a href="guide.html">Guide</a>
-      <a href="concepts.html">Concepts</a>
-      <a href="troubleshooting.html">Troubleshooting</a>
+      <a href="./">Home</a>
+      <a href="getting-started">Getting started</a>
+      <a href="guide">Guide</a>
+      <a href="concepts">Concepts</a>
+      <a href="troubleshooting">Troubleshooting</a>
       <a href="https://github.com/benjamindehli/microsampler-editor-librarian/releases">Releases &amp; changelog ↗</a>
     </nav>
     <img class="logo" src="assets/logo.svg" alt="Dehli Musikk">
