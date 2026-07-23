@@ -100,28 +100,30 @@ function scheduleRedraw() {
 // only per-frame difference during a drag is the marker position, so the
 // heavy waveform pixels never need recomputing until zoom/sample/size/theme.
 let waveCache = null;
+// per-column lo/hi/mid PER CHANNEL — returns one {los,his,mids} per channel so
+// stereo can be drawn as two lanes (mono = a single-element array).
 function computePeaks(buf, n, v0, vlen, W) {
-  const chans = Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c));
-  const los = new Float32Array(W), his = new Float32Array(W), mids = new Float32Array(W);
   const spp = vlen / W;
-  for (let x = 0; x < W; x++) {
-    const a = v0 + x * spp;
-    let i0 = Math.floor(a), i1 = Math.max(i0 + 1, Math.ceil(a + spp));
-    if (i0 < 0) i0 = 0;
-    if (i1 > n) i1 = n;
-    let lo = 1, hi = -1, acc = 0, cnt = 0;
-    const stride = Math.max(1, Math.floor((i1 - i0) / 24));
-    for (let i = i0; i < i1; i += stride) {
-      for (const ch of chans) {
+  return Array.from({ length: buf.numberOfChannels }, (_, c) => {
+    const ch = buf.getChannelData(c);
+    const los = new Float32Array(W), his = new Float32Array(W), mids = new Float32Array(W);
+    for (let x = 0; x < W; x++) {
+      const a = v0 + x * spp;
+      let i0 = Math.floor(a), i1 = Math.max(i0 + 1, Math.ceil(a + spp));
+      if (i0 < 0) i0 = 0;
+      if (i1 > n) i1 = n;
+      let lo = 1, hi = -1, acc = 0, cnt = 0;
+      const stride = Math.max(1, Math.floor((i1 - i0) / 24));
+      for (let i = i0; i < i1; i += stride) {
         const v = ch[i] || 0;
         if (v < lo) lo = v;
         if (v > hi) hi = v;
         acc += v; cnt++;
       }
+      los[x] = lo; his[x] = hi; mids[x] = cnt ? acc / cnt : 0;
     }
-    los[x] = lo; his[x] = hi; mids[x] = cnt ? acc / cnt : 0;
-  }
-  return { los, his, mids };
+    return { los, his, mids };
+  });
 }
 
 // render the static waveform (grid + bars + trace, uniform brightness, WITH the
@@ -132,31 +134,48 @@ function buildWaveCache(buf, n, v0, vlen, W, H, rgb, hiRgb, dpr) {
     ? waveCache.canvas : document.createElement('canvas');
   oc.width = W; oc.height = H;                    // (also clears)
   const g = oc.getContext('2d');
-  const mid = H / 2;
   const A = a => `rgba(${rgb},${a})`;
 
-  g.strokeStyle = A(.07); g.lineWidth = 1;        // faint grid
+  g.strokeStyle = A(.07); g.lineWidth = 1;        // faint vertical grid (full H)
   for (let x = 0; x < W; x += W / 16) line(g, x, 0, x, H);
-  line(g, 0, mid, W, mid);
 
-  const { los, his, mids } = computePeaks(buf, n, v0, vlen, W);
-  g.save();                                       // min/max bars (with glow)
-  g.shadowColor = A(.8); g.shadowBlur = 6 * dpr;
-  g.fillStyle = `rgb(${rgb})`; g.globalAlpha = .95;
-  for (let x = 0; x < W; x++) {
-    const y0 = mid + los[x] * (mid * .92), y1 = mid + his[x] * (mid * .92);
-    g.fillRect(x, y1, 1, Math.max(1, y0 - y1));
+  // one lane per channel: mono = full height; stereo = two half-height lanes
+  // (L on top, R below) so each channel's content is readable on its own
+  const chanPeaks = computePeaks(buf, n, v0, vlen, W);
+  const nch = chanPeaks.length;
+  const laneH = H / nch;
+  chanPeaks.forEach((pk, c) => {
+    const mid = c * laneH + laneH / 2;            // this lane's baseline
+    const amp = (laneH / 2) * .92;
+    g.strokeStyle = A(.07); g.lineWidth = 1;      // baseline
+    line(g, 0, mid, W, mid);
+    g.save();                                     // min/max bars (with glow)
+    g.shadowColor = A(.8); g.shadowBlur = 6 * dpr;
+    g.fillStyle = `rgb(${rgb})`; g.globalAlpha = .95;
+    for (let x = 0; x < W; x++) {
+      const y0 = mid + pk.los[x] * amp, y1 = mid + pk.his[x] * amp;
+      g.fillRect(x, y1, 1, Math.max(1, y0 - y1));
+    }
+    g.restore();
+    g.save();                                     // connecting trace
+    g.strokeStyle = `rgba(${hiRgb},.85)`; g.lineWidth = dpr;
+    g.shadowColor = A(.6); g.shadowBlur = 4 * dpr;
+    g.beginPath();
+    for (let x = 0; x < W; x++) {
+      const y = mid + pk.mids[x] * amp;
+      x ? g.lineTo(x, y) : g.moveTo(x, y);
+    }
+    g.stroke(); g.restore();
+    if (nch > 1) {                                // L / R lane label
+      g.fillStyle = `rgba(${hiRgb},.5)`;
+      g.font = `${9 * dpr}px "Share Tech Mono", monospace`;
+      g.fillText(c === 0 ? 'L' : 'R', 4 * dpr, c * laneH + 12 * dpr);
+    }
+  });
+  if (nch > 1) {                                  // divider between the lanes
+    g.strokeStyle = A(.16); g.lineWidth = 1;
+    line(g, 0, laneH, W, laneH);
   }
-  g.restore();
-  g.save();                                       // connecting trace
-  g.strokeStyle = `rgba(${hiRgb},.85)`; g.lineWidth = dpr;
-  g.shadowColor = A(.6); g.shadowBlur = 4 * dpr;
-  g.beginPath();
-  for (let x = 0; x < W; x++) {
-    const y = mid + mids[x] * (mid * .92);
-    x ? g.lineTo(x, y) : g.moveTo(x, y);
-  }
-  g.stroke(); g.restore();
   return oc;
 }
 
