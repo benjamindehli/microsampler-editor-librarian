@@ -2,7 +2,7 @@
 
 /* ── pads ─────────────────────────────────────────────────────────────── */
 .pads {
-  background: var(--steel-1);
+  background: linear-gradient(178deg, var(--steel-2), var(--steel-1) 44%);
   border: 1px solid var(--line);
   border-radius: var(--r);
   box-shadow: inset 0 1px 0 var(--line-hi), 0 10px 30px rgba(0,0,0,.45);

@@ -3,7 +3,9 @@
 /* ── editor panel ─────────────────────────────────────────────────────── */
 .editor {
   position: relative;
-  background: var(--steel-1);
+  /* matte faceplate: a soft top-lit sheen (steel-2 → steel-1) reads as a
+     physical panel catching light, not a flat fill */
+  background: linear-gradient(178deg, var(--steel-2), var(--steel-1) 44%);
   border: 1px solid var(--line);
   border-radius: var(--r);
   box-shadow: inset 0 1px 0 var(--line-hi), 0 10px 30px rgba(0,0,0,.45);

@@ -131,18 +131,33 @@
 .dim { opacity: .65; }
 
 /* ── view nav ─────────────────────────────────────────────────────────── */
-.views { display: flex; gap: 4px; margin-left: 1.6rem; }
+/* backlit channel-select buttons (was browser-style tabs): the active one is
+   lit amber like the panel's segmented switches, not underlined like a web tab */
+.views { display: flex; gap: 5px; margin-left: 1.6rem; }
 .view-btn {
   appearance: none; cursor: pointer;
   font: 600 .66rem/1 "Chakra Petch", sans-serif; letter-spacing: .18em;
-  color: var(--ink-dim); background: #101013;
-  border: 1px solid var(--line); border-bottom: 2px solid transparent;
-  border-radius: 4px 4px 0 0;
-  padding: .55rem .9rem;
-  transition: color .15s, border-color .15s;
+  color: var(--ink-dim);
+  background: linear-gradient(180deg, var(--steel-3), #141417);
+  border: 1px solid var(--line); border-top-color: var(--line-hi);
+  border-radius: 5px;
+  padding: .52rem .95rem;
+  box-shadow: 0 2px 0 #000, inset 0 1px 0 rgba(255,255,255,.04);
+  text-shadow: 0 1px 0 #000;                 /* engraved silkscreen */
+  transition: color .15s, box-shadow .2s, background .2s, text-shadow .2s;
 }
-.view-btn:hover { color: var(--ink); }
-.view-btn.on { color: var(--amber); border-bottom-color: var(--amber); }
+.view-btn:hover:not(.on) { color: var(--ink); }
+.view-btn:active { transform: translateY(1px); }
+.view-btn.on {                               /* illuminated */
+  color: var(--amber);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, rgb(var(--amber-rgb)) 15%, var(--steel-3)),
+    color-mix(in srgb, rgb(var(--amber-rgb)) 6%, #141417));
+  border-color: var(--amber-dk);
+  box-shadow: 0 2px 0 #000, inset 0 0 12px rgba(var(--amber-rgb), .22),
+              0 0 14px rgba(var(--amber-rgb), .16);
+  text-shadow: 0 0 8px rgba(var(--amber-rgb), .6);
+}
 
 
 /* bank LCD is clickable (bank name/BPM dialog) */
