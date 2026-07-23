@@ -157,6 +157,8 @@ figcaption { color: var(--ink-dim); font-size: .82rem; margin-top: .5rem; text-a
 footer { margin-top: 3rem; padding-top: 1.4rem; border-top: 1px solid var(--line);
   color: var(--ink-dim); font-size: .82rem; }
 footer .logo { height: 26px; margin-bottom: .6rem; opacity: .85; }
+footer .logo-link { display: inline-block; }
+footer .logo-link:hover .logo { opacity: 1; }
 footer nav { display: flex; flex-wrap: wrap; gap: .2rem 1rem; margin-bottom: .8rem; }
 footer nav a { color: var(--ink-dim); font-size: .82rem; }
 
