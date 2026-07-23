@@ -153,8 +153,10 @@ function buildWaveCache(buf, n, v0, vlen, W, H, rgb, hiRgb, dpr) {
     g.shadowColor = A(.8); g.shadowBlur = 6 * dpr;
     g.fillStyle = `rgb(${rgb})`; g.globalAlpha = .95;
     for (let x = 0; x < W; x++) {
+      // fill the column from its most-negative to its most-positive sample
+      // (los ≤ his ⇒ y0 ≤ y1); min 1px so near-silent columns still show
       const y0 = mid + pk.los[x] * amp, y1 = mid + pk.his[x] * amp;
-      g.fillRect(x, y1, 1, Math.max(1, y0 - y1));
+      g.fillRect(x, y0, 1, Math.max(1, y1 - y0));
     }
     g.restore();
     g.save();                                     // connecting trace
