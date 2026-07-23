@@ -1,0 +1,22 @@
+# microSAMPLER Editor / Librarian
+
+> A modern, free and open-source editor and librarian for the Korg microSAMPLER: sample editing, effects, patterns, and full bank backup over USB, rebuilt by reverse engineering the original 32-bit editor for interoperability with the hardware. It also includes a hardware-free Library mode for browsing and extracting bank backups.
+
+The app runs on your computer and talks to the microSAMPLER over USB, using MIDI SysEx for live parameter edits and raw bulk transfer for samples and banks. It is an independent, unofficial project, not affiliated with or endorsed by Korg, and is licensed under the GNU GPL v3.
+
+## Docs
+
+- [Home](https://benjamindehli.github.io/microsampler-editor-librarian/): overview, feature summary, and a demo video of the editor.
+- [Getting started](https://benjamindehli.github.io/microsampler-editor-librarian/getting-started): download the signed macOS and Linux apps, connect the device, and set the required MIDI-clock option.
+- [Guide](https://benjamindehli.github.io/microsampler-editor-librarian/guide): full walkthrough of the Samples, Effect, Patterns, Utility, and Library views.
+- [Concepts](https://benjamindehli.github.io/microsampler-editor-librarian/concepts): how the microSAMPLER works, covering banks, sample vs keyboard mode, effects, the pattern sequencer, and RAM-versus-flash persistence.
+- [Troubleshooting](https://benjamindehli.github.io/microsampler-editor-librarian/troubleshooting): fixes for connection and USB problems, the MIDI-clock setting, and a frequently asked questions section.
+
+## Project
+
+- [Source on GitHub](https://github.com/benjamindehli/microsampler-editor-librarian): source code, issue tracker, and the reverse-engineered protocol notes.
+- [Releases and changelog](https://github.com/benjamindehli/microsampler-editor-librarian/releases): every version with its downloads and release notes.
+
+## Optional
+
+- [Dehli Musikk](https://www.dehlimusikk.no/): the author's site.
