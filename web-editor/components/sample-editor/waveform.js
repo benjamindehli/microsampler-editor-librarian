@@ -166,10 +166,10 @@ function buildWaveCache(buf, n, v0, vlen, W, H, rgb, hiRgb, dpr) {
       x ? g.lineTo(x, y) : g.moveTo(x, y);
     }
     g.stroke(); g.restore();
-    if (nch > 1) {                                // L / R lane label
-      g.fillStyle = `rgba(${hiRgb},.5)`;
-      g.font = `${9 * dpr}px "Share Tech Mono", monospace`;
-      g.fillText(c === 0 ? 'L' : 'R', 4 * dpr, c * laneH + 12 * dpr);
+    if (nch > 1) {                                // L / R lane label — bottom-left
+      g.fillStyle = `rgba(${hiRgb},.5)`;          // of the lane, clear of the top
+      g.font = `${9 * dpr}px "Share Tech Mono", monospace`;   // S/E marker flags
+      g.fillText(c === 0 ? 'L' : 'R', 4 * dpr, (c + 1) * laneH - 5 * dpr);
     }
   });
   if (nch > 1) {                                  // divider between the lanes
@@ -214,14 +214,21 @@ function drawWave(buf, s) {
   if (l > 0) g.fillRect(0, 0, l, H);
   if (r < W) g.fillRect(r, 0, W - r, H);
 
-  // start/end marker flags (skip when scrolled off-screen)
-  for (const [x, label] of [[startX, 'S'], [endX, 'E']]) {
+  // start/end marker flags (skip when scrolled off-screen). Each label sits
+  // OUTSIDE the selection — S to the left of its line, E to the right — and
+  // flips to the inside only when it would run off that edge of the canvas
+  // (so START-at-0 and END-at-the-end both stay on-screen).
+  for (const [x, label, dir] of [[startX, 'S', -1], [endX, 'E', 1]]) {
     if (x < -2 || x > W + 2) continue;
     g.strokeStyle = `rgb(${hiRgb})`; g.lineWidth = dpr;
     line(g, x, 0, x, H);
     g.fillStyle = `rgb(${hiRgb})`;
     g.font = `${10 * dpr}px "Share Tech Mono", monospace`;
-    g.fillText(label, x + 3 * dpr, 12 * dpr);
+    const tw = g.measureText(label).width;
+    let lx = dir < 0 ? x - 3 * dpr - tw : x + 3 * dpr;
+    if (lx < 0) lx = x + 3 * dpr;                 // S near the left edge → flip in
+    if (lx + tw > W) lx = x - 3 * dpr - tw;       // E near the right edge → flip in
+    g.fillText(label, lx, 12 * dpr);
   }
 }
 const line = (g, a, b, c, d) => { g.beginPath(); g.moveTo(a, b); g.lineTo(c, d); g.stroke(); };
