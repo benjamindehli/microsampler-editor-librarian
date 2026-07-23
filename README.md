@@ -49,7 +49,8 @@ has launchers for macOS, Linux and Windows, needing only Python 3.
   - Editable original BPM (the sample tempo used for BPM-sync) — re-uploads the
     sample to apply, keeping its audio and other settings
   - Zoomable / pannable waveform (scroll to zoom, drag to pan) for
-    sample-accurate trimming
+    sample-accurate trimming — stereo samples show as two half-height lanes
+    (left above right) so each channel reads on its own
   - Renaming banks and samples
   - All samples preload on connect — and again when you switch banks on the
     device (re-synced when you return to the app) — with progress shown, so the
