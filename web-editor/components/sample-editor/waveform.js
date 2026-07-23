@@ -65,14 +65,25 @@ export async function loadWave(i) {
   }
 }
 
-// Redraw coalescing + drag fast-path: pointermove (drag/pan) and wheel can fire
-// far faster than the display refresh, and drawWave is the expensive full-canvas
-// pass (one fillRect per pixel column, with a shadow-blur pass per call) — so
-// hot paths schedule at most ONE draw per animation frame, and draws during an
-// active drag skip the glow shadows (each shadowed fill is a per-call blur).
-// The release path (endDrag/commitPoints) always lands a full-quality draw.
-let fastDraw = false;
+// Redraw coalescing: pointermove (drag/pan) and wheel fire faster than the
+// display refresh, so hot paths schedule at most ONE drawWave per animation
+// frame (which just blits the cached waveform — see buildWaveCache).
 let redrawReq = 0;
+
+// theme accent colours, read from the CSS custom props once and cached —
+// getComputedStyle forces a synchronous style recalc, too costly to run on
+// every drag frame. Invalidated on the theme-change event (see bottom).
+let _themeColors = null;
+function themeColors() {
+  if (!_themeColors) {
+    const cs = getComputedStyle(document.documentElement);
+    _themeColors = {
+      rgb: cs.getPropertyValue('--amber-rgb').trim() || '255,138,30',
+      hiRgb: cs.getPropertyValue('--amber-hi-rgb').trim() || '255,192,99',
+    };
+  }
+  return _themeColors;
+}
 function scheduleRedraw() {
   if (redrawReq) return;
   redrawReq = requestAnimationFrame(() => {
@@ -82,49 +93,17 @@ function scheduleRedraw() {
   });
 }
 
-function drawWave(buf, s) {
-  const canvas = $('#wave');
-  const dpr = devicePixelRatio || 1;
-  const W = canvas.clientWidth * dpr, H = canvas.clientHeight * dpr;
-  canvas.width = W; canvas.height = H;
-  const g = canvas.getContext('2d');
-  const mid = H / 2;
-
-  // min/max peaks across all channels
+// The waveform is rendered to an OFFSCREEN canvas once per geometry/theme
+// change; a marker drag then just blits that bitmap + a dim overlay + two
+// marker lines (≈6 canvas ops) instead of re-drawing ~W bars + ~W trace
+// segments every frame (which ran at ~30fps on a wide/Retina canvas). The
+// only per-frame difference during a drag is the marker position, so the
+// heavy waveform pixels never need recomputing until zoom/sample/size/theme.
+let waveCache = null;
+function computePeaks(buf, n, v0, vlen, W) {
   const chans = Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c));
-  const n = chans[0].length;
-  // clamp the zoom window to the buffer (also handles the "fit" sentinel)
-  if (!(view.vlen > 0) || view.vlen > n) view = { v0: 0, vlen: n };
-  view.v0 = Math.max(0, Math.min(n - view.vlen, view.v0));
-  const { v0, vlen } = view;
-
-  // accent colours follow the active theme (read the CSS custom props live)
-  const cs = getComputedStyle(document.documentElement);
-  const rgb = cs.getPropertyValue('--amber-rgb').trim() || '255,138,30';
-  const hiRgb = cs.getPropertyValue('--amber-hi-rgb').trim() || '255,192,99';
-  const A = a => `rgba(${rgb},${a})`;
-
-  // faint grid
-  g.strokeStyle = A(.07);
-  g.lineWidth = 1;
-  for (let x = 0; x < W; x += W / 16) line(g, x, 0, x, H);
-  line(g, 0, mid, W, mid);
-
-  // start/end are DEVICE frames; the decoded buffer may be resampled. Map a
-  // device frame → buffer sample → canvas x through the current zoom window.
-  const total = s.frames || n;
-  const frameToX = f => (((f / total) * n - v0) / vlen) * W;
-  const startX = frameToX(s.start), endX = frameToX(s.end);
-
-  // pass 1: min/max bars (dense material reads as a filled band)
-  const mids = new Float32Array(W);
-  const spp = vlen / W;                          // samples per pixel column
-  g.save();
-  if (!fastDraw) {                               // glow off while dragging
-    g.shadowColor = A(.8);
-    g.shadowBlur = 6 * dpr;
-  }
-  g.fillStyle = `rgb(${rgb})`;
+  const los = new Float32Array(W), his = new Float32Array(W), mids = new Float32Array(W);
+  const spp = vlen / W;
   for (let x = 0; x < W; x++) {
     const a = v0 + x * spp;
     let i0 = Math.floor(a), i1 = Math.max(i0 + 1, Math.ceil(a + spp));
@@ -140,32 +119,83 @@ function drawWave(buf, s) {
         acc += v; cnt++;
       }
     }
-    mids[x] = cnt ? acc / cnt : 0;
-    const inRange = x >= startX && x <= endX;
-    g.globalAlpha = inRange ? .95 : .2;
-    const y0 = mid + lo * (mid * .92), y1 = mid + hi * (mid * .92);
+    los[x] = lo; his[x] = hi; mids[x] = cnt ? acc / cnt : 0;
+  }
+  return { los, his, mids };
+}
+
+// render the static waveform (grid + bars + trace, uniform brightness, WITH the
+// glow) to an offscreen canvas — done only when geometry/theme changes, so its
+// per-column cost is off the drag hot path
+function buildWaveCache(buf, n, v0, vlen, W, H, rgb, hiRgb, dpr) {
+  const oc = (waveCache && waveCache.canvas.width === W && waveCache.canvas.height === H)
+    ? waveCache.canvas : document.createElement('canvas');
+  oc.width = W; oc.height = H;                    // (also clears)
+  const g = oc.getContext('2d');
+  const mid = H / 2;
+  const A = a => `rgba(${rgb},${a})`;
+
+  g.strokeStyle = A(.07); g.lineWidth = 1;        // faint grid
+  for (let x = 0; x < W; x += W / 16) line(g, x, 0, x, H);
+  line(g, 0, mid, W, mid);
+
+  const { los, his, mids } = computePeaks(buf, n, v0, vlen, W);
+  g.save();                                       // min/max bars (with glow)
+  g.shadowColor = A(.8); g.shadowBlur = 6 * dpr;
+  g.fillStyle = `rgb(${rgb})`; g.globalAlpha = .95;
+  for (let x = 0; x < W; x++) {
+    const y0 = mid + los[x] * (mid * .92), y1 = mid + his[x] * (mid * .92);
     g.fillRect(x, y1, 1, Math.max(1, y0 - y1));
   }
   g.restore();
-
-  // pass 2: connecting trace (tonal material reads as a waveform)
-  g.save();
-  g.strokeStyle = `rgba(${hiRgb},.85)`;
-  g.lineWidth = dpr;
-  if (!fastDraw) {
-    g.shadowColor = A(.6);
-    g.shadowBlur = 4 * dpr;
-  }
+  g.save();                                       // connecting trace
+  g.strokeStyle = `rgba(${hiRgb},.85)`; g.lineWidth = dpr;
+  g.shadowColor = A(.6); g.shadowBlur = 4 * dpr;
   g.beginPath();
   for (let x = 0; x < W; x++) {
     const y = mid + mids[x] * (mid * .92);
     x ? g.lineTo(x, y) : g.moveTo(x, y);
   }
-  g.stroke();
-  g.restore();
+  g.stroke(); g.restore();
+  return oc;
+}
 
-  // start/end flags (skip when scrolled off-screen)
-  g.globalAlpha = 1;
+function drawWave(buf, s) {
+  const canvas = $('#wave');
+  const dpr = devicePixelRatio || 1;
+  const W = Math.round(canvas.clientWidth * dpr), H = Math.round(canvas.clientHeight * dpr);
+  const g = canvas.getContext('2d');
+  if (canvas.width !== W || canvas.height !== H) { canvas.width = W; canvas.height = H; }
+  else g.clearRect(0, 0, W, H);
+
+  const n = buf.length;
+  // clamp the zoom window to the buffer (also handles the "fit" sentinel)
+  if (!(view.vlen > 0) || view.vlen > n) view = { v0: 0, vlen: n };
+  view.v0 = Math.max(0, Math.min(n - view.vlen, view.v0));
+  const { v0, vlen } = view;
+  const { rgb, hiRgb } = themeColors();
+
+  // start/end are DEVICE frames; the decoded buffer may be resampled. Map a
+  // device frame → buffer sample → canvas x through the current zoom window.
+  const total = s.frames || n;
+  const frameToX = f => (((f / total) * n - v0) / vlen) * W;
+  const startX = frameToX(s.start), endX = frameToX(s.end);
+
+  // (re)build the offscreen waveform only when geometry/theme changed — NOT on
+  // a marker drag (only startX/endX below move), so the drag stays cheap
+  const key = `${v0}|${vlen}|${W}|${H}|${n}|${rgb}|${hiRgb}`;
+  if (!waveCache || waveCache.key !== key || waveCache.buf !== buf)
+    waveCache = { key, buf, canvas: buildWaveCache(buf, n, v0, vlen, W, H, rgb, hiRgb, dpr) };
+  g.drawImage(waveCache.canvas, 0, 0);            // one blit — the whole waveform
+
+  // in/out-of-range: dim outside [start,end] with a cheap overlay that moves
+  // with the markers (was baked per-bar, forcing a full redraw every frame)
+  const l = Math.max(0, Math.min(W, startX)), r = Math.max(0, Math.min(W, endX));
+  g.fillStyle = 'rgba(0,0,0,.72)';
+  if (l > 0) g.fillRect(0, 0, l, H);
+  if (r < W) g.fillRect(r, 0, W - r, H);
+
+  // start/end marker flags (skip when scrolled off-screen)
   for (const [x, label] of [[startX, 'S'], [endX, 'E']]) {
     if (x < -2 || x > W + 2) continue;
     g.strokeStyle = `rgb(${hiRgb})`; g.lineWidth = dpr;
@@ -267,7 +297,6 @@ wave.addEventListener('dblclick', () => { fitView(); redrawZoom(); });
     if (m) drag = { mode: m };
     else if (canPan()) drag = { mode: 'pan', x: ev.clientX, v0: view.v0 };
     else return;                                  // at fit, body drag is a no-op
-    fastDraw = true;                              // shadow-free draws while dragging
     wave.setPointerCapture(ev.pointerId);
     ev.preventDefault();
   });
@@ -298,7 +327,6 @@ wave.addEventListener('dblclick', () => { fitView(); redrawZoom(); });
     if (!drag) return;
     const mode = drag.mode;
     drag = null;
-    fastDraw = false;                             // glow back on
     wave.style.cursor = '';
     if (mode === 'pan') { scheduleRedraw(); return; }   // full-quality final frame;
     //                                                     panning sends nothing
@@ -467,4 +495,7 @@ addEventListener('resize', () => {
     updateZoomUI();
   }
 });
-addEventListener('msmpl-theme', redrawCurrent);   // one-shot — sync is fine
+addEventListener('msmpl-theme', () => {           // one-shot — sync is fine
+  _themeColors = null;                            // re-read the new accent
+  redrawCurrent();
+});
