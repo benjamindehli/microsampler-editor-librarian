@@ -1,4 +1,3 @@
-// @ts-check
 // PATTERNS view: receive, piano-roll cards, .mid export/import, init, in-app edit.
 import { openPatternEditor } from "components/pattern-editor/pattern-editor.js";
 import { state } from "functions/state.js";

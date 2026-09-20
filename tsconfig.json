@@ -4,15 +4,15 @@
 //
 //   npm run lint:types
 //
-// OPT-IN, FILE BY FILE: `checkJs` is off, so a module is only checked once it
-// carries a `// @ts-check` line at the top. That keeps CI green from day one
-// and lets the noisy components be converted one at a time instead of in one
-// 90-error commit. functions/ (the pure leaves) is already opted in; see
-// CONTRIBUTING.md ("Code style & conventions") for how to convert one.
+// EVERY module under src/web-editor is checked — including new ones, which is
+// the point of doing it here rather than with per-file `// @ts-check` headers.
+// See CONTRIBUTING.md ("Code style & conventions") for the JSDoc idioms this
+// codebase uses to satisfy it (casts on ev.target, the $ / $$ / closestEl
+// helpers, @type on heterogeneous arrays).
 {
     "compilerOptions": {
         "allowJs": true,
-        "checkJs": false, // per-file opt-in via `// @ts-check`
+        "checkJs": true, // JSDoc-annotated JS, checked but never compiled
         "noEmit": true,
         "target": "es2022",
         "module": "esnext",
@@ -32,6 +32,8 @@
         }
     },
     "include": ["src/web-editor/**/*.js"],
-    // generated data modules — not hand-written, same exclusion ESLint makes
+    // generated data modules — not hand-written, same exclusion ESLint makes.
+    // (They are still reached through imports and type-check clean; this only
+    // keeps them out of the root file list.)
     "exclude": ["src/web-editor/functions/valueTables.js", "src/web-editor/functions/fxData.js"]
 }

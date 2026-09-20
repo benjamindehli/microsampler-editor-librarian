@@ -1,4 +1,3 @@
-// @ts-check
 // Upload + rename dialogs, incl. the upload memory pre-flight, and the
 // editor-panel WAV drop target.
 import { refreshBank } from "app.js";

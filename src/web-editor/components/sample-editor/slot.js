@@ -1,4 +1,3 @@
-// @ts-check
 // Slot editor header: name LCD, info chips, start/end readout, control init.
 import { applySlotControls } from "components/controls/controls.js";
 import { loadWave } from "components/sample-editor/waveform.js";

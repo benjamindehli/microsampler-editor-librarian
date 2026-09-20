@@ -1,4 +1,3 @@
-// @ts-check
 // Waveform screen: lazy WAV load, peak rendering, zoom/pan, start/end marker
 // dragging, device audition + approximate playhead.
 import { tuneCents } from "components/controls/controls.js";

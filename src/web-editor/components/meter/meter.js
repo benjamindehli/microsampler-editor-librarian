@@ -1,4 +1,3 @@
-// @ts-check
 // Device memory meters (SMPL/PTRN bars under the pad grid).
 // Device storage accounting (RE'd from SampleSet/SequenceSet::
 // getFreeStorageSize): sample pool 0xEA0000 (14.6 MB), each sample occupies

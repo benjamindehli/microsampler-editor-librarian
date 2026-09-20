@@ -1,4 +1,3 @@
-// @ts-check
 // Sample parameter controls: live-edit ids, value encodings, the control
 // strip wiring, and panel-edit reflection.
 import { state } from "functions/state.js";

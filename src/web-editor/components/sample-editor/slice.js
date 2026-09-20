@@ -1,4 +1,3 @@
-// @ts-check
 // Auto-slice: chop one decoded sample into several pads. Opened from the upload
 // dialog's SLICE… button with the (already tool-processed) decoded buffer. Two
 // modes — equal-length pieces, or detected transients (audioTools.sliceBuffer)

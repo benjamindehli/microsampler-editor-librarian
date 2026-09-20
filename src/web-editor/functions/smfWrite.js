@@ -1,4 +1,3 @@
-// @ts-check
 // Minimal Standard MIDI File writer for the pattern editor: a note model →
 // a format-0 SMF (96 ticks/quarter, the device's resolution). The bridge feeds
 // it straight into the proven smf_to_pattern → pattern_write path, so the editor

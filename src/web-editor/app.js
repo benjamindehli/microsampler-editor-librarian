@@ -1,4 +1,3 @@
-// @ts-check
 // microSAMPLER Editor / Librarian — entry module.
 // Talks to the local bridge (same origin). Live edits = POST /api/param with
 // the hardware-verified 3-value Parameter Change (obj = 16 + slot).

@@ -1,4 +1,3 @@
-// @ts-check
 // Shared helpers: DOM lookup, escaping, formatting, bridge API access.
 import { readWavHeader } from "functions/audioTools.js";
 

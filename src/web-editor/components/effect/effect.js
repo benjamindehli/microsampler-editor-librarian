@@ -1,4 +1,3 @@
-// @ts-check
 // EFFECT view — bank effect = object 80. Wire ids: param 1 = FX type, 2-3 =
 // the two assignable-knob targets, 16+i = effect param i. Wire VALUE =
 // display value (negatives travel as signed 14-bit, like sample params);

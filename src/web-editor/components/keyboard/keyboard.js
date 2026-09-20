@@ -1,4 +1,3 @@
-// @ts-check
 // On-screen keyboard + QWERTY pad-play. A piano under the editor mirrors the 36
 // pads (C3..B5 = exactly three octaves); clicking a key plays it through the
 // device (POST /api/note — real envelope/FX/pitch). Ticking "⌨ TYPE TO PLAY"

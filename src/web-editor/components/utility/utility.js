@@ -1,4 +1,3 @@
-// @ts-check
 // UTILITY view: backup list, restore dialog, background-op console.
 import { refreshBank } from "app.js";
 import { loadAllSamples } from "components/meter/meter.js";

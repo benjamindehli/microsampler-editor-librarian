@@ -85,17 +85,24 @@ JS checks, both linters, and the e2e smoke. They must all pass.
   (e.g. value encoders, the audio DSP) lives in modules that unit-test under
   `node:test` in `test/unit/`. Add coverage there when you touch them.
 - **Types are JSDoc, checked but never compiled.** `npm run lint:types` runs
-  `tsc --checkJs --noEmit` over the app (`tsconfig.json`);
+  `tsc --checkJs --noEmit` over `src/web-editor` (`tsconfig.json`);
   nothing is transpiled and no TypeScript reaches the browser.
-  Checking is **opt-in per file** — a module is only checked once its first
-  line is `// @ts-check`.
-  The pure leaves in `functions/` are converted;
-  the components are not yet.
-  When you convert one, expect to annotate heterogeneous arrays
-  (`/** @type {[number, number, number[]][]} */`),
-  cast `ev.target` before `.value`/`.closest`,
-  and declare the properties a mutable state object grows later.
-  Convert a file in its own commit, not as a drive-by in a feature PR.
+  **Every module is checked, including new ones** — there is no per-file
+  opt-in, so a new component has to satisfy it like the rest.
+  The idioms that keep it quiet:
+  - `$` / `$$` / `closestEl` from `functions/util.js` for DOM lookups, rather
+    than `document.querySelector(All)` or `e.target.closest(…)` directly.
+    They return a permissive element type, so `.value` / `.dataset` /
+    `.showModal` need no cast.
+  - `/** @type {HTMLInputElement} */ (ev.target)` when you do need the target
+    of an event (`.files`, `.value`, `.checked`).
+  - `/** @type {[number, string, number][]} */` on a heterogeneous array,
+    or TS infers a useless union and every bit of arithmetic on it fails.
+  - Put a property in the object literal if the object grows it later
+    (`{ mode: "erase", erased: false }`), so a typo in the later
+    assignment is caught.
+  - `String(n)` when assigning a number to `.textContent`, `.value`,
+    `dataset.*` or `input.max`. JS coerces; the check makes it explicit.
 - **CSS** is split per component and themed via CSS custom properties
   (`--amber-rgb` etc. + `color-mix`) so the accent theming keeps working. Avoid
   hard-coding accent colours.

@@ -1,4 +1,3 @@
-// @ts-check
 // Pattern editor: an in-app piano-roll for the device's two pattern tracks —
 // sample-mode (note number triggers a pad) and keyboard-mode (one assigned
 // sample played chromatically). Edits a copy of the read-model note list, then

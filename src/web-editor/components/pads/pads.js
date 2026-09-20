@@ -1,4 +1,3 @@
-// @ts-check
 // 36-slot pad grid: rendering, selection, device note-play, WAV drop.
 import { openUpload, uploadBatch } from "components/dialogs/dialogs.js";
 import { syncKeybed } from "components/keyboard/keyboard.js";

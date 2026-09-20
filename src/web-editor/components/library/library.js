@@ -1,4 +1,3 @@
-// @ts-check
 // LIBRARY mode (bridge --library): a hardware-free sample librarian. Import an
 // original Korg .msmpl_bank (or this app's .zip backup), browse a bank's 36
 // pads, play each sample in the browser, and download it (or the whole bank as

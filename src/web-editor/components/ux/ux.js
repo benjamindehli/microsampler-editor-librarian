@@ -1,4 +1,3 @@
-// @ts-check
 // UX polish: keyboard shortcuts, accent-colour theming, help overlay,
 // master-volume slider.
 import { refreshBank } from "app.js";
