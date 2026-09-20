@@ -1,3 +1,4 @@
+// @ts-check
 // PATTERNS view: receive, piano-roll cards, .mid export/import, init, in-app edit.
 import { openPatternEditor } from "components/pattern-editor/pattern-editor.js";
 import { state } from "functions/state.js";
@@ -13,7 +14,7 @@ addEventListener("msmpl-theme", () => {
 });
 // the pattern editor reports the one changed pattern after a save (detail = the
 // updated pattern JSON) — update just that card, no full re-receive
-addEventListener("msmpl-pattern-changed", (e) => applyPattern(e.detail));
+addEventListener("msmpl-pattern-changed", (e) => applyPattern(/** @type {CustomEvent} */ (e).detail));
 
 // live progress from the bridge (one SSE event per pattern read)
 export function onPatternsProgress(done, total) {

@@ -1,3 +1,4 @@
+// @ts-check
 // UTILITY view: backup list, restore dialog, background-op console.
 import { refreshBank } from "app.js";
 import { loadAllSamples } from "components/meter/meter.js";
@@ -47,8 +48,9 @@ export async function loadBackups() {
 // import a backup .zip (shareable between machines / other owners)
 $("#import-btn").onclick = () => $("#import-file").click();
 $("#import-file").onchange = async (ev) => {
-    const f = ev.target.files[0];
-    ev.target.value = "";
+    const input = /** @type {HTMLInputElement} */ (ev.target);
+    const f = input.files[0];
+    input.value = "";
     if (!f) return;
     opPrint(`importing ${f.name}…`, { reset: true });
     try {

@@ -1,3 +1,4 @@
+// @ts-check
 // Auto-slice: chop one decoded sample into several pads. Opened from the upload
 // dialog's SLICE… button with the (already tool-processed) decoded buffer. Two
 // modes — equal-length pieces, or detected transients (audioTools.sliceBuffer)
@@ -18,7 +19,7 @@ let cur = null; // { buf:{channels,rate}, base, startSlot }
 const sliceName = (base, n) => (base || "SLICE").replace(/\s+/g, "").slice(0, 6) + String(n).padStart(2, "0");
 
 function readSpec() {
-    const mode = $("#slice-dialog").querySelector('input[name="sl-mode"]:checked').value;
+    const mode = /** @type {HTMLInputElement} */ ($("#slice-dialog").querySelector('input[name="sl-mode"]:checked')).value;
     return mode === "transient"
         ? { mode: "transient", sensitivity: (+$("#sl-sens").value || 0) / 100 }
         : { mode: "equal", count: Math.max(1, +$("#sl-count").value || 1) };
@@ -44,7 +45,7 @@ export function openSlice(buf, base, startSlot) {
     $("#sl-from").textContent = `PAD ${startSlot + 1}`;
     $("#sl-src").textContent = `${base || "SAMPLE"} · ${secs.toFixed(2)} s · ${buf.channels.length === 2 ? "stereo" : "mono"}`;
     // default to equal mode
-    $("#slice-dialog").querySelector('input[name="sl-mode"][value="equal"]').checked = true;
+    /** @type {HTMLInputElement} */ ($("#slice-dialog").querySelector('input[name="sl-mode"][value="equal"]')).checked = true;
     $("#sl-count-row").hidden = false;
     $("#sl-sens-row").hidden = true;
     $("#sl-progress").hidden = true;
@@ -61,7 +62,7 @@ async function doSlice() {
     go.disabled = true;
     const bar = $("#sl-progress");
     bar.hidden = false;
-    const fill = bar.firstElementChild;
+    const fill = /** @type {HTMLElement} */ (bar.firstElementChild);
     let done = 0;
     for (let i = 0; i < use.length; i++) {
         const slot = cur.startSlot + i;

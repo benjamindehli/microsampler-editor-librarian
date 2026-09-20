@@ -1,3 +1,4 @@
+// @ts-check
 // Sample parameter controls: live-edit ids, value encodings, the control
 // strip wiring, and panel-edit reflection.
 import { state } from "functions/state.js";
@@ -132,7 +133,7 @@ export const undo = () => step(undoStack, redoStack, "before", "↶ undo");
 export const redo = () => step(redoStack, undoStack, "after", "↷ redo");
 
 export function flash(param) {
-    const el = document.querySelector(`[data-flash="${param}"]`);
+    const el = /** @type {HTMLElement} */ (document.querySelector(`[data-flash="${param}"]`));
     if (!el) return;
     el.classList.remove("flash");
     void el.offsetWidth; // restart transition
