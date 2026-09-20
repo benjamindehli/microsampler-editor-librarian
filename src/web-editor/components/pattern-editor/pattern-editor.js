@@ -1,3 +1,4 @@
+// @ts-check
 // Pattern editor: an in-app piano-roll for the device's two pattern tracks —
 // sample-mode (note number triggers a pad) and keyboard-mode (one assigned
 // sample played chromatically). Edits a copy of the read-model note list, then
@@ -9,7 +10,7 @@ import { isBlackKey, noteName } from "functions/notes.js";
 import { notesToSmf } from "functions/smfWrite.js";
 import { state } from "functions/state.js";
 import { tick } from "functions/ticker.js";
-import { $, api, apiJson, clampBpm, esc, jsonBody, setSegActive, sweepPlayhead } from "functions/util.js";
+import { $, $$, api, apiJson, clampBpm, closestEl, esc, jsonBody, setSegActive, sweepPlayhead } from "functions/util.js";
 
 const TPB = 384; // ticks per 4/4 bar (96/quarter)
 const LO = 36,
@@ -27,6 +28,8 @@ let history = [],
     hpos = -1; // undo/redo: a stack of full-state snapshots
 
 const total = () => cur.bars * TPB;
+// focus the note element with this index, if it is still in the roll
+const focusNote = (i) => /** @type {HTMLElement} */ ($("#pe-roll").querySelector(`.pe-note[data-i="${i}"]`))?.focus();
 const snap = () => +$("#pe-grid").value; // grid step in ticks; 0 = OFF (free placement)
 const step = () => snap() || 1; // snapping granularity (1 tick ⇒ effectively free)
 const midiLabel = (n) => noteName(n - 48); // MIDI note → 'C4' etc.
@@ -86,7 +89,7 @@ function renderRoll() {
     const roll = $("#pe-roll");
     // the rebuild below replaces every note element, which would drop keyboard
     // focus — remember which note was focused and restore it afterwards
-    const af = document.activeElement;
+    const af = /** @type {HTMLElement} */ (document.activeElement);
     const refocus = af && af.classList && af.classList.contains("pe-note") ? af.dataset.i : null;
     const ph = roll.querySelector("#pe-playhead"); // preserve the moving playhead across the rebuild
     roll.style.height = ROWS * ROWH + "px";
@@ -112,7 +115,7 @@ function renderRoll() {
         roll.append(d);
     });
     if (ph) roll.append(ph); // re-attach the preview playhead (keep it on top)
-    if (refocus != null) roll.querySelector(`.pe-note[data-i="${refocus}"]`)?.focus();
+    if (refocus != null) focusNote(refocus);
 }
 
 // Patch existing note elements' selection outline + velocity fill in place —
@@ -121,7 +124,7 @@ function renderRoll() {
 // slider dragged over a big selection hit renderRoll per input event; a click
 // rebuilt the whole roll just to move one .sel outline.
 function paintNotes() {
-    for (const el of $("#pe-roll").querySelectorAll(".pe-note")) {
+    for (const el of $$(".pe-note", $("#pe-roll"))) {
         const i = +el.dataset.i;
         const nt = cur.notes[i];
         if (!nt) continue;
@@ -226,7 +229,7 @@ function onPointerDown(e) {
 
     if (cur.tool === "eraser") {
         // click/drag over notes to remove
-        drag = { mode: "erase" };
+        drag = { mode: "erase", erased: false };
         roll.setPointerCapture(e.pointerId);
         if (noteEl) {
             drag.erased = true;
@@ -260,7 +263,7 @@ function onPointerDown(e) {
         roll.setPointerCapture(e.pointerId);
         setVelUI();
         paintNotes(); // selection change only — the note set is unchanged
-        roll.querySelector(`.pe-note[data-i="${cur.primary}"]`)?.focus(); // so arrow keys work after a click
+        focusNote(cur.primary); // so arrow keys work after a click
         return;
     }
 
@@ -298,7 +301,7 @@ function onPointerDown(e) {
     roll.setPointerCapture(e.pointerId);
     setVelUI();
     renderRoll();
-    roll.querySelector(`.pe-note[data-i="${i}"]`)?.focus();
+    focusNote(i);
 }
 
 function onPointerMove(e) {
@@ -306,7 +309,7 @@ function onPointerMove(e) {
     const roll = $("#pe-roll");
     if (drag.mode === "erase") {
         const el = document.elementFromPoint(e.clientX, e.clientY);
-        const ne = el && el.closest && el.closest(".pe-note");
+        const ne = el && closestEl(el, ".pe-note");
         if (ne) {
             drag.erased = true;
             eraseNote(+ne.dataset.i);
@@ -367,7 +370,7 @@ function syncNoteEls(idxs) {
         tot = total();
     for (const i of idxs) {
         const nt = cur.notes[i];
-        const el = roll.querySelector(`.pe-note[data-i="${i}"]`);
+        const el = /** @type {HTMLElement} */ (roll.querySelector(`.pe-note[data-i="${i}"]`));
         if (!el || !nt) continue;
         el.style.left = (nt.start / tot) * 100 + "%";
         el.style.width = (nt.dur / tot) * 100 + "%";
@@ -460,7 +463,7 @@ const isText = (el) =>
 
 function onKey(e) {
     if (!$("#pattern-editor").open) return; // editor closed → ignore (document-level listener)
-    const ae = document.activeElement;
+    const ae = /** @type {HTMLElement} */ (document.activeElement);
     // Spacebar = play/stop anywhere in the editor (even on a button/select/slider),
     // except an actual text field so the NAME can still take a space
     if (e.key === " " && !isText(ae)) {
@@ -510,7 +513,7 @@ function onKey(e) {
         renderRoll();
         setVelUI();
         pushHistory();
-        ($("#pe-roll").querySelector(".pe-note") || $("#pe-roll")).focus();
+        /** @type {HTMLElement} */ ($("#pe-roll").querySelector(".pe-note") || $("#pe-roll")).focus();
         return;
     }
     // arrows nudge the FOCUSED note (single)
@@ -562,11 +565,13 @@ export function openPatternEditor(p) {
         track: 0,
         tool: "pencil",
         sel: new Set(),
-        primary: null
+        primary: null,
+        origSmf: null, // filled in below, once the initial state can be built
+        deviceDirty: false // true only once a PREVIEW writes the device
     };
     $("#pe-title").textContent = `EDIT P${String(p.pattern + 1).padStart(2, "0")}`;
     $("#pe-name").value = cur.name;
-    $("#pe-bars").value = cur.bars;
+    $("#pe-bars").value = String(cur.bars);
     fillSampleSelect();
     $("#pe-sample").value = cur.sample == null ? "" : String(cur.sample);
     setTrack(0);
@@ -575,7 +580,6 @@ export function openPatternEditor(p) {
     renderRoll();
     setVelUI();
     cur.origSmf = buildSmf(); // pristine slot, for restore-on-cancel
-    cur.deviceDirty = false; // true only once a PREVIEW writes the device
     history = [stateStr()];
     hpos = 0;
     pePlaying = false;
@@ -619,13 +623,13 @@ let peStop = null;
 function stopPlayhead() {
     if (peStop) peStop();
     peStop = null;
-    const ph = $("#pe-roll").querySelector("#pe-playhead");
+    const ph = /** @type {HTMLElement} */ ($("#pe-roll").querySelector("#pe-playhead"));
     if (ph) ph.hidden = true;
 }
 function startPlayhead(bpm) {
     stopPlayhead();
     const roll = $("#pe-roll");
-    let ph = roll.querySelector("#pe-playhead");
+    let ph = /** @type {HTMLElement} */ (roll.querySelector("#pe-playhead"));
     if (!ph) {
         ph = document.createElement("div");
         ph.id = "pe-playhead";
@@ -741,7 +745,7 @@ async function cancel() {
     };
     $("#pe-vel").oninput = () => {
         const v = +$("#pe-vel").value;
-        $("#pe-vel-val").textContent = v;
+        $("#pe-vel-val").textContent = String(v);
         const idxs = selArr();
         if (idxs.length) {
             for (const i of idxs) cur.notes[i].vel = v;
