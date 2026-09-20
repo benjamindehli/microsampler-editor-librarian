@@ -1,10 +1,11 @@
+// @ts-check
 // Slot editor header: name LCD, info chips, start/end readout, control init.
 import { applySlotControls } from "components/controls/controls.js";
 import { loadWave } from "components/sample-editor/waveform.js";
 import { noteName } from "functions/notes.js";
 import { slotData, state } from "functions/state.js";
 import { tick } from "functions/ticker.js";
-import { $, apiJson, jsonBody } from "functions/util.js";
+import { $, apiJson, closestEl, jsonBody } from "functions/util.js";
 
 export async function showSlot(i, { keepWave = false } = {}) {
     const s = slotData(i);
@@ -45,15 +46,15 @@ export function renderPoints(s) {
     // editable START/END (device frames) — committed by waveform.js. Build the
     // inputs once, then only update their values, so a drag redraw doesn't churn
     // the DOM or stomp a field the user is typing in.
-    let si = ro.querySelector('[data-point="start"]');
+    let si = /** @type {HTMLInputElement} */ (ro.querySelector('[data-point="start"]'));
     if (!si) {
         ro.innerHTML = `<label class="ro">START <input class="ro-input" type="number" data-point="start" min="0" step="1"></label>
        <label class="ro">END <input class="ro-input" type="number" data-point="end" min="0" step="1"></label>`;
-        si = ro.querySelector('[data-point="start"]');
+        si = /** @type {HTMLInputElement} */ (ro.querySelector('[data-point="start"]'));
     }
-    const ei = ro.querySelector('[data-point="end"]');
+    const ei = /** @type {HTMLInputElement} */ (ro.querySelector('[data-point="end"]'));
     const max = (s.frames || 2) - 2;
-    si.max = ei.max = max;
+    si.max = ei.max = String(max);
     // not editable until the WAV (hence the frame count) has loaded — committing a
     // point against an unknown length clamps to a 1-frame region (corrupts the
     // sample on the device). loadWave() re-renders to re-enable once frames known.
@@ -92,7 +93,7 @@ export function renderChips(s) {
 // (like the bank name/BPM editor) makes the value + decimals legible and the
 // re-upload deliberate.
 $("#info-chips").addEventListener("click", (e) => {
-    if (!e.target.closest("#chip-bpm") || state.sel == null) return;
+    if (!closestEl(e.target, "#chip-bpm") || state.sel == null) return;
     const s = slotData(state.sel);
     if (s.empty || !s.tempo_bpm) return;
     $("#td-bpm").value = s.tempo_bpm.toFixed(1);

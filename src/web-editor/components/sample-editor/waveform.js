@@ -1,3 +1,4 @@
+// @ts-check
 // Waveform screen: lazy WAV load, peak rendering, zoom/pan, start/end marker
 // dragging, device audition + approximate playhead.
 import { tuneCents } from "components/controls/controls.js";
@@ -8,7 +9,7 @@ import { renderChips, renderMetaFmt, renderPoints } from "components/sample-edit
 import { nearestZeroCrossing } from "functions/audioTools.js";
 import { slotData, state } from "functions/state.js";
 import { tick } from "functions/ticker.js";
-import { $, api, jsonBody, lsGet, lsSet } from "functions/util.js";
+import { $, api, closestEl, jsonBody, lsGet, lsSet } from "functions/util.js";
 
 // Zoom window into the decoded buffer, in SAMPLE space [0..n]. vlen === 0 means
 // "fit on next draw". The window is global (not per-slot) and resets to fit
@@ -257,10 +258,12 @@ function drawWave(buf, s) {
     // OUTSIDE the selection — S to the left of its line, E to the right — and
     // flips to the inside only when it would run off that edge of the canvas
     // (so START-at-0 and END-at-the-end both stay on-screen).
-    for (const [x, label, dir] of [
+    /** @type {[number, string, number][]} */
+    const markers = [
         [startX, "S", -1],
         [endX, "E", 1]
-    ]) {
+    ];
+    for (const [x, label, dir] of markers) {
         if (x < -2 || x > W + 2) continue;
         g.strokeStyle = `rgb(${hiRgb})`;
         g.lineWidth = dpr;
@@ -479,7 +482,7 @@ async function commitPoints(start, end) {
 // non-numeric field falls back to the current value, so editing one point never
 // silently resets the other; edits before the sample length is known are ignored.
 $("#ro-row").addEventListener("change", (e) => {
-    if (!e.target.closest(".ro-input") || state.sel == null) return;
+    if (!closestEl(e.target, ".ro-input") || state.sel == null) return;
     const s = slotData(state.sel);
     if (!s.frames) return renderPoints(s); // not ready — restore the shown values
     const sv = $('#ro-row [data-point="start"]').value;
