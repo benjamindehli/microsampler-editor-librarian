@@ -1,3 +1,4 @@
+// @ts-check
 // Slot operations: copy / swap (pad drag-and-drop) + clear (editor button).
 // All run device-side in the bridge (no audio round-trips through the browser).
 import { refreshBank } from "app.js";

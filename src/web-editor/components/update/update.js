@@ -1,3 +1,4 @@
+// @ts-check
 // "Update available" check: compare the running bridge version (from
 // /api/status) against the latest GitHub release, and show a dismissible toast
 // when a newer one exists. Polite (caches the API result for a day — the

@@ -1,3 +1,4 @@
+// @ts-check
 // Shared sample-audio loader + format cache.
 //
 // A slot is "loaded" once its decoded AudioBuffer is in state.buffers — then
