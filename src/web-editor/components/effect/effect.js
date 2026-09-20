@@ -1,3 +1,4 @@
+// @ts-check
 // EFFECT view — bank effect = object 80. Wire ids: param 1 = FX type, 2-3 =
 // the two assignable-knob targets, 16+i = effect param i. Wire VALUE =
 // display value (negatives travel as signed 14-bit, like sample params);
@@ -6,7 +7,7 @@ import { dec14 } from "components/controls/controls.js";
 import { FX_TABLES_EXTRA, FX_TYPES } from "functions/fxData.js";
 import { state } from "functions/state.js";
 import { tick } from "functions/ticker.js";
-import { $, api, esc, fmtSigned, jsonBody } from "functions/util.js";
+import { $, $$, api, esc, fmtSigned, jsonBody } from "functions/util.js";
 import { VALUE_TABLES } from "functions/valueTables.js";
 
 export const FX_OBJ = 80;
@@ -77,7 +78,7 @@ export function renderFx() {
         const v = state.fx.vals[p.idx];
         const div = document.createElement("div");
         div.className = "ctl fx-param";
-        div.dataset.fxp = p.idx;
+        div.dataset.fxp = String(p.idx);
         if (p.type === 3) {
             // popup select
             const t = VALUE_TABLES[p.table] || FX_TABLES_EXTRA[p.table] || [];
@@ -86,7 +87,7 @@ export function renderFx() {
             { length: p.max - p.min + 1 },
             (_, i) => `<option value="${p.min + i}"${p.min + i === v ? " selected" : ""}>${esc(t[i] ?? String(p.min + i))}</option>`
         ).join("")}</select>`;
-            div.querySelector("select").onchange = (ev) => fxSet(p, +ev.target.value);
+            div.querySelector("select").onchange = (ev) => fxSet(p, +(/** @type {HTMLSelectElement} */ (ev.target).value));
         } else if (p.type === 4) {
             // on/off switch
             div.innerHTML = `<span class="ctl-label">${esc(p.name)}</span>
@@ -186,11 +187,11 @@ function renderFxKnobs() {
 function applyFxEnable() {
     const fx = fxDesc();
     const enabled = fxEnabledMap();
-    for (const div of document.querySelectorAll("#fx-params .fx-param")) {
+    for (const div of $$("#fx-params .fx-param")) {
         const idx = +div.dataset.fxp;
         const on = enabled[idx] !== false;
         div.classList.toggle("locked", !on);
-        div.querySelectorAll("input,select,button").forEach((el) => (el.disabled = !on));
+        $$("input,select,button", div).forEach((el) => (el.disabled = !on));
         // in-place swap pairs (Reverb Time long/short, delay ms-vs-sync-note):
         // a disabled param whose same-named twin is enabled is HIDDEN outright —
         // the hardware and original GUI only ever show the active one.
@@ -207,7 +208,7 @@ function applyFxEnable() {
 function markKnobParams() {
     if (!state.fx) return;
     const k = [fxSnapKnob(state.fx.knobs[0]), fxSnapKnob(state.fx.knobs[1])];
-    for (const div of document.querySelectorAll("#fx-params .fx-param")) {
+    for (const div of $$("#fx-params .fx-param")) {
         const idx = +div.dataset.fxp;
         const tags = [];
         if (idx === k[0]) tags.push("FX1");
@@ -228,7 +229,7 @@ function markKnobParams() {
 }
 
 $("#fx-type").onchange = (ev) => {
-    const t = +ev.target.value;
+    const t = +(/** @type {HTMLSelectElement} */ (ev.target).value);
     state.fx.type = t;
     state.fx.vals = fxDefaults(t); // device re-inits its params on type
     const fx = FX_TYPES[t]; // change — mirror with the defaults
@@ -238,8 +239,9 @@ $("#fx-type").onchange = (ev) => {
 };
 for (const k of [0, 1])
     $(k ? "#fx-knob2" : "#fx-knob1").onchange = (ev) => {
-        state.fx.knobs[k] = +ev.target.value;
-        sendFx(2 + k, +ev.target.value);
+        const v = +(/** @type {HTMLSelectElement} */ (ev.target).value);
+        state.fx.knobs[k] = v;
+        sendFx(2 + k, v);
         markKnobParams(); // re-badge the grid for the new assignment
     };
 
@@ -287,8 +289,9 @@ $("#fx-save").onclick = () => {
 
 $("#fx-load").onclick = () => $("#fx-file").click();
 $("#fx-file").onchange = async (ev) => {
-    const f = ev.target.files[0];
-    ev.target.value = "";
+    const input = /** @type {HTMLInputElement} */ (ev.target);
+    const f = input.files[0];
+    input.value = "";
     if (!f || !state.fx) return;
     try {
         const p = JSON.parse(await f.text());
