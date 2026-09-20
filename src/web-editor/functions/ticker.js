@@ -1,3 +1,4 @@
+// @ts-check
 // Device event ticker (bottom strip).
 import { $ } from "functions/util.js";
 

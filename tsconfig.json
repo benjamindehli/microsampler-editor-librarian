@@ -1,0 +1,37 @@
+// TypeScript used ONLY as a type checker for the browser ES modules — no
+// TypeScript in the app, no build step, no emit. Dev/CI only; the app still
+// ships zero runtime npm dependencies.
+//
+//   npm run lint:types
+//
+// OPT-IN, FILE BY FILE: `checkJs` is off, so a module is only checked once it
+// carries a `// @ts-check` line at the top. That keeps CI green from day one
+// and lets the noisy components be converted one at a time instead of in one
+// 90-error commit. functions/ (the pure leaves) is already opted in; see
+// CONTRIBUTING.md ("Code style & conventions") for how to convert one.
+{
+    "compilerOptions": {
+        "allowJs": true,
+        "checkJs": false, // per-file opt-in via `// @ts-check`
+        "noEmit": true,
+        "target": "es2022",
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "lib": ["es2022", "dom", "dom.iterable"],
+        // strict would demand null guards on every $() lookup — the app relies
+        // on its own markup being present. Bad-property/bad-arithmetic checks
+        // are the payload here, and those work without it.
+        "strict": false,
+        // mirror app.html's import map (and build.mjs's esbuild alias) so the
+        // bare `functions/…` / `components/…` specifiers resolve
+        "baseUrl": ".",
+        "paths": {
+            "functions/*": ["src/web-editor/functions/*"],
+            "components/*": ["src/web-editor/components/*"],
+            "app.js": ["src/web-editor/app.js"]
+        }
+    },
+    "include": ["src/web-editor/**/*.js"],
+    // generated data modules — not hand-written, same exclusion ESLint makes
+    "exclude": ["src/web-editor/functions/valueTables.js", "src/web-editor/functions/fxData.js"]
+}

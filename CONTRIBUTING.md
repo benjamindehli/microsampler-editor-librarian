@@ -59,8 +59,9 @@ cd src/native-tools && python3 protocol.py && python3 test_download.py \
 npm test
 
 # Linters (bug-focused — see below)
-npm install        # one-time, for ESLint
+npm install        # one-time, for ESLint + TypeScript
 npm run lint:js
+npm run lint:types # JSDoc type check (tsc --checkJs, no emit, no TS in the app)
 ruff check         # pip install ruff
 
 # End-to-end browser smoke (boots the mock bridge, drives it headless)
@@ -83,6 +84,18 @@ JS checks, both linters, and the e2e smoke. They must all pass.
 - **JavaScript** is browser ES modules (no transpile). Pure, testable logic
   (e.g. value encoders, the audio DSP) lives in modules that unit-test under
   `node:test` in `test/unit/`. Add coverage there when you touch them.
+- **Types are JSDoc, checked but never compiled.** `npm run lint:types` runs
+  `tsc --checkJs --noEmit` over the app (`tsconfig.json`);
+  nothing is transpiled and no TypeScript reaches the browser.
+  Checking is **opt-in per file** — a module is only checked once its first
+  line is `// @ts-check`.
+  The pure leaves in `functions/` are converted;
+  the components are not yet.
+  When you convert one, expect to annotate heterogeneous arrays
+  (`/** @type {[number, number, number[]][]} */`),
+  cast `ev.target` before `.value`/`.closest`,
+  and declare the properties a mutable state object grows later.
+  Convert a file in its own commit, not as a drive-by in a feature PR.
 - **CSS** is split per component and themed via CSS custom properties
   (`--amber-rgb` etc. + `color-mix`) so the accent theming keeps working. Avoid
   hard-coding accent colours.

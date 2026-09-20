@@ -1,3 +1,4 @@
+// @ts-check
 // Pure note/keyboard theory for the 36 pads (C3..B5; MIDI C3 = 48, the Korg
 // octave). A leaf module that imports nothing, so it never sits in an import cycle
 // — both pads.js and qwerty.js use it (pads.js imports qwerty.js for syncKeybed, so

@@ -1,3 +1,4 @@
+// @ts-check
 // Minimal Standard MIDI File writer for the pattern editor: a note model →
 // a format-0 SMF (96 ticks/quarter, the device's resolution). The bridge feeds
 // it straight into the proven smf_to_pattern → pattern_write path, so the editor
@@ -25,6 +26,7 @@ function vlq(n) {
 export function notesToSmf(notes, { bars = 1, sample = null, name = "PATTERN" } = {}) {
     // [absTick, phase, bytes] — phase orders events sharing a tick: meta/program
     // first, then note-offs, then note-ons, then end-of-track.
+    /** @type {[number, number, number[]][]} */
     const ev = [];
     const nm = Array.from(String(name))
         .map((c) => c.charCodeAt(0) & 0x7f)

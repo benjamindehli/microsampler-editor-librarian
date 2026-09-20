@@ -1,6 +1,16 @@
+// @ts-check
 // Shared helpers: DOM lookup, escaping, formatting, bridge API access.
 import { readWavHeader } from "functions/audioTools.js";
 
+// The declared return type is deliberately PERMISSIVE: every element type the
+// app actually pulls out of its own markup, intersected. querySelector() really
+// returns `Element | null`, which would make `.value` / `.checked` / `.showModal`
+// / `.getContext` an error at ~180 call sites and force a cast on each one. The
+// intersection trades that precision (a `$("#some-div").value` still passes) for
+// keeping the rest of the type checking — misspelled methods, bad arithmetic,
+// wrong argument types — available without a mass refactor. Tighten it later by
+// splitting out typed helpers ($input, $dialog) if the looseness ever bites.
+/** @type {(s: string) => HTMLElement & HTMLInputElement & HTMLDialogElement & HTMLCanvasElement & HTMLAnchorElement} */
 export const $ = (s) => document.querySelector(s);
 
 export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);

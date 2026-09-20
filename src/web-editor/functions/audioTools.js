@@ -1,3 +1,4 @@
+// @ts-check
 // Browser-side audio tools for the upload dialog: decode a PCM WAV to float
 // channels, optionally convert channels / trim silence / normalize / gain /
 // fade, then re-encode a 16-bit PCM WAV the bridge accepts (it resamples to the

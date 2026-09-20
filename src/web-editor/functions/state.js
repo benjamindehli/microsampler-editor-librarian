@@ -1,3 +1,4 @@
+// @ts-check
 // Single shared app state (mutated across components).
 export const state = {
     bank: null, // /api/bank payload

@@ -1,3 +1,4 @@
+// @ts-check
 // SSE feed from the bridge: routes device events to the right component.
 import { BIPOLAR, cacheParam, dec14, PARAM, reflect, tuneDisplay } from "components/controls/controls.js";
 import { FX_OBJ, fxReflect, onCC } from "components/effect/effect.js";

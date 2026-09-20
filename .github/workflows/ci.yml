@@ -86,6 +86,10 @@ jobs:
               run: |
                   npm ci
                   npm run lint:js
+            # JSDoc type check (tsc --checkJs, no emit). Opt-in per file via a
+            # `// @ts-check` header, so this only covers the converted modules.
+            - name: Types (tsc --checkJs)
+              run: npm run lint:types
             - name: Prettier (format check)
               run: npm run format:check
             # the docs download link / structured data must match package.json's
