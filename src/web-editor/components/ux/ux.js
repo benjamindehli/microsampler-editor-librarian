@@ -1,3 +1,4 @@
+// @ts-check
 // UX polish: keyboard shortcuts, accent-colour theming, help overlay,
 // master-volume slider.
 import { refreshBank } from "app.js";
@@ -7,7 +8,7 @@ import { stopTransport } from "components/patterns/patterns.js";
 import { stopAudition } from "components/sample-editor/waveform.js";
 import { slotData, state } from "functions/state.js";
 import { tick } from "functions/ticker.js";
-import { $, api, jsonBody, lsGet, lsSet } from "functions/util.js";
+import { $, api, closestEl, jsonBody, lsGet, lsSet } from "functions/util.js";
 
 // ── accent theming (CSS custom props on :root, persisted) ────────────────
 // Only the three RGB triplets are overridden — every accent surface (glows,
@@ -45,7 +46,7 @@ themeMenu.innerHTML = THEMES.map(
         `<span class="theme-sw" style="background:rgb(${t.rgb});box-shadow:0 0 6px rgb(${t.rgb}),inset 0 0 2px rgba(255,255,255,.5)"></span>` +
         `${t.name}</li>`
 ).join("");
-const themeOpts = [...themeMenu.children];
+const themeOpts = /** @type {HTMLElement[]} */ ([...themeMenu.children]);
 
 function applyTheme(i) {
     i = ((i % THEMES.length) + THEMES.length) % THEMES.length;
@@ -79,14 +80,14 @@ themeTrigger.addEventListener("keydown", (e) => {
     }
 });
 themeMenu.addEventListener("click", (e) => {
-    const li = e.target.closest(".theme-opt");
+    const li = closestEl(e.target, ".theme-opt");
     if (li) {
         applyTheme(+li.dataset.i);
         closeThemeMenu(true);
     }
 });
 themeMenu.addEventListener("keydown", (e) => {
-    const i = themeOpts.indexOf(document.activeElement);
+    const i = themeOpts.indexOf(/** @type {HTMLElement} */ (document.activeElement));
     if (e.key === "ArrowDown") {
         e.preventDefault();
         themeOpts[Math.min(themeOpts.length - 1, i + 1)].focus();
@@ -111,7 +112,7 @@ themeMenu.addEventListener("keydown", (e) => {
     }
 });
 document.addEventListener("click", (e) => {
-    if (!$("#theme-pick").contains(e.target)) closeThemeMenu(false);
+    if (!$("#theme-pick").contains(/** @type {Node} */ (e.target))) closeThemeMenu(false);
 });
 
 let themeIdx = (() => {

@@ -1,3 +1,4 @@
+// @ts-check
 // 36-slot pad grid: rendering, selection, device note-play, WAV drop.
 import { openUpload, uploadBatch } from "components/dialogs/dialogs.js";
 import { syncKeybed } from "components/keyboard/keyboard.js";
@@ -6,7 +7,7 @@ import { openSlotOp } from "components/sample-editor/slotops.js";
 import { isBlackKey, noteName } from "functions/notes.js";
 import { state } from "functions/state.js";
 import { tick } from "functions/ticker.js";
-import { $, api, esc, jsonBody, lsGet, lsSet } from "functions/util.js";
+import { $, api, closestEl, esc, jsonBody, lsGet, lsSet } from "functions/util.js";
 
 export function selectSlot(i) {
     state.sel = i;
@@ -37,7 +38,7 @@ export function syncPads() {
         const name = s.empty ? "· · · ·" : s.name;
         if (nameEl.textContent !== name) nameEl.textContent = name;
     }
-    $("#count-used").textContent = used;
+    $("#count-used").textContent = String(used);
     applyPadFilter(); // re-apply any active filter
     syncKeybed(); // mirror used/loaded/selected onto the piano
 }
@@ -67,7 +68,7 @@ export function renderPads() {
         // the click, leaving the pad unselected. Selecting on pointerdown makes it
         // reliable; the ▶ corner still plays without selecting.
         b.addEventListener("pointerdown", (e) => {
-            if (e.button !== 0 || e.target.closest(".pad-play")) return;
+            if (e.button !== 0 || closestEl(e.target, ".pad-play")) return;
             selectSlot(s.slot);
         });
         if (!s.empty) {
@@ -77,7 +78,7 @@ export function renderPads() {
         }
         grid.append(b);
     });
-    $("#count-used").textContent = used;
+    $("#count-used").textContent = String(used);
     applyPadFilter(); // re-apply any active filter
     syncKeybed(); // mirror used/loaded/selected onto the piano
 }
@@ -108,13 +109,14 @@ $("#pad-search").addEventListener("input", applyPadFilter);
         api("/api/note", jsonBody({ slot, on: false })).catch(() => {});
     };
     grid.addEventListener("pointerdown", (e) => {
-        const play = e.target.closest(".pad-play");
+        const play = closestEl(e.target, ".pad-play");
         if (!play) return;
         e.preventDefault();
         e.stopPropagation(); // don't select the pad
-        const slot = +play.closest(".pad").dataset.slot;
+        const pad = closestEl(play, ".pad");
+        const slot = +pad.dataset.slot;
         down = slot;
-        play.closest(".pad").classList.add("sounding");
+        pad.classList.add("sounding");
         api("/api/note", jsonBody({ slot, on: true, velocity: 100 })).catch((err) => tick(`⚠ note failed: ${err.message}`));
     });
     for (const ev of ["pointerup", "pointercancel"]) {
@@ -127,7 +129,7 @@ $("#pad-search").addEventListener("input", applyPadFilter);
     grid.addEventListener(
         "click",
         (e) => {
-            if (e.target.closest(".pad-play")) e.stopPropagation();
+            if (closestEl(e.target, ".pad-play")) e.stopPropagation();
         },
         true
     );
@@ -142,19 +144,19 @@ $("#pad-search").addEventListener("input", applyPadFilter);
         if (pad) pad.classList.add("drop-hint");
     };
     grid.addEventListener("dragover", (e) => {
-        const pad = e.target.closest(".pad");
+        const pad = closestEl(e.target, ".pad");
         if (!pad) return;
         e.preventDefault();
         e.stopPropagation(); // keep the editor's drop veil out
         hint(pad);
     });
     grid.addEventListener("dragleave", (e) => {
-        if (!grid.contains(e.relatedTarget)) hint(null);
+        if (!grid.contains(/** @type {Node} */ (e.relatedTarget))) hint(null);
     });
     grid.addEventListener("drop", (e) => {
         e.preventDefault();
         hint(null);
-        const pad = e.target.closest(".pad");
+        const pad = closestEl(e.target, ".pad");
         if (!pad) return;
         const slot = +pad.dataset.slot;
         // pad-to-pad drag → copy/swap dialog (internal drag, no files)
