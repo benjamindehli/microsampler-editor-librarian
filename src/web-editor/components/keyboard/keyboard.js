@@ -1,3 +1,4 @@
+// @ts-check
 // On-screen keyboard + QWERTY pad-play. A piano under the editor mirrors the 36
 // pads (C3..B5 = exactly three octaves); clicking a key plays it through the
 // device (POST /api/note — real envelope/FX/pitch). Ticking "⌨ TYPE TO PLAY"
@@ -8,7 +9,7 @@
 import { noteName, QWERTY_KEYMAP, QWERTY_OCTAVES, qwertySlot } from "functions/notes.js";
 import { state } from "functions/state.js";
 import { tick } from "functions/ticker.js";
-import { $, api, jsonBody, lsGet, lsSet, setSegActive } from "functions/util.js";
+import { $, api, closestEl, jsonBody, lsGet, lsSet, setSegActive } from "functions/util.js";
 
 // the on-screen caption letter for each mapped computer key (see QWERTY_KEYMAP)
 const KEYLABEL = {
@@ -83,7 +84,7 @@ function buildPiano() {
     whites.forEach((slot, idx) => {
         const k = document.createElement("button");
         k.className = "pkey white";
-        k.dataset.slot = slot;
+        k.dataset.slot = String(slot);
         k.tabIndex = -1;
         k.style.left = (idx / nW) * 100 + "%";
         k.style.width = 100 / nW + "%";
@@ -97,7 +98,7 @@ function buildPiano() {
             const slot = o * 12 + BLACK_AFTER[w];
             const k = document.createElement("button");
             k.className = "pkey black";
-            k.dataset.slot = slot;
+            k.dataset.slot = String(slot);
             k.tabIndex = -1;
             k.style.left = ((o * 7 + w + 1) / nW) * 100 + "%"; // CSS centres it (translateX -50%)
             k.innerHTML = '<span class="pk-q"></span>';
@@ -123,7 +124,8 @@ export function syncKeybed() {
         if (slot != null) labelBySlot[slot] = KEYLABEL[code];
     }
     const slots = state.bank && state.bank.slots;
-    for (const key of piano.children) {
+    for (const el of piano.children) {
+        const key = /** @type {HTMLElement} */ (el);
         const slot = +key.dataset.slot;
         key.querySelector(".pk-q").textContent = labelBySlot[slot] || "";
         key.classList.toggle("mapped", slot in labelBySlot);
@@ -174,7 +176,7 @@ function blocked() {
     const e = document.activeElement;
     if (!e) return false;
     if (e.tagName === "TEXTAREA" || e.tagName === "SELECT") return true;
-    if (e.tagName === "INPUT") return !["checkbox", "radio", "range", "button"].includes(e.type);
+    if (e.tagName === "INPUT") return !["checkbox", "radio", "range", "button"].includes(/** @type {HTMLInputElement} */ (e).type);
     return false;
 }
 
@@ -377,7 +379,7 @@ function clickRelease() {
 {
     const piano = $("#piano");
     piano.addEventListener("pointerdown", (e) => {
-        const key = e.target.closest(".pkey");
+        const key = closestEl(e.target, ".pkey");
         if (!key) return;
         e.preventDefault();
         clickSlot = +key.dataset.slot;

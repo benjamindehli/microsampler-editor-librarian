@@ -2,16 +2,26 @@
 // Shared helpers: DOM lookup, escaping, formatting, bridge API access.
 import { readWavHeader } from "functions/audioTools.js";
 
-// The declared return type is deliberately PERMISSIVE: every element type the
-// app actually pulls out of its own markup, intersected. querySelector() really
-// returns `Element | null`, which would make `.value` / `.checked` / `.showModal`
-// / `.getContext` an error at ~180 call sites and force a cast on each one. The
+// AppEl is deliberately PERMISSIVE: every element type the app actually pulls
+// out of its own markup, intersected. The DOM lookups really return `Element`,
+// which would make `.value` / `.checked` / `.showModal` / `.getContext` /
+// `.dataset` an error at ~180 call sites and force a cast on each one. The
 // intersection trades that precision (a `$("#some-div").value` still passes) for
 // keeping the rest of the type checking — misspelled methods, bad arithmetic,
 // wrong argument types — available without a mass refactor. Tighten it later by
 // splitting out typed helpers ($input, $dialog) if the looseness ever bites.
-/** @type {(s: string) => HTMLElement & HTMLInputElement & HTMLDialogElement & HTMLCanvasElement & HTMLAnchorElement} */
+/** @typedef {HTMLElement & HTMLInputElement & HTMLDialogElement & HTMLCanvasElement & HTMLAnchorElement} AppEl */
+
+/** @type {(s: string) => AppEl} */
 export const $ = (s) => document.querySelector(s);
+
+/** @type {(s: string, root?: ParentNode) => NodeListOf<AppEl>} */
+export const $$ = (s, root = document) => root.querySelectorAll(s);
+
+// `ev.target` is an EventTarget, so the delegation idiom `e.target.closest(sel)`
+// needs a cast at every handler. This wraps it once.
+/** @type {(t: EventTarget, s: string) => AppEl} */
+export const closestEl = (t, s) => (t instanceof Element ? t.closest(s) : null);
 
 export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 

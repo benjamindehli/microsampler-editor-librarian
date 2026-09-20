@@ -1,10 +1,11 @@
+// @ts-check
 // LIBRARY mode (bridge --library): a hardware-free sample librarian. Import an
 // original Korg .msmpl_bank (or this app's .zip backup), browse a bank's 36
 // pads, play each sample in the browser, and download it (or the whole bank as
 // a ZIP of WAVs). No device involved — purely the backup files on disk.
 import { noteName } from "functions/notes.js";
 import { tick } from "functions/ticker.js";
-import { $, apiJson, esc } from "functions/util.js";
+import { $, $$, apiJson, esc } from "functions/util.js";
 
 let banks = [];
 let selDir = null;
@@ -72,7 +73,7 @@ async function renderDetail() {
         pad.innerHTML = `<span class="pad-num">${String(i + 1).padStart(2, "0")} · ${noteName(i)}</span>
        <span class="pad-name">${s ? esc(s.name) : "· · · ·"}</span>`;
         if (s) {
-            pad.dataset.slot = i;
+            pad.dataset.slot = String(i);
             const dl = document.createElement("a");
             dl.className = "lib-dl";
             dl.href = `/api/backup/${encodeURIComponent(selDir)}/sample/${i}.wav`;
@@ -120,7 +121,7 @@ async function renderPatterns() {
 }
 
 function paint() {
-    for (const p of document.querySelectorAll(".lib-pad")) p.classList.toggle("sounding", playing === `${selDir}:${p.dataset.slot}`);
+    for (const p of $$(".lib-pad")) p.classList.toggle("sounding", playing === `${selDir}:${p.dataset.slot}`);
 }
 function stop() {
     audio.pause();
@@ -149,8 +150,9 @@ audio.addEventListener("ended", stop);
 // ── import (.msmpl_bank → convert; .zip → our backup) ───────────────────────
 $("#lib-import").onclick = () => $("#lib-file").click();
 $("#lib-file").onchange = async (ev) => {
-    const f = ev.target.files[0];
-    ev.target.value = "";
+    const input = /** @type {HTMLInputElement} */ (ev.target);
+    const f = input.files[0];
+    input.value = "";
     if (!f) return;
     const msmpl = /\.msmpl_bank$/i.test(f.name);
     const route = msmpl ? "/api/backup/import-msmpl" : "/api/backup/import";

@@ -1,3 +1,4 @@
+// @ts-check
 // microSAMPLER Editor / Librarian — entry module.
 // Talks to the local bridge (same origin). Live edits = POST /api/param with
 // the hardware-verified 3-value Parameter Change (obj = 16 + slot).
@@ -19,7 +20,7 @@ import { loadBackups } from "components/utility/utility.js";
 import { subscribeEvents } from "functions/events.js";
 import { state } from "functions/state.js";
 import { tick } from "functions/ticker.js";
-import { $, apiJson, confirmDialog, lsGet, lsSet } from "functions/util.js";
+import { $, $$, apiJson, confirmDialog, lsGet, lsSet } from "functions/util.js";
 
 let subscribed = false;
 
@@ -58,8 +59,8 @@ function enterLibraryMode(st) {
     }
     $("#conn-caption").textContent = "LIBRARY";
     document.title = "microSAMPLER Library"; // this app is the librarian only
-    document.querySelector(".brand-sub").textContent = "LIBRARY";
-    document.querySelector(".lib-tab").hidden = false;
+    $(".brand-sub").textContent = "LIBRARY";
+    $(".lib-tab").hidden = false;
     showView("library");
     initLibrary();
     checkForUpdate(st.version).catch(() => {});
@@ -175,7 +176,7 @@ export async function refreshBank() {
 
 // ── view nav ─────────────────────────────────────────────────────────────
 function showView(name) {
-    document.querySelectorAll(".view-btn").forEach((b) => b.classList.toggle("on", b.dataset.view === name));
+    $$(".view-btn").forEach((b) => b.classList.toggle("on", b.dataset.view === name));
     $("#view-samples").hidden = name !== "samples";
     $("#view-effect").hidden = name !== "effect";
     $("#view-patterns").hidden = name !== "patterns";
@@ -186,7 +187,7 @@ function showView(name) {
     if (name === "effect") renderFx();
     lsSet("msmpl.view", name);
 }
-document.querySelectorAll(".view-btn").forEach((b) => (b.onclick = () => showView(b.dataset.view)));
+$$(".view-btn").forEach((b) => (b.onclick = () => showView(b.dataset.view)));
 
 // restore the last-open view across reloads (defaults to SAMPLES). Deferred to
 // boot() rather than module load so a saved EFFECT/UTILITY view doesn't render
