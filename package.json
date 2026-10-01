@@ -24,11 +24,11 @@
     "devDependencies": {
         "@eslint/js": "^10.0.1",
         "esbuild": "^0.28.2",
-        "eslint": "^10.9.1",
+        "eslint": "^10.11.0",
         "eslint-plugin-simple-import-sort": "^14.0.0",
-        "globals": "^17.11.0",
-        "prettier": "^3.9.6",
-        "typescript": "^5.9.3"
+        "globals": "^17.12.0",
+        "prettier": "^3.9.9",
+        "typescript": "^7.0.2"
     },
     "overrides": {
         "brace-expansion": "^5.0.7"
