@@ -60,6 +60,14 @@
                     },
                     {
                         "@type": "Question",
+                        "name": "Why don't I hear anything from my computer?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "The editor plays everything on the microSAMPLER itself: pads, audition, the on-screen keyboard and patterns. Listen to the device's own outputs (headphones or line out), not your computer's speakers. If the device is silent too, check its volume knob and the editor's master volume. The Library app works without the device, so it plays samples through your computer."
+                        }
+                    },
+                    {
+                        "@type": "Question",
                         "name": "Can I use it without a microSAMPLER?",
                         "acceptedAnswer": {
                             "@type": "Answer",
@@ -161,6 +169,13 @@
                     </td>
                 </tr>
                 <tr>
+                    <td>No sound from the computer when playing pads</td>
+                    <td>
+                        Expected: the editor plays on the microSAMPLER, so listen to the device's outputs. See
+                        <a href="#no-sound">the FAQ below</a>.
+                    </td>
+                </tr>
+                <tr>
                     <td>macOS won't open the launcher ("unidentified developer")</td>
                     <td>
                         Only the classic ZIP's launcher scripts are unsigned (the <a href="getting-started#download"> desktop apps</a> are signed and
@@ -253,6 +268,14 @@
             <p>
                 Yes. <a href="guide#library">Library mode</a> opens bank backups (Korg <code>.msmpl_bank</code> files or this app's ZIPs) and extracts
                 their samples as WAVs and patterns as MIDI, with no hardware. There's also a <code>--mock</code> mode for exploring the interface.
+            </p>
+
+            <h3 id="no-sound">Why don't I hear anything from my computer?</h3>
+            <p>
+                The editor plays everything on the microSAMPLER itself: pads, audition, the on-screen keyboard and patterns. Listen to the device's
+                own outputs (headphones or line out), not your computer's speakers. That way you hear exactly what the hardware sounds like, envelope
+                and effects included. If the device is silent too, check its volume knob and the editor's master volume. The Library app is the
+                exception: it works without the device, so it plays samples through your computer.
             </p>
 
             <h3>Can I run it alongside my DAW?</h3>

@@ -102,6 +102,12 @@ requirements below apply to the classic ZIP + launchers:
 **Installed the apps?** Just open them.
 The Editor app puts a ♪ in the menu bar and opens the editor, and the Library app opens straight into the librarian.
 
+> **Where's the sound?**
+> The editor plays everything on the microSAMPLER itself (pads, audition, the on-screen keyboard, patterns),
+> so you hear it from the device's own outputs, not your computer's speakers.
+> That way you hear exactly what the hardware sounds like, envelope and effects included.
+> The Library app works without the device, so it plays samples through your computer instead.
+
 The rest of this section is the classic ZIP way:
 
 Open the folder for your platform (**`macOS/`**, **`Linux/`**, or **`Windows/`**) and double-click **`microSAMPLER Editor Librarian`** (`.command` / `.sh` / `.bat`).
