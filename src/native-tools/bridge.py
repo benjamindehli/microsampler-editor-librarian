@@ -30,6 +30,7 @@ API (JSON unless noted):
 """
 import argparse
 import copy
+import errno
 import io
 import json
 import math
@@ -57,6 +58,27 @@ class DeviceGone(RuntimeError):
     """A device op was attempted while open() had failed (no USB device
     claimed) — mapped to HTTP 503 so the UI can tell 'not connected' from a
     bad request."""
+
+
+# what the UI shows once a vanished device's handle has been dropped
+GONE_MSG = ('microSAMPLER disconnected (switched off, unplugged, or the '
+            'computer slept) — press RETRY to reconnect')
+
+
+def usb_gone(e):
+    """True for libusb NO_DEVICE ('No such device (it may have been
+    disconnected)', errno ENODEV): the device was unplugged/power-cycled or
+    the host slept. The handle is dead for GOOD — a returning device
+    re-enumerates as a new one — so only a fresh open() recovers. Walks the
+    cause/context chain: download/upload helpers may re-raise it wrapped."""
+    for _ in range(5):
+        if e is None:
+            return False
+        if getattr(e, 'errno', None) == errno.ENODEV or \
+                getattr(e, 'backend_error_code', None) == -4:
+            return True
+        e = e.__cause__ or e.__context__
+    return False
 
 VERSION = '1.17.2'   # current app version; kept in sync by tools/stamp-docs-version.mjs
 # static root; MSMPL_WEB_ROOT overrides for the bundled app (PyInstaller datas)
@@ -262,6 +284,30 @@ class Device:
         self._claim_fail_at = 0.0       # a re-claim may happen immediately
         return {'released': True, 'was_claimed': was}
 
+    def drop_if_gone(self, e):
+        """If `e` says the USB device vanished, drop the dead handle and
+        report it as an open failure — so status() goes 'not connected' (the
+        UI shows its connection helper), RETRY's open() isn't short-circuited
+        by the stale self.ms, and the daemon's maybe_claim() re-claims on the
+        next editor visit. Without this every op failed with errno 19 until
+        the bridge was restarted. Returns whether it was dropped."""
+        if not usb_gone(e):
+            return False
+        if self.ms is not None:
+            sys.stderr.write('  USB device gone (%s) — released the handle\n' % e)
+        self._stop.set()
+        self._stop_clock()
+        with self.lock:
+            if self.ms:
+                try:
+                    self.ms.close()          # best effort: the device is gone
+                except Exception:
+                    pass
+                self.ms = None
+        self.open_error = GONE_MSG
+        self._claim_fail_at = 0.0       # its return may be re-claimed at once
+        return True
+
     # -- background event reader (paused whenever an operation holds the lock)
     def _read_loop(self):
         while not self._stop.is_set():
@@ -283,6 +329,8 @@ class Device:
             finally:
                 self.lock.release()
             if err is not None:
+                if self.drop_if_gone(err):  # unplugged: the handle is dead,
+                    return                  # retrying it can never succeed
                 # A real USB error (device glitch/unplug — plain read timeouts
                 # are swallowed inside _read_raw) would otherwise propagate out
                 # of this thread and kill it, silently stopping EVERY live
@@ -365,7 +413,8 @@ class Device:
                 ok = True
             except Exception as e:
                 traceback.print_exc()
-                self.op_log('ERROR: %s' % e)
+                self.op_log('ERROR: %s' % (GONE_MSG if self.drop_if_gone(e)
+                                           else e))
             finally:
                 op['ok'] = ok
                 op['done'] = True
@@ -481,6 +530,8 @@ class Device:
                 # idle-released, not failed — reconnecting is one reload away
                 raise DeviceGone('device not claimed — reload the editor '
                                  'page (or press RETRY) to reconnect')
+            if self.open_error == GONE_MSG:  # unplugged, not wedged: no
+                raise DeviceGone(GONE_MSG)   # power-cycle advice
             raise DeviceGone('device not connected%s — power-cycle it and '
                              'press RETRY' % (' (%s)' % self.open_error
                                               if self.open_error else ''))
@@ -1565,6 +1616,14 @@ class Handler(BaseHTTPRequestHandler):
     def _err(self, msg, code=500):
         self._json({'error': str(msg)}, code)
 
+    def _fail(self, e):
+        """Unexpected error → 500 + traceback, EXCEPT a vanished USB device:
+        that's 'not connected' (503, like DeviceGone), not a bridge bug."""
+        if DEVICE.drop_if_gone(e):
+            return self._err(DEVICE.open_error, 503)
+        traceback.print_exc()
+        self._err(e)
+
     def _body(self):
         """The raw request body (Content-Length bytes)."""
         return self.rfile.read(int(self.headers.get('Content-Length', 0)))
@@ -1676,8 +1735,7 @@ class Handler(BaseHTTPRequestHandler):
         except RuntimeError as e:
             self._err(e, 400)                 # validation ('unknown backup'…)
         except Exception as e:          # surface everything to the browser + log
-            traceback.print_exc()
-            self._err(e)
+            self._fail(e)
 
     def do_POST(self):
         if self._bad_host():
@@ -1870,8 +1928,7 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError, TypeError, RuntimeError) as e:
             self._err(e, 400)
         except Exception as e:
-            traceback.print_exc()
-            self._err(e)
+            self._fail(e)
 
     # -- SSE ---------------------------------------------------------------
     def _sse(self):
