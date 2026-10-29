@@ -24,11 +24,10 @@
         "strict": false,
         // mirror app.html's import map (and build.mjs's esbuild alias) so the
         // bare `functions/…` / `components/…` specifiers resolve
-        "baseUrl": ".",
         "paths": {
-            "functions/*": ["src/web-editor/functions/*"],
-            "components/*": ["src/web-editor/components/*"],
-            "app.js": ["src/web-editor/app.js"]
+            "functions/*": ["./src/web-editor/functions/*"],
+            "components/*": ["./src/web-editor/components/*"],
+            "app.js": ["./src/web-editor/app.js"]
         }
     },
     "include": ["src/web-editor/**/*.js"],
