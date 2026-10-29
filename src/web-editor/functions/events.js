@@ -1,4 +1,5 @@
 // SSE feed from the bridge: routes device events to the right component.
+import { onDeviceLost } from "app.js";
 import { BIPOLAR, cacheParam, dec14, PARAM, reflect, tuneDisplay } from "components/controls/controls.js";
 import { FX_OBJ, fxReflect, onCC } from "components/effect/effect.js";
 import { onPatternsProgress } from "components/patterns/patterns.js";
@@ -15,6 +16,7 @@ export function subscribeEvents() {
         if (evt.type === "op" || evt.type === "op_done") return onOpEvent(evt);
         if (evt.type === "progress") return evt.op === "patterns" && onPatternsProgress(evt.done, evt.total);
         if (evt.type === "cc") return onCC(evt);
+        if (evt.type === "device") return !evt.connected && onDeviceLost(evt);
         if (evt.type === "note") return state.follow && followSelect(evt.slot);
         if (evt.type !== "parameter_change") return;
         const isFx = evt.obj === FX_OBJ;

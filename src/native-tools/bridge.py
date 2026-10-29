@@ -293,7 +293,8 @@ class Device:
         the bridge was restarted. Returns whether it was dropped."""
         if not usb_gone(e):
             return False
-        if self.ms is not None:
+        was = self.ms is not None
+        if was:
             sys.stderr.write('  USB device gone (%s) — released the handle\n' % e)
         self._stop.set()
         self._stop_clock()
@@ -306,6 +307,11 @@ class Device:
                 self.ms = None
         self.open_error = GONE_MSG
         self._claim_fail_at = 0.0       # its return may be re-claimed at once
+        if was:
+            # tell open pages NOW, once — the reader catches an idle unplug
+            # too, so the helper appears without waiting for a failed op
+            self._emit({'type': 'device', 'connected': False, 'gone': True,
+                        'error': GONE_MSG})
         return True
 
     # -- background event reader (paused whenever an operation holds the lock)
@@ -519,7 +525,8 @@ class Device:
     # -- operations (all hold the lock) --------------------------------------
     def status(self):
         return {'connected': self.ms is not None, 'inquiry': self.inquiry,
-                'mock': False, 'version': VERSION, 'error': self.open_error}
+                'mock': False, 'version': VERSION, 'error': self.open_error,
+                'gone': self.open_error == GONE_MSG}
 
     def _require_device(self):
         """Every device op calls this (via _inquire or directly): when open()

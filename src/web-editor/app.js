@@ -22,6 +22,7 @@ import { tick } from "functions/ticker.js";
 import { $, $$, apiJson, confirmDialog, lsGet, lsSet } from "functions/util.js";
 
 let subscribed = false;
+let reloadAll = false; // set when the device vanished: its RAM may have reset
 
 async function boot() {
     let st;
@@ -102,9 +103,29 @@ function wireQuit(st) {
     };
 }
 
+// `gone` = it WAS connected and vanished (unplugged, switched off, host slept),
+// vs a claim that failed (missing / wedged) — different wording, same RETRY.
 function showDeviceHelp(st) {
+    const gone = !!(st && st.gone);
+    $("#device-help-title").textContent = gone ? "microSAMPLER DISCONNECTED" : "microSAMPLER NOT RESPONDING";
+    $("#device-help-lead").textContent = gone
+        ? "The bridge lost its USB connection to the device:"
+        : "The bridge is running, but it couldn’t claim the device:";
+    $("#device-help-hint").textContent = gone
+        ? "Make sure the microSAMPLER is switched on and the USB cable is connected, then retry — no need to restart the bridge."
+        : "Power-cycle the microSAMPLER (turn it off, then on), check the USB cable, then retry — no need to restart the bridge.";
     $("#device-help-msg").textContent = (st && st.error) || "The microSAMPLER isn’t responding.";
     $("#device-help").hidden = false;
+}
+
+// SSE 'device' event: the bridge dropped a vanished device's dead USB handle.
+// Show the helper at once (modal dialogs sit in the top layer, ABOVE it, so
+// close them), and reload every sample on reconnect — a power-cycle reverts the
+// device's RAM bank, so the cached audio may no longer match.
+export function onDeviceLost(evt) {
+    $$("dialog[open]").forEach((d) => d.close());
+    reloadAll = true;
+    showDeviceHelp(evt);
 }
 
 // Retry claiming the device without restarting the bridge (POST /api/connect).
@@ -146,7 +167,8 @@ export async function refreshBank() {
         // a different bank (switched on the device, or the first load) invalidates
         // cached audio; same bank keeps it — re-stamp persisted formats so the meter
         // stays exact and load state survives a focus re-sync.
-        const bankChanged = state.bank.name !== prevName;
+        const bankChanged = reloadAll || state.bank.name !== prevName;
+        reloadAll = false;
         if (bankChanged) {
             state.buffers.clear();
             state.formats.clear();
@@ -207,6 +229,7 @@ $("#refresh-btn").onclick = () => refreshBank().catch((e) => tick("⚠ " + e.mes
 let lastSync = Date.now();
 function maybeResync() {
     if (document.visibilityState !== "visible" || !state.online) return;
+    if (!$("#device-help").hidden) return; // disconnected: RETRY reconnects
     if ($("#refresh-btn").hasAttribute("aria-busy")) return; // device busy
     if (Date.now() - lastSync < 2000) return;
     lastSync = Date.now();

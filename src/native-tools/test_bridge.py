@@ -81,15 +81,21 @@ class _DeadMS:
 _saved_dev = B.DEVICE
 _g = B.DEVICE = B.Device(reader=False)
 _g.ms = _DeadMS()
+_gq = __import__('queue').Queue()
+_g.listeners.append(_gq)                            # an open page's SSE feed
 _param = json.dumps({'obj': 16, 'param': 24, 'value': 100})
 st, _, data = req('POST', '/api/param', _param)
 assert st == 503 and json.loads(data)['error'] == B.GONE_MSG, (st, data)
 assert _g.ms is None and _DeadMS.closed == 1
+_ev = json.loads(_gq.get_nowait())                  # pages told at once, ONCE
+assert _ev['type'] == 'device' and _ev['gone'] and not _ev['connected']
 st, _, data = req('GET', '/api/status')
-assert json.loads(data)['connected'] is False
-assert json.loads(data)['error'] == B.GONE_MSG
+_gst = json.loads(data)
+assert _gst['connected'] is False and _gst['gone'] is True
+assert _gst['error'] == B.GONE_MSG
 st, _, data = req('POST', '/api/param', _param)   # later ops: same clear 503
 assert st == 503 and json.loads(data)['error'] == B.GONE_MSG
+assert _gq.empty()                                  # no repeat event
 _g.open = lambda: setattr(_g, 'ms', object())     # device is back: RETRY reopens
 st, _, data = req('POST', '/api/connect')
 assert json.loads(data)['connected'] is True and _g.open_error is None
