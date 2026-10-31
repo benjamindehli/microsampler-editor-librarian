@@ -87,7 +87,9 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                    - { runner: macos-14, arch: arm64 }
+                    # macos-14 retired 2026-11-02 (brownouts before that); the
+                    # Swift shells pin their minimum macOS via swiftc -target
+                    - { runner: macos-15, arch: arm64 }
                     # macos-13 (the old Intel label) is retired — macos-15-intel is
                     # GitHub's current x86_64 image; update again when that one goes
                     - { runner: macos-15-intel, arch: x86_64 }
@@ -210,8 +212,7 @@ jobs:
                   ditto "$APP_ED" "build/notarize/$(basename "$APP_ED")"
                   ditto -c -k build/notarize build/notarize.zip
                   tools/bundle/notarize.sh build/notarize.zip
-                  xcrun stapler staple "$APP_LIB"
-                  xcrun stapler staple "$APP_ED"
+                  tools/bundle/staple.sh "$APP_LIB" "$APP_ED"
 
             # DMG, not zips: drag-installing from a mounted DMG is the one install
             # path macOS never App-Translocates (the zip flow reliably did, blocking
@@ -238,7 +239,7 @@ jobs:
                   DMG="dist/bundle/microSAMPLER-macos-${{ matrix.arch }}.dmg"
                   codesign --force --timestamp --sign "$IDENTITY" "$DMG"
                   tools/bundle/notarize.sh "$DMG"
-                  xcrun stapler staple "$DMG"
+                  tools/bundle/staple.sh "$DMG"
             - uses: actions/upload-artifact@v7
               with:
                   name: microSAMPLER-apps-macos-${{ matrix.arch }}
