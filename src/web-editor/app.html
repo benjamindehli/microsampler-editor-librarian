@@ -39,10 +39,10 @@
         <div id="device-help" class="offline" hidden>
             <div class="offline-card">
                 <div class="offline-led"></div>
-                <h2>microSAMPLER NOT RESPONDING</h2>
-                <p>The bridge is running, but it couldn’t claim the device:</p>
+                <h2 id="device-help-title">microSAMPLER NOT RESPONDING</h2>
+                <p id="device-help-lead">The bridge is running, but it couldn’t claim the device:</p>
                 <code id="device-help-msg"></code>
-                <p class="dim">
+                <p class="dim" id="device-help-hint">
                     Power-cycle the microSAMPLER (turn it off, then on), check the USB cable, then retry — no need to restart the bridge.
                 </p>
                 <button class="hw-btn accent" id="device-help-retry"><span class="hw-btn-cap">RETRY</span></button>

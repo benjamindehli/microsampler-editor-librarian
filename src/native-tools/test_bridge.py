@@ -55,6 +55,63 @@ out = _dev.release()                            # must silence + close it
 assert out['was_claimed'] is True and _dev.ms is None
 print('daemon-mode primitives: OK')
 
+# --- vanished USB device (unplug / power-cycle / sleep → libusb NO_DEVICE) -------
+# The dead handle must be DROPPED: status → not connected, 503 not 500, and
+# RETRY's open() must reopen instead of short-circuiting on the stale self.ms.
+import errno as _errno
+def _gone():
+    return OSError(_errno.ENODEV, 'No such device (it may have been disconnected)')
+assert B.usb_gone(_gone())
+try:                                            # wrapped by a helper → still seen
+    try:
+        raise _gone()
+    except OSError as _e:
+        raise RuntimeError('upload failed') from _e
+except RuntimeError as _e:
+    assert B.usb_gone(_e)
+assert not B.usb_gone(OSError(_errno.ETIMEDOUT, 'timed out'))
+assert not B.usb_gone(RuntimeError('slot is empty'))
+
+class _DeadMS:
+    closed = 0
+    def close(self): _DeadMS.closed += 1
+    def send_sysex(self, *a, **k): raise _gone()
+    def _read_raw(self, timeout=300): raise _gone()
+
+_saved_dev = B.DEVICE
+_g = B.DEVICE = B.Device(reader=False)
+_g.ms = _DeadMS()
+_gq = __import__('queue').Queue()
+_g.listeners.append(_gq)                            # an open page's SSE feed
+_param = json.dumps({'obj': 16, 'param': 24, 'value': 100})
+st, _, data = req('POST', '/api/param', _param)
+assert st == 503 and json.loads(data)['error'] == B.GONE_MSG, (st, data)
+assert _g.ms is None and _DeadMS.closed == 1
+_ev = json.loads(_gq.get_nowait())                  # pages told at once, ONCE
+assert _ev['type'] == 'device' and _ev['gone'] and not _ev['connected']
+st, _, data = req('GET', '/api/status')
+_gst = json.loads(data)
+assert _gst['connected'] is False and _gst['gone'] is True
+assert _gst['error'] == B.GONE_MSG
+st, _, data = req('POST', '/api/param', _param)   # later ops: same clear 503
+assert st == 503 and json.loads(data)['error'] == B.GONE_MSG
+assert _gq.empty()                                  # no repeat event
+_g.open = lambda: setattr(_g, 'ms', object())     # device is back: RETRY reopens
+st, _, data = req('POST', '/api/connect')
+assert json.loads(data)['connected'] is True and _g.open_error is None
+_g.ms = types.SimpleNamespace(                      # other failures stay a 500
+    send_sysex=lambda *a, **k: (_ for _ in ()).throw(OSError(5, 'I/O error')))
+st, _, _ = req('POST', '/api/param', _param)
+assert st == 500 and _g.ms is not None
+B.DEVICE = _saved_dev
+
+_r = B.Device(reader=False)                         # reader: exit, don't spin
+_r.ms = _DeadMS()                                   # on the dead handle forever
+_t0 = time.time()
+_r._read_loop()
+assert _r.ms is None and _r.open_error == B.GONE_MSG and time.time() - _t0 < 2
+print('vanished USB device: OK')
+
 # --- library idle-exit watcher (bundled app must not linger after the UI) ------
 class _FakeSrv:
     def __init__(self): self.stopped = False
