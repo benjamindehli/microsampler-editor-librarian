@@ -92,7 +92,7 @@ MAX_BODY = 256 << 20                  # any request body
 MAX_ZIP_BYTES = 64 << 20              # a backup zip, uncompressed total
 MAX_ZIP_FILES = 1000                  # … and member count
 
-VERSION = '1.17.3'   # current app version; kept in sync by tools/stamp-docs-version.mjs
+VERSION = '1.17.4'   # current app version; kept in sync by tools/stamp-docs-version.mjs
 # static root; MSMPL_WEB_ROOT overrides for the bundled app (PyInstaller datas)
 WEB_ROOT = os.environ.get('MSMPL_WEB_ROOT') or \
     os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
