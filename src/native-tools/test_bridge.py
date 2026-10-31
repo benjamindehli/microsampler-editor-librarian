@@ -31,6 +31,23 @@ status = json.loads(data)
 assert st == 200 and status['mock'] is True
 assert status['shutdown'] is False and status['daemon'] is False
 
+# --- request-origin guards (DNS rebinding + cross-site request forgery) ---------
+_vol = json.dumps({'value': 100})
+st, _, _ = req('GET', '/api/status', headers={'Host': 'evil.example'})
+assert st == 403                                # rebinding: foreign Host
+for hdrs in ({'Origin': 'https://evil.example'},            # another site
+             {'Origin': 'http://localhost:3000'},           # another local port
+             {'Origin': 'null'},                            # sandboxed/opaque
+             {'Sec-Fetch-Site': 'cross-site'}):             # no Origin, flagged
+    st, _, data = req('POST', '/api/master-volume', _vol, headers=hdrs)
+    assert st == 403 and b'cross-site' in data, (hdrs, st)
+for hdrs in ({'Origin': 'http://127.0.0.1:%d' % PORT,      # the app itself
+              'Sec-Fetch-Site': 'same-origin'},
+             {}):                                           # menu-bar app / CLI
+    st, _, _ = req('POST', '/api/master-volume', _vol, headers=hdrs)
+    assert st == 200, (hdrs, st)
+print('origin guards: OK')
+
 # --- daemon-mode primitives (device release + lazy-claim throttle) --------------
 st, _, data = req('POST', '/api/release')       # nothing claimed → safe no-op
 assert st == 200 and json.loads(data) == {'released': True, 'was_claimed': False}

@@ -1672,6 +1672,26 @@ class Handler(BaseHTTPRequestHandler):
         self._err('forbidden host', 403)
         return True
 
+    def _cross_site(self):
+        """Reject state-changing requests sent by ANOTHER site. The Host check
+        stops DNS rebinding, but not CSRF: any page can fire a no-cors POST at
+        http://localhost:<port> (text/plain body, response unreadable) and the
+        side effect still lands — e.g. import its own backup zip, then restore
+        it over a user bank in flash. Browsers always send Origin on a POST
+        (it must be exactly our own origin — another localhost port is
+        another origin) and mark cross-site fetches via Sec-Fetch-Site.
+        Non-browser clients (menu-bar app, CLI, tests) send neither and pass.
+        Returns True (and answers 403) when the request is cross-site."""
+        origin = self.headers.get('Origin')
+        if origin is not None:
+            ok = origin == 'http://%s' % (self.headers.get('Host') or '').strip()
+        else:
+            ok = self.headers.get('Sec-Fetch-Site') != 'cross-site'
+        if ok:
+            return False
+        self._err('cross-site request refused', 403)
+        return True
+
     # -- routing ---------------------------------------------------------------
     def do_GET(self):
         if self._bad_host():
@@ -1745,7 +1765,7 @@ class Handler(BaseHTTPRequestHandler):
             self._fail(e)
 
     def do_POST(self):
-        if self._bad_host():
+        if self._bad_host() or self._cross_site():
             return
         path, _, query = self.path.partition('?')
         # the app percent-encodes query values (encodeURIComponent) — decode,
