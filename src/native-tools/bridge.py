@@ -1603,6 +1603,16 @@ class Handler(BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
 
     # -- helpers --------------------------------------------------------------
+    def end_headers(self):
+        """Hardening headers on EVERY response (JSON, static, SSE, errors):
+        no framing by another site (clickjacking — a hidden iframe of the
+        editor could trick clicks onto RESTORE/confirm), and no MIME sniffing
+        (MIME covers every file type the app ships)."""
+        self.send_header('X-Frame-Options', 'DENY')
+        self.send_header('Content-Security-Policy', "frame-ancestors 'none'")
+        self.send_header('X-Content-Type-Options', 'nosniff')
+        super().end_headers()
+
     def _json(self, obj, code=200):
         body = json.dumps(obj).encode()
         self.send_response(code)

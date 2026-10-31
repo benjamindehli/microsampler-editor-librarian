@@ -48,6 +48,16 @@ for hdrs in ({'Origin': 'http://127.0.0.1:%d' % PORT,      # the app itself
     assert st == 200, (hdrs, st)
 print('origin guards: OK')
 
+# --- hardening headers on every response kind (static, JSON, error) ------------
+for _path in ('/app.html', '/api/status', '/api/nope'):
+    _c = http.client.HTTPConnection('127.0.0.1', PORT, timeout=10)
+    _c.request('GET', _path)
+    _r = _c.getresponse(); _r.read(); _c.close()
+    assert _r.getheader('X-Frame-Options') == 'DENY', _path
+    assert _r.getheader('Content-Security-Policy') == "frame-ancestors 'none'", _path
+    assert _r.getheader('X-Content-Type-Options') == 'nosniff', _path
+print('security headers: OK')
+
 # --- daemon-mode primitives (device release + lazy-claim throttle) --------------
 st, _, data = req('POST', '/api/release')       # nothing claimed → safe no-op
 assert st == 200 and json.loads(data) == {'released': True, 'was_claimed': False}
