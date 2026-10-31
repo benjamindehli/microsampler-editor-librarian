@@ -80,6 +80,18 @@ def usb_gone(e):
         e = e.__cause__ or e.__context__
     return False
 
+class TooLarge(RuntimeError):
+    """A request body or zip import over its size cap — HTTP 413."""
+
+
+# Size caps (A10: a huge body or a zip bomb would otherwise exhaust memory or
+# fill the disk). Generous vs real use: the device's whole sample pool is
+# 14.6 MB, a full backup is ~55 files — but a WAV upload arrives BEFORE
+# conversion, so a long 24-bit/96 kHz source can be several times that.
+MAX_BODY = 256 << 20                  # any request body
+MAX_ZIP_BYTES = 64 << 20              # a backup zip, uncompressed total
+MAX_ZIP_FILES = 1000                  # … and member count
+
 VERSION = '1.17.3'   # current app version; kept in sync by tools/stamp-docs-version.mjs
 # static root; MSMPL_WEB_ROOT overrides for the bundled app (PyInstaller datas)
 WEB_ROOT = os.environ.get('MSMPL_WEB_ROOT') or \
@@ -1492,6 +1504,7 @@ def import_backup_zip(data):
     """Unpack an uploaded backup .zip into a fresh BACKUP_ROOT/<name>.
     Zip-slip safe (every member must stay inside the target) and validated
     (must carry a manifest.json). Returns the new directory name."""
+    import shutil
     import zipfile
     _check_backup_writable()
     os.makedirs(BACKUP_ROOT, exist_ok=True)
@@ -1500,9 +1513,16 @@ def import_backup_zip(data):
     except zipfile.BadZipFile:
         raise RuntimeError('not a zip file') from None   # client input → HTTP 400
     with zf as z:
-        names = [n for n in z.namelist() if not n.endswith('/')]
+        infos = [i for i in z.infolist() if not i.filename.endswith('/')]
+        names = [i.filename for i in infos]
         if not any(n.endswith('manifest.json') for n in names):
             raise RuntimeError('not a backup zip (no manifest.json)')
+        # zip-bomb guard, up front from the declared sizes (cheap) — the copy
+        # loop below re-counts the ACTUAL bytes, so a lying header can't win
+        if len(infos) > MAX_ZIP_FILES or \
+                sum(i.file_size for i in infos) > MAX_ZIP_BYTES:
+            raise TooLarge('backup zip too large (over %d MB or %d files '
+                           'unpacked)' % (MAX_ZIP_BYTES >> 20, MAX_ZIP_FILES))
         # derive a name: the zip's common top folder, else a timestamp
         tops = {n.split('/', 1)[0] for n in names if '/' in n}
         base = tops.pop() if len(tops) == 1 else 'import'
@@ -1511,14 +1531,27 @@ def import_backup_zip(data):
         while os.path.exists(dest):
             dest = backup_dir('%s-%d' % (base, n)); n += 1
         root = os.path.realpath(dest) + os.sep
-        for member in names:
-            out = os.path.realpath(os.path.join(dest, os.path.relpath(
-                member, base) if member.startswith(base + '/') else member))
-            if not out.startswith(root):
-                raise RuntimeError('unsafe path in zip: %r' % member)
-            os.makedirs(os.path.dirname(out), exist_ok=True)
-            with z.open(member) as fsrc, open(out, 'wb') as fdst:
-                fdst.write(fsrc.read())
+        total = 0
+        try:
+            for member in names:
+                out = os.path.realpath(os.path.join(dest, os.path.relpath(
+                    member, base) if member.startswith(base + '/') else member))
+                if not out.startswith(root):
+                    raise RuntimeError('unsafe path in zip: %r' % member)
+                os.makedirs(os.path.dirname(out), exist_ok=True)
+                with z.open(member) as fsrc, open(out, 'wb') as fdst:
+                    for chunk in iter(lambda: fsrc.read(1 << 20), b''):
+                        total += len(chunk)
+                        if total > MAX_ZIP_BYTES:
+                            raise TooLarge('backup zip too large (over %d MB '
+                                           'unpacked)' % (MAX_ZIP_BYTES >> 20))
+                        fdst.write(chunk)
+        except zipfile.BadZipFile as e:   # e.g. CRC mismatch (a size-lying
+            shutil.rmtree(dest, ignore_errors=True)   # header stops short)
+            raise RuntimeError('corrupt zip file (%s)' % e) from None  # → 400
+        except BaseException:
+            shutil.rmtree(dest, ignore_errors=True)   # no half-imported backup
+            raise
     return os.path.basename(dest)
 
 
@@ -1642,8 +1675,12 @@ class Handler(BaseHTTPRequestHandler):
         self._err(e)
 
     def _body(self):
-        """The raw request body (Content-Length bytes)."""
-        return self.rfile.read(int(self.headers.get('Content-Length', 0)))
+        """The raw request body (Content-Length bytes), capped at MAX_BODY."""
+        n = int(self.headers.get('Content-Length', 0))
+        if not 0 <= n <= MAX_BODY:
+            raise TooLarge('request body too large (max %d MB)'
+                           % (MAX_BODY >> 20))
+        return self.rfile.read(n)
 
     @staticmethod
     def _slot(s):
@@ -1957,6 +1994,9 @@ class Handler(BaseHTTPRequestHandler):
             pass                              # client went away mid-request
         except DeviceGone as e:
             self._err(e, 503)                 # bridge up, device unclaimed
+        except TooLarge as e:
+            self.close_connection = True      # the unread body would desync
+            self._err(e, 413)                 # the keep-alive stream
         except KeyError as e:                 # missing body field
             self._err('missing field %s' % e, 400)
         # client-input errors are 400s, not tracebacks: bad JSON / non-numeric

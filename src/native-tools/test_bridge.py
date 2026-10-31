@@ -58,6 +58,16 @@ for _path in ('/app.html', '/api/status', '/api/nope'):
     assert _r.getheader('X-Content-Type-Options') == 'nosniff', _path
 print('security headers: OK')
 
+# --- request-body cap → 413 (and the connection is closed, body unread) ---------
+_saved_max = B.MAX_BODY
+B.MAX_BODY = 16
+st, _, data = req('POST', '/api/master-volume', b'{"value": 100}   ')   # 17 B
+assert st == 413 and b'too large' in data, (st, data)
+st, _, _ = req('POST', '/api/master-volume', _vol)                     # 15 B
+assert st == 200
+B.MAX_BODY = _saved_max
+print('body size cap: OK')
+
 # --- daemon-mode primitives (device release + lazy-claim throttle) --------------
 st, _, data = req('POST', '/api/release')       # nothing claimed → safe no-op
 assert st == 200 and json.loads(data) == {'released': True, 'was_claimed': False}
@@ -683,6 +693,44 @@ try:
     B.import_backup_zip(bad.getvalue()); raise AssertionError('accepted non-backup')
 except RuntimeError as e:
     assert 'no manifest' in str(e)
+# zip-bomb caps: too many bytes / files → TooLarge, and NO half-imported dir
+def _zip_of(files):
+    b = io.BytesIO()
+    with _zf.ZipFile(b, 'w', _zf.ZIP_DEFLATED) as z:
+        for n, d in files.items():
+            z.writestr(n, d)
+    return b.getvalue()
+_bomb = _zip_of({'bomb/manifest.json': '{}', 'bomb/x.bin': b'\0' * (2 << 20)})
+assert len(_bomb) < 64 << 10                     # tiny on the wire, 2 MB unpacked
+_saved_caps = B.MAX_ZIP_BYTES, B.MAX_ZIP_FILES
+for _caps, _z in (((1 << 20, 1000), _bomb),
+                  ((64 << 20, 3), _zip_of({'many/manifest.json': '{}',
+                                           **{'many/%d' % i: 'x' for i in range(5)}}))):
+    B.MAX_ZIP_BYTES, B.MAX_ZIP_FILES = _caps
+    _before = sorted(os.listdir(B.BACKUP_ROOT))
+    try:
+        B.import_backup_zip(_z); raise AssertionError('accepted oversized zip')
+    except B.TooLarge as e:
+        assert 'too large' in str(e)
+    assert sorted(os.listdir(B.BACKUP_ROOT)) == _before    # nothing left behind
+B.MAX_ZIP_BYTES, B.MAX_ZIP_FILES = _saved_caps
+# a header that UNDER-declares its size: zipfile stops at the declared size,
+# then fails the CRC → a clean client error (400), again with nothing left
+B.MAX_ZIP_BYTES = 1 << 20
+_lie = bytearray(_bomb)
+for _i in range(len(_lie) - 4):                 # patch every file_size field of
+    if _lie[_i:_i + 4] in (b'PK\x03\x04', b'PK\x01\x02'):   # x.bin to 1 byte
+        _off = 22 if _lie[_i:_i + 4] == b'PK\x03\x04' else 24
+        if int.from_bytes(_lie[_i + _off:_i + _off + 4], 'little') == 2 << 20:
+            _lie[_i + _off:_i + _off + 4] = (1).to_bytes(4, 'little')
+_before = sorted(os.listdir(B.BACKUP_ROOT))
+try:
+    B.import_backup_zip(bytes(_lie)); raise AssertionError('lying zip accepted')
+except RuntimeError as e:
+    assert 'corrupt zip' in str(e), e
+assert sorted(os.listdir(B.BACKUP_ROOT)) == _before
+B.MAX_ZIP_BYTES = _saved_caps[0]
+print('zip import caps: OK')
 try:
     B.backup_zip('../etc'); raise AssertionError('accepted traversal')
 except RuntimeError as e:
