@@ -1368,19 +1368,65 @@ def backup_dir(dirname):
     return src
 
 
+# Sample files: on disk a backup keeps the 0-based machine names sNN.wav /
+# sNN.param.bin (what restore, cherry-pick and older versions read), but the
+# ZIP a person downloads names them like the PADS — 1-based + note + sample
+# name, "01 C3 KICK.wav" — so a file lines up with its pad (user-reported:
+# s00 = pad 01 read as off by one). Import maps either form back.
+_NOTE_NAMES = ('C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B')
+_DISK_SAMPLE = re.compile(r'^s(\d{2})(\.wav|\.param\.bin)$')
+_ZIP_SAMPLE = re.compile(r'^(\d{2}) [^/]*?(\.param\.bin|\.wav)$')
+
+
+def pad_note(slot):
+    """Pad 0..35 → its note name, C3..B5 (same as the app's notes.js)."""
+    n = 48 + slot
+    return _NOTE_NAMES[n % 12] + str(n // 12 - 1)
+
+
+def zip_sample_name(slot, name, ext):
+    """Download name for a backup sample file: '01 C3 KICK.wav'."""
+    safe = re.sub(r'[^A-Za-z0-9 _-]', '_', (name or '').strip()).strip()
+    return '%02d %s%s%s' % (slot + 1, pad_note(slot),
+                            ' ' + safe if safe else '', ext)
+
+
+def disk_sample_name(fname):
+    """Inverse of zip_sample_name: '01 C3 KICK.wav' → 's00.wav'. Anything else
+    (incl. the old sNN names) comes back unchanged."""
+    m = _ZIP_SAMPLE.match(fname)
+    if m and 1 <= int(m.group(1)) <= 36:
+        return 's%02d%s' % (int(m.group(1)) - 1, m.group(2))
+    return fname
+
+
 def backup_zip(name):
-    """Zip a backup directory into memory for download. `name` is validated
-    by backup_dir() (untrusted HTTP input)."""
+    """Zip a backup directory into memory for download (sample files renamed
+    like the pads, see zip_sample_name). `name` is validated by backup_dir()
+    (untrusted HTTP input)."""
     import zipfile
     src = backup_dir(name)
     if not os.path.isdir(src):
         raise RuntimeError('unknown backup: %s' % name)
+    names = {}
+    try:
+        with open(os.path.join(src, 'manifest.json')) as f:
+            for s in json.load(f).get('samples', []):
+                names[s.get('slot')] = s.get('name')
+    except Exception:
+        pass                       # no/odd manifest: numbers + notes only
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as z:
         for root, _dirs, files in os.walk(src):
             for f in files:
                 full = os.path.join(root, f)
-                z.write(full, os.path.join(name, os.path.relpath(full, src)))
+                rel = os.path.relpath(full, src)
+                m = _DISK_SAMPLE.match(f)
+                if m and os.path.dirname(rel) == 'samples':
+                    slot = int(m.group(1))
+                    rel = os.path.join('samples', zip_sample_name(
+                        slot, names.get(slot), m.group(2)))
+                z.write(full, os.path.join(name, rel))
     return buf.getvalue()
 
 
@@ -1534,8 +1580,12 @@ def import_backup_zip(data):
         total = 0
         try:
             for member in names:
-                out = os.path.realpath(os.path.join(dest, os.path.relpath(
-                    member, base) if member.startswith(base + '/') else member))
+                rel = os.path.relpath(member, base) \
+                    if member.startswith(base + '/') else member
+                if os.path.dirname(rel) == 'samples':     # '01 C3 KICK.wav'
+                    rel = os.path.join('samples',          #   → 's00.wav'
+                                       disk_sample_name(os.path.basename(rel)))
+                out = os.path.realpath(os.path.join(dest, rel))
                 if not out.startswith(root):
                     raise RuntimeError('unsafe path in zip: %r' % member)
                 os.makedirs(os.path.dirname(out), exist_ok=True)

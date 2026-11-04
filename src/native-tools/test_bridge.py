@@ -686,6 +686,32 @@ assert len(B.list_backups()) == before + 1
 # re-import again → distinct name (no clobber)
 newdir2 = B.import_backup_zip(zdata)
 assert newdir2 != newdir
+# sample files are named like the PADS in the zip (1-based + note + name), and
+# import maps them back to the sNN machine names restore/cherry-pick read
+assert B.pad_note(0) == 'C3' and B.pad_note(1) == 'C#3' and B.pad_note(35) == 'B5'
+assert B.zip_sample_name(0, 'KICK', '.wav') == '01 C3 KICK.wav'
+assert B.zip_sample_name(35, 'a/b:c', '.param.bin') == '36 B5 a_b_c.param.bin'
+assert B.zip_sample_name(4, '', '.wav') == '05 E3.wav'
+assert B.disk_sample_name('01 C3 KICK.wav') == 's00.wav'
+assert B.disk_sample_name('36 B5 X.param.bin') == 's35.param.bin'
+assert B.disk_sample_name('05 E3.wav') == 's04.wav'
+for keep in ('s07.wav', '37 C6 X.wav', '00 B2 X.wav', 'notes.txt'):
+    assert B.disk_sample_name(keep) == keep, keep
+zsamples = [n.split('/', 1)[1] for n in names if '/samples/' in n]
+assert zsamples and not any(n.startswith('samples/s') for n in zsamples), zsamples
+with open(os.path.join(B.BACKUP_ROOT, res['dir'], 'manifest.json')) as f:
+    _m = json.load(f)
+_s0 = next(s for s in _m['samples'] if not s['empty'])
+assert 'samples/' + B.zip_sample_name(_s0['slot'], _s0['name'], '.wav') in zsamples
+_disk = sorted(os.listdir(os.path.join(B.BACKUP_ROOT, res['dir'], 'samples')))
+assert sorted(os.listdir(os.path.join(B.BACKUP_ROOT, newdir, 'samples'))) == _disk
+# an OLD-style zip (sNN names, made by v1.17.4 and earlier) still imports as-is
+old = io.BytesIO()
+with _zf.ZipFile(old, 'w') as z:
+    z.writestr('OLDBANK/manifest.json', '{}')
+    z.writestr('OLDBANK/samples/s03.wav', b'RIFF')
+olddir = B.import_backup_zip(old.getvalue())
+assert os.listdir(os.path.join(B.BACKUP_ROOT, olddir, 'samples')) == ['s03.wav']
 # non-backup zip rejected; traversal name guarded
 bad = io.BytesIO()
 with _zf.ZipFile(bad, 'w') as z: z.writestr('notes.txt', 'x')
