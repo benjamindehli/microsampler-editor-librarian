@@ -525,9 +525,7 @@ class Device:
 
     def start_restore(self, dirname, bank):
         import bank as BK
-        src = backup_dir(dirname)
-        if not os.path.isfile(os.path.join(src, 'manifest.json')):
-            raise RuntimeError('unknown backup: %s' % dirname)
+        src = restorable_dir(dirname)
         self.start_op('restore',
                       lambda log: BK.restore(self.ms, self.channel, bank, src,
                                              log=log))
@@ -1208,6 +1206,8 @@ class MockDevice(Device):
             manifest = {'name': 'MOCKBANK', 'bpm': 120.0, 'samples': samples,
                         'sequences': [{'pattern': q, 'empty': q > 3, 'size': 1308}
                                       for q in range(16)]}
+            with open(os.path.join(out, 'bank.bin'), 'wb') as f:   # like the
+                f.write(b'MOCKBANK'.ljust(P.BANK_BLOB_SIZE, b'\xff'))  # device's
             with open(os.path.join(out, 'manifest.json'), 'w') as f:
                 json.dump(manifest, f)
             log('backup complete: %d samples -> %s/' % (len(self._slots), label))
@@ -1216,9 +1216,7 @@ class MockDevice(Device):
         return {'dir': label}
 
     def start_restore(self, dirname, bank):
-        src = backup_dir(dirname)
-        if not os.path.isfile(os.path.join(src, 'manifest.json')):
-            raise RuntimeError('unknown backup: %s' % dirname)
+        restorable_dir(dirname)
 
         def fake(log):
             log("bank blob ACKed ('MOCKBANK')")
@@ -1621,6 +1619,21 @@ def import_msmpl_bank(data):
     return os.path.basename(dest)
 
 
+def restorable_dir(dirname):
+    """The backup's directory, if it can be written back to a device: RESTORE
+    sends its bank.bin (device backups, and Korg .msmpl_bank imports since
+    msmpl_bank.bank_blob — older imports lack it). Checked BEFORE the op starts, so the user gets a clear
+    error instead of a failed restore. `dirname` is untrusted HTTP input."""
+    src = backup_dir(dirname)
+    if not os.path.isfile(os.path.join(src, 'manifest.json')):
+        raise RuntimeError('unknown backup: %s' % dirname)
+    if not os.path.isfile(os.path.join(src, 'bank.bin')):
+        raise RuntimeError("this backup can't be restored to the device "
+                           '(no bank.bin) — import the original .msmpl_bank '
+                           'file again to make a restorable copy')
+    return src
+
+
 def list_backups():
     out = []
     if os.path.isdir(BACKUP_ROOT):
@@ -1636,6 +1649,8 @@ def list_backups():
             out.append({          # .get: a hand-edited manifest without the
                 # 'empty' flags must not 500 the whole /api/backups listing
                 'dir': d, 'name': m.get('name', '?'), 'bpm': m.get('bpm'),
+                'restorable': os.path.isfile(os.path.join(BACKUP_ROOT, d,
+                                                          'bank.bin')),
                 'samples': sum(1 for s in m.get('samples', [])
                                if not s.get('empty')),
                 'patterns': sum(1 for s in m.get('sequences', [])

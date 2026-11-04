@@ -616,6 +616,37 @@ assert rs.op['done'] and rs.op['ok'], rs.op['lines']
 assert rs.ms.w_bank == 4 and rs.ms.left_dump == 1
 assert bytes(rs.ms.w_samples[0][1]) == samples[0][1]      # PCM round-trips
 
+# RESTORE needs bank.bin: device backups have one, a complete Korg .msmpl_bank
+# import now gets one, and an older import without it is refused up front
+from test_msmpl import build_bank, build_full_bank
+_full = B.import_msmpl_bank(build_full_bank()[0])
+_part = B.import_msmpl_bank(build_bank('PARTIAL')[0])    # no MfxD → no bank.bin
+_flags = {b['dir']: b['restorable'] for b in B.list_backups()}
+assert _flags[res['dir']] and _flags[_full] and not _flags[_part], _flags
+rk = B.Device()
+rk.ms = FakeWriteMS()
+rk.ms.dev = FakeWriteDev(rk.ms)
+rk.channel = 0
+rk.cable = 1
+rk.start_restore(_full, None)                 # Korg bank → device, end to end
+for _ in range(100):
+    if rk.op['done']:
+        break
+    _t.sleep(0.05)
+assert rk.op['done'] and rk.op['ok'], rk.op['lines']
+import msmpl_bank as _MB
+_fdata, _fpats = build_full_bank()[0], build_full_bank()[4]
+assert rk.ms.w_blob == _MB.bank_blob(_MB.parse_bank(_fdata))   # bank.bin as sent
+assert sorted(rk.ms.w_seqs) == list(range(16)) and \
+    all(bytes(rk.ms.w_seqs[q][1]) == _fpats[q] for q in range(16))
+for dev in (B.Device(), B.MockDevice()):
+    try:
+        dev.start_restore(_part, None)
+        raise AssertionError('restored a backup without bank.bin')
+    except RuntimeError as e:
+        assert 'no bank.bin' in str(e), e
+print('Korg bank restore (bank.bin gate): OK')
+
 # restore dir name is untrusted HTTP input — traversal must be rejected
 for evil in ('..', '.', '...', '../x', 'a/b', '/etc', 'x\x00y', ''):
     try:
