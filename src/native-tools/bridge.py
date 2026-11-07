@@ -525,9 +525,7 @@ class Device:
 
     def start_restore(self, dirname, bank):
         import bank as BK
-        src = backup_dir(dirname)
-        if not os.path.isfile(os.path.join(src, 'manifest.json')):
-            raise RuntimeError('unknown backup: %s' % dirname)
+        src = restorable_dir(dirname)
         self.start_op('restore',
                       lambda log: BK.restore(self.ms, self.channel, bank, src,
                                              log=log))
@@ -1208,6 +1206,8 @@ class MockDevice(Device):
             manifest = {'name': 'MOCKBANK', 'bpm': 120.0, 'samples': samples,
                         'sequences': [{'pattern': q, 'empty': q > 3, 'size': 1308}
                                       for q in range(16)]}
+            with open(os.path.join(out, 'bank.bin'), 'wb') as f:   # like the
+                f.write(b'MOCKBANK'.ljust(P.BANK_BLOB_SIZE, b'\xff'))  # device's
             with open(os.path.join(out, 'manifest.json'), 'w') as f:
                 json.dump(manifest, f)
             log('backup complete: %d samples -> %s/' % (len(self._slots), label))
@@ -1216,9 +1216,7 @@ class MockDevice(Device):
         return {'dir': label}
 
     def start_restore(self, dirname, bank):
-        src = backup_dir(dirname)
-        if not os.path.isfile(os.path.join(src, 'manifest.json')):
-            raise RuntimeError('unknown backup: %s' % dirname)
+        restorable_dir(dirname)
 
         def fake(log):
             log("bank blob ACKed ('MOCKBANK')")
@@ -1368,19 +1366,65 @@ def backup_dir(dirname):
     return src
 
 
+# Sample files: on disk a backup keeps the 0-based machine names sNN.wav /
+# sNN.param.bin (what restore, cherry-pick and older versions read), but the
+# ZIP a person downloads names them like the PADS — 1-based + note + sample
+# name, "01 C3 KICK.wav" — so a file lines up with its pad (user-reported:
+# s00 = pad 01 read as off by one). Import maps either form back.
+_NOTE_NAMES = ('C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B')
+_DISK_SAMPLE = re.compile(r'^s(\d{2})(\.wav|\.param\.bin)$')
+_ZIP_SAMPLE = re.compile(r'^(\d{2}) [^/]*?(\.param\.bin|\.wav)$')
+
+
+def pad_note(slot):
+    """Pad 0..35 → its note name, C3..B5 (same as the app's notes.js)."""
+    n = 48 + slot
+    return _NOTE_NAMES[n % 12] + str(n // 12 - 1)
+
+
+def zip_sample_name(slot, name, ext):
+    """Download name for a backup sample file: '01 C3 KICK.wav'."""
+    safe = re.sub(r'[^A-Za-z0-9 _-]', '_', (name or '').strip()).strip()
+    return '%02d %s%s%s' % (slot + 1, pad_note(slot),
+                            ' ' + safe if safe else '', ext)
+
+
+def disk_sample_name(fname):
+    """Inverse of zip_sample_name: '01 C3 KICK.wav' → 's00.wav'. Anything else
+    (incl. the old sNN names) comes back unchanged."""
+    m = _ZIP_SAMPLE.match(fname)
+    if m and 1 <= int(m.group(1)) <= 36:
+        return 's%02d%s' % (int(m.group(1)) - 1, m.group(2))
+    return fname
+
+
 def backup_zip(name):
-    """Zip a backup directory into memory for download. `name` is validated
-    by backup_dir() (untrusted HTTP input)."""
+    """Zip a backup directory into memory for download (sample files renamed
+    like the pads, see zip_sample_name). `name` is validated by backup_dir()
+    (untrusted HTTP input)."""
     import zipfile
     src = backup_dir(name)
     if not os.path.isdir(src):
         raise RuntimeError('unknown backup: %s' % name)
+    names = {}
+    try:
+        with open(os.path.join(src, 'manifest.json')) as f:
+            for s in json.load(f).get('samples', []):
+                names[s.get('slot')] = s.get('name')
+    except Exception:
+        pass                       # no/odd manifest: numbers + notes only
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as z:
         for root, _dirs, files in os.walk(src):
             for f in files:
                 full = os.path.join(root, f)
-                z.write(full, os.path.join(name, os.path.relpath(full, src)))
+                rel = os.path.relpath(full, src)
+                m = _DISK_SAMPLE.match(f)
+                if m and os.path.dirname(rel) == 'samples':
+                    slot = int(m.group(1))
+                    rel = os.path.join('samples', zip_sample_name(
+                        slot, names.get(slot), m.group(2)))
+                z.write(full, os.path.join(name, rel))
     return buf.getvalue()
 
 
@@ -1534,8 +1578,12 @@ def import_backup_zip(data):
         total = 0
         try:
             for member in names:
-                out = os.path.realpath(os.path.join(dest, os.path.relpath(
-                    member, base) if member.startswith(base + '/') else member))
+                rel = os.path.relpath(member, base) \
+                    if member.startswith(base + '/') else member
+                if os.path.dirname(rel) == 'samples':     # '01 C3 KICK.wav'
+                    rel = os.path.join('samples',          #   → 's00.wav'
+                                       disk_sample_name(os.path.basename(rel)))
+                out = os.path.realpath(os.path.join(dest, rel))
                 if not out.startswith(root):
                     raise RuntimeError('unsafe path in zip: %r' % member)
                 os.makedirs(os.path.dirname(out), exist_ok=True)
@@ -1571,6 +1619,21 @@ def import_msmpl_bank(data):
     return os.path.basename(dest)
 
 
+def restorable_dir(dirname):
+    """The backup's directory, if it can be written back to a device: RESTORE
+    sends its bank.bin (device backups, and Korg .msmpl_bank imports since
+    msmpl_bank.bank_blob — older imports lack it). Checked BEFORE the op starts, so the user gets a clear
+    error instead of a failed restore. `dirname` is untrusted HTTP input."""
+    src = backup_dir(dirname)
+    if not os.path.isfile(os.path.join(src, 'manifest.json')):
+        raise RuntimeError('unknown backup: %s' % dirname)
+    if not os.path.isfile(os.path.join(src, 'bank.bin')):
+        raise RuntimeError("this backup can't be restored to the device "
+                           '(no bank.bin) — import the original .msmpl_bank '
+                           'file again to make a restorable copy')
+    return src
+
+
 def list_backups():
     out = []
     if os.path.isdir(BACKUP_ROOT):
@@ -1586,6 +1649,8 @@ def list_backups():
             out.append({          # .get: a hand-edited manifest without the
                 # 'empty' flags must not 500 the whole /api/backups listing
                 'dir': d, 'name': m.get('name', '?'), 'bpm': m.get('bpm'),
+                'restorable': os.path.isfile(os.path.join(BACKUP_ROOT, d,
+                                                          'bank.bin')),
                 'samples': sum(1 for s in m.get('samples', [])
                                if not s.get('empty')),
                 'patterns': sum(1 for s in m.get('sequences', [])

@@ -2,6 +2,7 @@
 """Offline test for msmpl_bank.py — the original-Korg .msmpl_bank reader.
 Builds a synthetic file (the same 6150-chunk tree the originals use) and checks
 the parser/extractor recover it. No hardware, no real backup files needed."""
+import json
 import os
 import struct
 import sys
@@ -69,6 +70,31 @@ def build_bank(name='TESTBNK'):
     return chunk(b'BnkD', bnkp + smps + seqs), pcm
 
 
+def empty_pattern_blob(bars=4):
+    """The device's all-empty 1308-byte SEQP (u16 bars @0x0A)."""
+    blob = bytearray(b'\xff' * 1308)
+    blob[0:4] = b'SEQP'
+    struct.pack_into('>IHHI', blob, 4, 1308, bars, bars, 8)
+    return bytes(blob)
+
+
+def build_full_bank():
+    """A complete .msmpl_bank: BnkP + 36 SmpD + 16 SeqD + MfxD."""
+    bnkp = b'FULLBANK' + struct.pack('<H', 1200) + b'\xff\x80' + b'\xff' * 52
+    params = [param_blob('S0', '', 2)] + [param_blob('INITSMPL', '', 0)] * 35
+    pcm = struct.pack('>4h', 1, -1, 2, -2)              # sample 0: 4 mono frames
+    smps = chunk(b'SmpS', chunk(b'SmpD', params[0] + smp_header(len(pcm), 1200, False, 0)
+                                + pcm)
+                 + b''.join(chunk(b'SmpD', p + smp_header(0, 1200, False, 0))
+                            for p in params[1:]), count=36)
+    pats = [empty_pattern_blob(2)] + [empty_pattern_blob() for _ in range(15)]
+    seqs = chunk(b'SeqS', b''.join(chunk(b'SeqD', p + b'\xff' * 4) for p in pats),
+                 count=16)
+    fx = bytes(range(0x24)) + b'\xff' * 28
+    data = chunk(b'BnkD', chunk(b'BnkP', bnkp) + smps + seqs + chunk(b'MfxD', fx))
+    return data, bnkp, params, fx, pats
+
+
 def main():
     data, pcm = build_bank('MYBANK')
 
@@ -107,11 +133,40 @@ def main():
     assert os.path.isfile(os.path.join(out, 'manifest.json'))
     # the recorded pattern is written as sequences/q00.bin + a non-empty manifest entry
     assert os.path.isfile(os.path.join(out, 'sequences', 'q00.bin')), 'pattern blob written'
-    import json
     seqs = json.load(open(os.path.join(out, 'manifest.json')))['sequences']
     nonempty = [s for s in seqs if not s['empty']]
     assert len(nonempty) == 1 and nonempty[0]['name'] == 'GROOVE', nonempty
     print('extract_bytes: OK (WAV byte-swapped LE, pattern + manifest written)')
+
+    # an INCOMPLETE file (the bank above: 2 SmpD, no MfxD) → no bank.bin, so
+    # it isn't offered for RESTORE; only the non-empty pattern is written
+    assert not os.path.exists(os.path.join(out, 'bank.bin'))
+    assert os.listdir(os.path.join(out, 'sequences')) == ['q00.bin']
+
+    # a COMPLETE file (36 SmpD + MfxD + 16 SeqD, as the Korg editor saves) →
+    # bank.bin = the device's 0x974-byte bank blob, rebuilt section by section
+    data, bnkp, params, fx, pats = build_full_bank()
+    blob = M.bank_blob(M.parse_bank(data))
+    assert len(blob) == P.BANK_BLOB_SIZE
+    assert blob[:0x40] == bnkp                                  # bank param
+    assert blob[0x40:0x940] == b''.join(params)                 # 36 sample params
+    assert list(blob[0x940:0x950]) == [2] + [4] * 15, list(blob[0x940:0x950])
+    assert blob[0x950:] == fx[:0x24]                            # packed effect
+    out = tempfile.mkdtemp()
+    M.extract_bytes(data, out)
+    with open(os.path.join(out, 'bank.bin'), 'rb') as f:
+        assert f.read() == blob
+    with open(os.path.join(out, 'samples', 's00.param.bin'), 'rb') as f:
+        assert f.read() == params[0]
+    # every pattern written, trimmed to the SEQP's own size (SeqD pads 4 bytes)
+    assert sorted(os.listdir(os.path.join(out, 'sequences'))) == \
+        ['q%02d.bin' % q for q in range(16)]
+    for q in range(16):
+        with open(os.path.join(out, 'sequences', 'q%02d.bin' % q), 'rb') as f:
+            assert f.read() == pats[q], q
+    m = json.load(open(os.path.join(out, 'manifest.json')))
+    assert m['seq_lengths'] == [2] + [4] * 15
+    print('bank_blob: OK (complete file → restorable bank.bin)')
     print('msmpl offline test: OK')
     return 0
 

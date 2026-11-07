@@ -11,7 +11,14 @@ The file is a tree of 8-byte-tagged "6150…" chunks (32-byte header: 4B "6150",
     6150SmpS  sample set → 36× 6150SmpD
       6150SmpD  per sample: 64-byte param blob + 8-byte header + raw 16-bit BE PCM
     6150SeqS  sequence/pattern data
-    6150MfxD  master-effect blob
+    6150MfxD  master-effect blob (first 36 bytes = the device's packed effect)
+
+BnkP, the 36 SmpD param blobs and MfxD are byte-identical to the sections of
+the device's own 0x974-byte bank blob (checked against a device backup of the
+same bank), so extract also rebuilds that blob as bank.bin — what RESTORE
+sends. Its 16 bytes @0x940 aren't in the file: the original editor's
+BankWrite fills each from SequenceData::getSequenceLength() = the pattern's
+bar count (u16 BE @0x0A of the SEQP blob, 0 if under 1308 bytes).
 
 The per-sample param blob, 8-byte header and PCM are byte-identical to the
 on-wire formats we already decode (see protocol.py / CLAUDE.md), so extraction
@@ -31,6 +38,7 @@ import download as DL
 import protocol as P
 
 RATES = {0: 48000, 1: 24000, 2: 12000, 3: 6000}
+EFFECT_SIZE = 0x24                     # packed effect section of the bank blob
 CHUNK_HDR = 32
 
 
@@ -61,19 +69,24 @@ def parse_bank(data):
     if not top or top[0][0] != 'BnkD':
         raise ValueError('not a .msmpl_bank file (missing 6150BnkD chunk)')
     _, bbody, bsize = top[0]
-    bank = {'name': '', 'bpm': None, 'samples': [], 'patterns': []}
+    bank = {'name': '', 'bpm': None, 'samples': [], 'patterns': [],
+            'param': None, 'effect': None}
     for tag, body, size in _walk(data, bbody, bbody + bsize):
         if tag == 'BnkP' and size >= 10:
             bp = data[body:body + size]
             bank['name'] = _name(bp[0:8])
             bank['bpm'] = struct.unpack_from('<H', bp, 8)[0] / 10.0
+            if size >= 64:
+                bank['param'] = bp[:64]
+        elif tag == 'MfxD' and size >= EFFECT_SIZE:
+            bank['effect'] = data[body:body + EFFECT_SIZE]
         elif tag == 'SmpS':
             for i, (st, sb, _ss) in enumerate(_walk(data, body, body + size)):
                 if st != 'SmpD':
                     continue
                 param = data[sb:sb + 64]
                 data_size, tempo10, flags = struct.unpack_from('<IHB', data, sb + 64)
-                s = {'slot': i, 'name': _name(param[0:8]),
+                s = {'slot': i, 'name': _name(param[0:8]), 'param': param,
                      'long_name': _name(param[0x20:0x40]), 'empty': data_size == 0}
                 if data_size:
                     s.update(rate_hz=RATES.get((flags >> 2) & 3, 48000),
@@ -86,6 +99,10 @@ def parse_bank(data):
                 if st != 'SeqD':
                     continue
                 blob = data[sb:sb + ss]
+                if len(blob) >= 8:              # SeqD pads past the SEQP's own
+                    used = struct.unpack_from('>I', blob, 4)[0]   # size (u32 BE
+                    if 0 < used <= len(blob):   # @4): 1312 vs 1308 — keep what
+                        blob = blob[:used]      # the device itself sends
                 try:
                     p = P.parse_pattern(blob)
                     notes = len(p['notes']) if p else 0
@@ -104,6 +121,28 @@ def parse_bank(data):
     return bank
 
 
+def bar_count(blob):
+    """Bars of a SEQP pattern blob, as the original editor's
+    SequenceData::getSequenceLength (0 for a blob under 1308 bytes)."""
+    if len(blob) < 0x51c:
+        return 0
+    return struct.unpack_from('>H', blob, 0x0a)[0] & 0xff
+
+
+def bank_blob(bank):
+    """Rebuild the device's 0x974-byte bank blob from a parsed bank, or None
+    when the file lacks a section (then there's nothing safe to restore)."""
+    params = [s.get('param') for s in bank['samples'][:36]]
+    if bank['param'] is None or bank['effect'] is None or \
+            any(p is None or len(p) != 64 for p in params):
+        return None
+    blob = (bank['param'] + b''.join(params)
+            + bytes(bar_count(p['blob']) for p in bank['patterns'][:16])
+            + bank['effect'])
+    assert len(blob) == P.BANK_BLOB_SIZE, len(blob)
+    return blob
+
+
 def extract(path, outdir):
     """Extract a .msmpl_bank FILE — see extract_bytes."""
     with open(path, 'rb') as f:
@@ -113,13 +152,20 @@ def extract(path, outdir):
 
 def extract_bytes(data, outdir, source_name=None):
     """Extract a .msmpl_bank (raw bytes) to a backup directory in our own format
-    (manifest.json + samples/sNN.wav), reusable by the bridge's librarian
-    (backup list / cherry-pick / ZIP export). Returns (non_empty_count, bank)."""
+    (manifest.json + samples/sNN.wav, and bank.bin + every pattern when the
+    file is complete — then it restores like a device backup), reusable by the
+    bridge's librarian (backup list / cherry-pick / ZIP export / RESTORE).
+    Returns (non_empty_count, bank)."""
     bank = parse_bank(data)
     os.makedirs(os.path.join(outdir, 'samples'), exist_ok=True)
     manifest = {'source': 'msmpl_bank', 'file': source_name,
                 'name': bank['name'], 'bpm': bank['bpm'],
                 'samples': [], 'sequences': []}
+    blob = bank_blob(bank)
+    if blob is not None:
+        with open(os.path.join(outdir, 'bank.bin'), 'wb') as f:
+            f.write(blob)
+        manifest['seq_lengths'] = list(blob[0x940:0x950])
     n = 0
     # use the loop index (not the parsed dict value) for the filename, bounded to
     # the device's 36 pads — keeps the path provably inside outdir (no traversal
@@ -134,18 +180,25 @@ def extract_bytes(data, outdir, source_name=None):
             entry.update(rate_hz=s['rate_hz'], stereo=s['stereo'],
                          data_size=s['data_size'], tempo_bpm=s['tempo_bpm'],
                          long_name=s['long_name'])
+            if s.get('param'):
+                with open(os.path.join(outdir, 'samples', 's%02d.param.bin' % i),
+                          'wb') as f:
+                    f.write(s['param'])
             n += 1
         manifest['samples'].append(entry)
     # patterns → sequences/qNN.bin (raw SEQP blob) for non-empty ones; the bridge
     # converts these to .mid on demand (protocol.pattern_to_smf).
-    if any(not p['empty'] for p in bank['patterns']):
+    # with bank.bin, write EVERY pattern blob (empty ones too, as a device
+    # backup does) so RESTORE sends each pattern exactly as the file has it
+    keep_all = blob is not None
+    if any(p['blob'] and (keep_all or not p['empty']) for p in bank['patterns']):
         os.makedirs(os.path.join(outdir, 'sequences'), exist_ok=True)
     for i, p in enumerate(bank['patterns']):     # index bounded to the 16 patterns
         if i > 15:
             break
         entry = {'pattern': i, 'empty': p['empty'],
                  'name': p['name'], 'note_count': p['note_count']}
-        if not p['empty']:
+        if p['blob'] and (keep_all or not p['empty']):
             with open(os.path.join(outdir, 'sequences', 'q%02d.bin' % i), 'wb') as f:
                 f.write(p['blob'])
         manifest['sequences'].append(entry)
