@@ -30,6 +30,11 @@ export async function loadBackups() {
         btn.className = "hw-btn";
         btn.innerHTML = '<span class="hw-btn-cap">RESTORE…</span>';
         btn.onclick = () => openRestore(b);
+        if (!b.restorable) {
+            // no bank.bin (a Korg-bank import made before restore support)
+            btn.disabled = true;
+            btn.title = "Can't be restored to the device. Import the original .msmpl_bank file again to make a restorable copy.";
+        }
         row.append(zip);
         if (b.samples) {
             // cherry-pick a single sample
@@ -44,7 +49,8 @@ export async function loadBackups() {
     }
 }
 
-// import a backup .zip (shareable between machines / other owners)
+// import a backup .zip (shareable between machines / other owners) or an
+// original Korg .msmpl_bank (converted; a complete one is restorable)
 $("#import-btn").onclick = () => $("#import-file").click();
 $("#import-file").onchange = async (ev) => {
     const input = /** @type {HTMLInputElement} */ (ev.target);
@@ -53,7 +59,8 @@ $("#import-file").onchange = async (ev) => {
     if (!f) return;
     opPrint(`importing ${f.name}…`, { reset: true });
     try {
-        const r = await apiJson("/api/backup/import", { method: "POST", body: await f.arrayBuffer() });
+        const route = /\.msmpl_bank$/i.test(f.name) ? "/api/backup/import-msmpl" : "/api/backup/import";
+        const r = await apiJson(route, { method: "POST", body: await f.arrayBuffer() });
         opPrint(`✓ imported as "${r.dir}"`);
         tick(`⇧ imported backup ${r.dir}`);
         await loadBackups();

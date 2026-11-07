@@ -616,6 +616,37 @@ assert rs.op['done'] and rs.op['ok'], rs.op['lines']
 assert rs.ms.w_bank == 4 and rs.ms.left_dump == 1
 assert bytes(rs.ms.w_samples[0][1]) == samples[0][1]      # PCM round-trips
 
+# RESTORE needs bank.bin: device backups have one, a complete Korg .msmpl_bank
+# import now gets one, and an older import without it is refused up front
+from test_msmpl import build_bank, build_full_bank
+_full = B.import_msmpl_bank(build_full_bank()[0])
+_part = B.import_msmpl_bank(build_bank('PARTIAL')[0])    # no MfxD → no bank.bin
+_flags = {b['dir']: b['restorable'] for b in B.list_backups()}
+assert _flags[res['dir']] and _flags[_full] and not _flags[_part], _flags
+rk = B.Device()
+rk.ms = FakeWriteMS()
+rk.ms.dev = FakeWriteDev(rk.ms)
+rk.channel = 0
+rk.cable = 1
+rk.start_restore(_full, None)                 # Korg bank → device, end to end
+for _ in range(100):
+    if rk.op['done']:
+        break
+    _t.sleep(0.05)
+assert rk.op['done'] and rk.op['ok'], rk.op['lines']
+import msmpl_bank as _MB
+_fdata, _fpats = build_full_bank()[0], build_full_bank()[4]
+assert rk.ms.w_blob == _MB.bank_blob(_MB.parse_bank(_fdata))   # bank.bin as sent
+assert sorted(rk.ms.w_seqs) == list(range(16)) and \
+    all(bytes(rk.ms.w_seqs[q][1]) == _fpats[q] for q in range(16))
+for dev in (B.Device(), B.MockDevice()):
+    try:
+        dev.start_restore(_part, None)
+        raise AssertionError('restored a backup without bank.bin')
+    except RuntimeError as e:
+        assert 'no bank.bin' in str(e), e
+print('Korg bank restore (bank.bin gate): OK')
+
 # restore dir name is untrusted HTTP input — traversal must be rejected
 for evil in ('..', '.', '...', '../x', 'a/b', '/etc', 'x\x00y', ''):
     try:
@@ -686,6 +717,32 @@ assert len(B.list_backups()) == before + 1
 # re-import again → distinct name (no clobber)
 newdir2 = B.import_backup_zip(zdata)
 assert newdir2 != newdir
+# sample files are named like the PADS in the zip (1-based + note + name), and
+# import maps them back to the sNN machine names restore/cherry-pick read
+assert B.pad_note(0) == 'C3' and B.pad_note(1) == 'C#3' and B.pad_note(35) == 'B5'
+assert B.zip_sample_name(0, 'KICK', '.wav') == '01 C3 KICK.wav'
+assert B.zip_sample_name(35, 'a/b:c', '.param.bin') == '36 B5 a_b_c.param.bin'
+assert B.zip_sample_name(4, '', '.wav') == '05 E3.wav'
+assert B.disk_sample_name('01 C3 KICK.wav') == 's00.wav'
+assert B.disk_sample_name('36 B5 X.param.bin') == 's35.param.bin'
+assert B.disk_sample_name('05 E3.wav') == 's04.wav'
+for keep in ('s07.wav', '37 C6 X.wav', '00 B2 X.wav', 'notes.txt'):
+    assert B.disk_sample_name(keep) == keep, keep
+zsamples = [n.split('/', 1)[1] for n in names if '/samples/' in n]
+assert zsamples and not any(n.startswith('samples/s') for n in zsamples), zsamples
+with open(os.path.join(B.BACKUP_ROOT, res['dir'], 'manifest.json')) as f:
+    _m = json.load(f)
+_s0 = next(s for s in _m['samples'] if not s['empty'])
+assert 'samples/' + B.zip_sample_name(_s0['slot'], _s0['name'], '.wav') in zsamples
+_disk = sorted(os.listdir(os.path.join(B.BACKUP_ROOT, res['dir'], 'samples')))
+assert sorted(os.listdir(os.path.join(B.BACKUP_ROOT, newdir, 'samples'))) == _disk
+# an OLD-style zip (sNN names, made by v1.17.4 and earlier) still imports as-is
+old = io.BytesIO()
+with _zf.ZipFile(old, 'w') as z:
+    z.writestr('OLDBANK/manifest.json', '{}')
+    z.writestr('OLDBANK/samples/s03.wav', b'RIFF')
+olddir = B.import_backup_zip(old.getvalue())
+assert os.listdir(os.path.join(B.BACKUP_ROOT, olddir, 'samples')) == ['s03.wav']
 # non-backup zip rejected; traversal name guarded
 bad = io.BytesIO()
 with _zf.ZipFile(bad, 'w') as z: z.writestr('notes.txt', 'x')

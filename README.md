@@ -75,6 +75,7 @@ The [latest release](https://github.com/benjamindehli/microsampler-editor-librar
 - **UTILITY**:
   - Full bank backup/restore (RAM or persistent user banks)
   - Cherry-pick restore: copy a single sample out of a backup into any pad of the current bank
+  - Restore banks saved by Korg's original editor (`.msmpl_bank`) to the device, with all their settings and patterns
   - Remote sampling trigger (input select + [SAMPLING] over MIDI, with no device-state readback, so watch the device screen)
 - **Live two-way sync**:
   - Panel edits on the device show up in the app instantly

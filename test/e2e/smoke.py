@@ -254,7 +254,11 @@ def run_checks(wav_path):
         assert pg2.is_hidden('#offline'), 'device-help is a distinct state from offline'
         pg2.locator('#device-help-retry').click()
         pg2.locator('#device-help').wait_for(state='hidden', timeout=8000)
-        assert pg2.text_content('#bank-name').strip() == 'MOCKBANK', 'recovered after retry'
+        # onConnected hides the helper BEFORE its bank fetch resolves, so wait
+        # for the name rather than reading it at once (raced on slow CI runners)
+        pg2.wait_for_function(
+            "() => document.querySelector('#bank-name').textContent.trim() === 'MOCKBANK'",
+            timeout=8000)
         ctx.close()
 
         # library mode: a status of {library:true} shows the LIBRARY view (device
