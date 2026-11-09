@@ -52,6 +52,28 @@
     font-size: 0.58rem;
     letter-spacing: 0.24em;
     color: var(--ink-dim);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.ctl-cc {
+    font-family: "Share Tech Mono", monospace;
+    font-size: 0.54rem;
+    letter-spacing: 0.08em;
+    color: var(--amber);
+    background: color-mix(in srgb, rgb(var(--amber-rgb)) 14%, #000);
+    border: 1px solid var(--amber-dk);
+    border-radius: 3px;
+    padding: 0.05rem 0.28rem;
+    line-height: 1.2;
+}
+.strip.midi-learn .ctl {
+    cursor: pointer;
+    box-shadow: inset 0 0 0 1px var(--line-hi);
+}
+.ctl.midi-target {
+    box-shadow: 0 0 0 1px var(--amber) !important;
+    background: color-mix(in srgb, rgb(var(--amber-rgb)) 10%, transparent);
 }
 .ctl-val {
     font-family: "Share Tech Mono", monospace;

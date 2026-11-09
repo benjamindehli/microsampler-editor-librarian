@@ -5,6 +5,8 @@
 // row = black keys; Z / X or the ◀ ▶ buttons shift the octave). The piano always
 // shows which computer key maps to which note, lit brighter while armed. Off by
 // default so the letter keys stay free for the normal shortcuts (ux.js).
+import { handleExternalCC, isMidiLearnActive, setMidiLearn, syncCcBadges } from "components/controls/controls.js";
+import { followSelect } from "components/sample-editor/waveform.js";
 import { noteName, QWERTY_KEYMAP, QWERTY_OCTAVES, qwertySlot } from "functions/notes.js";
 import { state } from "functions/state.js";
 import { tick } from "functions/ticker.js";
@@ -240,39 +242,41 @@ const midiHeld = new Map(); // controller note physically down → on-screen slo
 const sustainedOff = new Map(); // note whose key is UP but held sounding by the pedal → slot
 let sustainOn = false; // CC#64 damper pedal state
 
-// resolve a controller note for the current mode: KEYBOARD = raw pitch (full
-// range), SAMPLE = a pad (note−48, ignoring notes outside C3..B5). null = not playable.
-function midiTarget(m) {
+// resolve a controller note for the current mode: KEYBOARD (or MIDI Ch 2) = raw
+// pitch (full range), SAMPLE = a pad (note−48, ignoring notes outside C3..B5).
+function midiTarget(m, ch = 0) {
     const slot = m - 48,
-        inRange = slot >= 0 && slot <= 35;
-    if (mode === "kbd") return { body: { note: m }, slot: inRange ? slot : null };
-    return inRange ? { body: { slot }, slot } : null;
+        inRange = slot >= 0 && slot <= 35,
+        kbd = mode === "kbd" || ch === 1;
+    if (kbd) return { body: { note: m, keyboard: true }, slot: inRange ? slot : null, kbd: true };
+    return inRange ? { body: { slot, keyboard: false }, slot, kbd: false } : null;
 }
-function sendOff(m, slot) {
-    send(mode === "kbd" ? { note: m, on: false } : { slot, on: false });
+function sendOff(m, entry) {
+    send(entry.kbd ? { note: m, on: false, keyboard: true } : { slot: entry.slot, on: false, keyboard: false });
 }
 
-function midiNoteOn(m, vel) {
-    const t = midiTarget(m);
+function midiNoteOn(m, vel, ch = 0) {
+    const t = midiTarget(m, ch);
     if (!t) return;
     if (sustainedOff.has(m)) {
         sendOff(m, sustainedOff.get(m));
         sustainedOff.delete(m);
     } // clean re-attack
+    if (!t.kbd && state.follow && t.slot != null) followSelect(t.slot);
     send({ ...t.body, on: true, velocity: vel });
     if (t.slot != null) paint(t.slot, true);
-    midiHeld.set(m, t.slot);
+    midiHeld.set(m, { slot: t.slot, kbd: t.kbd });
 }
 function midiNoteOff(m) {
     if (!midiHeld.has(m)) return;
-    const slot = midiHeld.get(m);
+    const entry = midiHeld.get(m);
     midiHeld.delete(m);
     if (sustainOn) {
         // pedal down: keep it sounding (and lit) until the pedal lifts
-        sustainedOff.set(m, slot);
+        sustainedOff.set(m, entry);
     } else {
-        sendOff(m, slot);
-        if (slot != null) paint(slot, false);
+        sendOff(m, entry);
+        if (entry.slot != null) paint(entry.slot, false);
     }
 }
 function midiSustain(on) {
@@ -280,16 +284,16 @@ function midiSustain(on) {
     sustainOn = on;
     if (!on) {
         // pedal up: release everything it was holding
-        for (const [m, slot] of sustainedOff) {
-            sendOff(m, slot);
-            if (slot != null) paint(slot, false);
+        for (const [m, entry] of sustainedOff) {
+            sendOff(m, entry);
+            if (entry.slot != null) paint(entry.slot, false);
         }
         sustainedOff.clear();
     }
 }
 let bentKbd = false; // a non-centre bend is currently applied (keyboard channel)
-function midiPitchBend(lsb, msb) {
-    if (mode !== "kbd") return; // the device pitch-bends only the keyboard-mode voice
+function midiPitchBend(lsb, msb, ch = 0) {
+    if (mode !== "kbd" && ch !== 1) return; // the device pitch-bends only the keyboard-mode voice
     const value = (msb << 7) | lsb; // 14-bit, centre 8192
     bentKbd = value !== 8192;
     api("/api/pitch-bend", jsonBody({ value, keyboard: true })).catch(() => {
@@ -305,14 +309,14 @@ function resetBend() {
     });
 }
 function releaseMidi() {
-    for (const [m, slot] of midiHeld) {
-        sendOff(m, slot);
-        if (slot != null) paint(slot, false);
+    for (const [m, entry] of midiHeld) {
+        sendOff(m, entry);
+        if (entry.slot != null) paint(entry.slot, false);
     }
     midiHeld.clear();
-    for (const [m, slot] of sustainedOff) {
-        sendOff(m, slot);
-        if (slot != null) paint(slot, false);
+    for (const [m, entry] of sustainedOff) {
+        sendOff(m, entry);
+        if (entry.slot != null) paint(entry.slot, false);
     }
     sustainedOff.clear();
     sustainOn = false;
@@ -321,12 +325,14 @@ function releaseMidi() {
 function onMidiMessage(e) {
     const [status, d1, d2] = e.data;
     const cmd = status & 0xf0;
-    if (cmd === 0x90 && d2 > 0) midiNoteOn(d1, d2);
+    const ch = status & 0x0f;
+    if (cmd === 0x90 && d2 > 0) midiNoteOn(d1, d2, ch);
     else if (cmd === 0x80 || (cmd === 0x90 && d2 === 0)) midiNoteOff(d1);
     else if (cmd === 0xe0)
-        midiPitchBend(d1, d2); // pitch bend wheel
-    else if (cmd === 0xb0 && d1 === 64) midiSustain(d2 >= 64); // sustain pedal (CC#64)
-    // other CC / clock etc. ignored
+        midiPitchBend(d1, d2, ch); // pitch bend wheel
+    else if (cmd === 0xb0 && d1 === 64)
+        midiSustain(d2 >= 64); // sustain pedal (CC#64)
+    else if (cmd === 0xb0 && d1 < 120) handleExternalCC(d1, d2); // assignable CC sliders/knobs
 }
 function midiInputNames() {
     return midiAccess ? [...midiAccess.inputs.values()].map((i) => i.name).filter(Boolean) : [];
@@ -351,9 +357,11 @@ async function setMidi(on) {
         }
         midiAccess.onstatechange = bindMidiInputs;
         bindMidiInputs();
+        syncCcBadges();
         const names = midiInputNames();
         tick(names.length ? `MIDI input: ON (${names.join(", ")})` : "MIDI input: ON (waiting for a device)");
     } else {
+        if (isMidiLearnActive()) setMidiLearn(false);
         if (midiAccess) {
             // also drop the hotplug handler — left bound, any device state change
             // would re-attach the inputs and silently re-enable MIDI while OFF
@@ -412,6 +420,17 @@ $("#kb-mode-kbd").onclick = () => setMode("kbd");
         $("#midi-toggle").hidden = false;
         const mi = $("#midi-in");
         mi.addEventListener("change", () => setMidi(mi.checked));
+        const ml = $("#midi-learn");
+        if (ml) {
+            ml.hidden = false;
+            ml.onclick = async () => {
+                if (!mi.checked) {
+                    mi.checked = true;
+                    await setMidi(true);
+                }
+                if (mi.checked) setMidiLearn(!isMidiLearnActive());
+            };
+        }
         // re-enable only if it was on before — avoids a surprise permission prompt on every load
         if (lsGet("msmpl.midi") === "1") {
             mi.checked = true;

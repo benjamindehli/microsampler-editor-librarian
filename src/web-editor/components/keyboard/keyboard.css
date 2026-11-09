@@ -80,6 +80,20 @@
     vertical-align: -2px;
     margin-right: 0.1em;
 }
+.midi-learn-btn {
+    width: auto;
+    padding: 0 0.5rem;
+    font-family: inherit;
+    font-size: 0.54rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: var(--ink-dim);
+}
+.midi-learn-btn.on {
+    border-color: var(--amber);
+    background: var(--amber);
+    color: #1a0d00;
+}
 
 /* the keyboard itself: 21 white keys in flow, 15 black keys overlaid */
 .piano {

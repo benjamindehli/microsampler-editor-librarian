@@ -1,8 +1,8 @@
 // Sample parameter controls: live-edit ids, value encodings, the control
-// strip wiring, and panel-edit reflection.
+// strip wiring, panel-edit reflection, and external MIDI CC learn/control.
 import { state } from "functions/state.js";
 import { tick } from "functions/ticker.js";
-import { $, api, fmtSigned, jsonBody } from "functions/util.js";
+import { $, api, closestEl, fmtSigned, jsonBody, lsGet, lsSet } from "functions/util.js";
 import { VALUE_TABLES } from "functions/valueTables.js";
 
 // Live-edit param ids — HARDWARE-CONFIRMED 2026-06-06 by panel-knob capture
@@ -55,18 +55,43 @@ export const OBJ_BASE = 16;
 // bool = stored as a boolean; fmt = display formatter for faders; def = the
 // value shown for an empty slot.
 const SPEC = {
-    [PARAM.LOOP]: { kind: "switch", ctl: "#ctl-loop", val: "#val-loop", key: "loop", bool: true, def: 0 },
-    [PARAM.REVERSE]: { kind: "switch", ctl: "#ctl-reverse", val: "#val-reverse", key: "reverse", bool: true, def: 0 },
-    [PARAM.FX_SW]: { kind: "switch", ctl: "#ctl-fx", val: "#val-fx", key: "fx_sw", bool: true, def: 0 },
-    [PARAM.BPM_SYNC]: { kind: "seg", ctl: "#ctl-sync", key: "bpm_sync", def: 0 },
-    [PARAM.DECAY]: { kind: "fader", ctl: "#ctl-decay", val: "#val-decay", key: "decay", def: 127 },
-    [PARAM.RELEASE]: { kind: "fader", ctl: "#ctl-release", val: "#val-release", key: "release", def: 0 },
-    [PARAM.TUNE]: { kind: "fader", ctl: "#ctl-tune", val: "#val-tune", key: "tune", fmt: tuneDisplay, def: 64 },
-    [PARAM.LEVEL]: { kind: "fader", ctl: "#ctl-level", val: "#val-level", key: "level", fmt: fmtLevel, def: 101 },
-    [PARAM.PAN]: { kind: "fader", ctl: "#ctl-pan", val: "#val-pan", key: "pan", fmt: fmtPan, def: 64 },
-    [PARAM.SEMITONE]: { kind: "fader", ctl: "#ctl-semitone", val: "#val-semitone", key: "semitone", fmt: fmtSigned, def: 0 },
-    [PARAM.VELO_INT]: { kind: "fader", ctl: "#ctl-velo", val: "#val-velo", key: "velo_int", fmt: fmtSigned, def: 0 }
+    [PARAM.LOOP]: { kind: "switch", ctl: "#ctl-loop", val: "#val-loop", key: "loop", label: "LOOP", bool: true, def: 0 },
+    [PARAM.REVERSE]: { kind: "switch", ctl: "#ctl-reverse", val: "#val-reverse", key: "reverse", label: "REVERSE", bool: true, def: 0 },
+    [PARAM.FX_SW]: { kind: "switch", ctl: "#ctl-fx", val: "#val-fx", key: "fx_sw", label: "FX SW", bool: true, def: 0 },
+    [PARAM.BPM_SYNC]: { kind: "seg", ctl: "#ctl-sync", key: "bpm_sync", label: "BPM SYNC", def: 0 },
+    [PARAM.DECAY]: { kind: "fader", ctl: "#ctl-decay", val: "#val-decay", key: "decay", label: "DECAY", def: 127 },
+    [PARAM.RELEASE]: { kind: "fader", ctl: "#ctl-release", val: "#val-release", key: "release", label: "RELEASE", def: 0 },
+    [PARAM.TUNE]: { kind: "fader", ctl: "#ctl-tune", val: "#val-tune", key: "tune", label: "TUNE", fmt: tuneDisplay, def: 64 },
+    [PARAM.LEVEL]: { kind: "fader", ctl: "#ctl-level", val: "#val-level", key: "level", label: "LEVEL", fmt: fmtLevel, def: 101 },
+    [PARAM.PAN]: { kind: "fader", ctl: "#ctl-pan", val: "#val-pan", key: "pan", label: "PAN", fmt: fmtPan, def: 64 },
+    [PARAM.SEMITONE]: { kind: "fader", ctl: "#ctl-semitone", val: "#val-semitone", key: "semitone", label: "SEMITONE", fmt: fmtSigned, def: 0 },
+    [PARAM.VELO_INT]: { kind: "fader", ctl: "#ctl-velo", val: "#val-velo", key: "velo_int", label: "VELO INT", fmt: fmtSigned, def: 0 }
 };
+
+// Default external MIDI CC -> sample param map (Worlde Panda 200 / GM / Polyend Play):
+// CC#7 Volume -> LEVEL, CC#10 Pan -> PAN, CC#74 Cutoff -> TUNE, CC#73 Attack -> SEMITONE,
+// CC#75 Decay -> DECAY, CC#72 Release -> RELEASE, CC#71 Timbre -> VELO INT.
+export const DEFAULT_CC_MAP = {
+    7: PARAM.LEVEL,
+    10: PARAM.PAN,
+    71: PARAM.VELO_INT,
+    72: PARAM.RELEASE,
+    73: PARAM.SEMITONE,
+    74: PARAM.TUNE,
+    75: PARAM.DECAY
+};
+
+// Map a 7-bit MIDI CC value (0..127) into the target sample parameter's model space.
+export function ccToParamValue(param, ccVal) {
+    const v = Math.max(0, Math.min(127, Math.round(ccVal)));
+    const spec = SPEC[param];
+    if (!spec) return v;
+    if (spec.kind === "switch") return v >= 64 ? 1 : 0;
+    if (spec.kind === "seg") return Math.min(2, Math.floor((v * 3) / 128));
+    if (param === PARAM.SEMITONE) return v === 64 ? 0 : Math.round((v / 127) * 48 - 24);
+    if (param === PARAM.VELO_INT) return Math.max(-63, Math.min(63, v - 64));
+    return v;
+}
 
 // keep the bank cache in sync with every edit — controls initialise from it
 // on pad selection, so without this, re-selecting a pad showed the state as
@@ -216,10 +241,253 @@ export function applySlotControls(s) {
             else setFader(spec.ctl, spec.val, value, spec.fmt);
         }
     }
+    syncCcBadges();
 }
 
 export function reflect(param, value) {
     // from a device (wire) event
     flash(param);
     setControl(param, BIPOLAR.has(param) ? dec14(value) : value);
+}
+
+// ── external MIDI CC mapping + MIDI Learn (per-sample-slot) ──────────────
+const CC_STORAGE_KEY = "msmpl.midi.cc.v2";
+/** @typedef {{ slot: number, param: number }} CcBinding */
+/** @type {Record<number, CcBinding>} */
+let ccMap = loadCcMap();
+let learnMode = false;
+let learnParam = PARAM.LEVEL;
+
+function loadCcMap() {
+    const raw = lsGet(CC_STORAGE_KEY);
+    if (!raw) return {};
+    try {
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object") return {};
+        /** @type {Record<number, CcBinding>} */
+        const clean = {};
+        for (const [k, v] of Object.entries(parsed)) {
+            const cc = +k;
+            if (!Number.isInteger(cc) || cc < 0 || cc > 127 || !v || typeof v !== "object") continue;
+            const slot = +v.slot,
+                param = +v.param;
+            if (Number.isInteger(slot) && slot >= 0 && slot <= 35 && SPEC[param]) {
+                clean[cc] = { slot, param };
+            }
+        }
+        return clean;
+    } catch {
+        return {};
+    }
+}
+
+function saveCcMap() {
+    lsSet(CC_STORAGE_KEY, JSON.stringify(ccMap));
+}
+
+export function getCcForParam(param, slot = state.sel) {
+    if (slot == null) return null;
+    for (const [cc, b] of Object.entries(ccMap)) {
+        if (b.slot === slot && b.param === param) return +cc;
+    }
+    return null;
+}
+
+export function assignParamCC(param, cc, slot = state.sel) {
+    if (!SPEC[param] || cc < 0 || cc > 127 || slot == null || slot < 0 || slot > 35) return;
+    for (const [k, b] of Object.entries(ccMap)) {
+        if ((b.slot === slot && b.param === param) || +k === cc) delete ccMap[+k];
+    }
+    ccMap[cc] = { slot, param };
+    saveCcMap();
+    syncCcBadges();
+}
+
+export function unassignParamCC(param, slot = state.sel) {
+    if (slot == null) return null;
+    let removed = null;
+    for (const [k, b] of Object.entries(ccMap)) {
+        if (b.slot === slot && b.param === param) {
+            removed = +k;
+            delete ccMap[+k];
+        }
+    }
+    if (removed != null) {
+        saveCcMap();
+        syncCcBadges();
+    }
+    return removed;
+}
+
+const fmtCc = (cc) => `CC${String(cc).padStart(2, "0")}`;
+
+export function syncCcBadges() {
+    if (!document.querySelectorAll) return;
+    const strip = $(".strip");
+    if (strip?.classList) strip.classList.toggle("midi-learn", learnMode);
+    const btn = $("#midi-learn");
+    if (btn?.classList) {
+        btn.classList.toggle("on", learnMode);
+        btn.setAttribute("aria-pressed", String(learnMode));
+    }
+    const slot = state.sel;
+    const slotTag = slot != null ? `S${String(slot + 1).padStart(2, "0")}` : "";
+    for (const [k, spec] of Object.entries(SPEC)) {
+        const param = +k;
+        const el = /** @type {HTMLElement} */ (document.querySelector(`[data-flash="${param}"]`));
+        if (!el || !el.classList) continue;
+        const isTarget = learnMode && learnParam === param;
+        el.classList.toggle("midi-target", isTarget);
+        const cc = getCcForParam(param, slot);
+        let badge = /** @type {HTMLElement} */ (el.querySelector(".ctl-cc"));
+        if (cc != null || isTarget) {
+            if (!badge) {
+                badge = document.createElement("span");
+                badge.className = "ctl-cc";
+                const lbl = el.querySelector(".ctl-label");
+                if (lbl) lbl.append(badge);
+            }
+            badge.textContent = isTarget && cc == null ? "LEARN..." : fmtCc(cc);
+        } else if (badge) {
+            badge.remove();
+        }
+        el.title =
+            cc != null
+                ? `${slotTag} ${spec.label} - pinned to MIDI ${fmtCc(cc)} (click LEARN or right-click to reassign/clear)`
+                : `${slotTag} ${spec.label} - right-click or use LEARN to pin a MIDI CC slider/knob to this sample`;
+    }
+}
+
+export const isMidiLearnActive = () => learnMode;
+
+export function setMidiLearn(on, targetParam = null) {
+    learnMode = !!on;
+    if (targetParam != null && SPEC[targetParam]) learnParam = targetParam;
+    else if (learnMode && !SPEC[learnParam]) learnParam = PARAM.LEVEL;
+    syncCcBadges();
+    if (learnMode) {
+        const label = SPEC[learnParam]?.label || `#${learnParam}`;
+        const who = state.sel != null ? `S${state.sel + 1} ` : "";
+        tick(`MIDI learn: move a slider/knob to pin to ${who}${label} (click any control to switch, right-click to clear, Esc to exit)`);
+    } else {
+        tick("MIDI learn: OFF");
+    }
+}
+
+// Coalesce rapid CC fader sweeps so at most one HTTP POST is in flight per
+// (slot, param), always flushing the latest value when the current request completes.
+const ccInFlight = new Set();
+const ccPending = new Map();
+
+function sendParamCoalesced(slot, param, value) {
+    const key = `${slot}:${param}`;
+    if (ccInFlight.has(key)) {
+        ccPending.set(key, { slot, param, value });
+        return;
+    }
+    ccInFlight.add(key);
+    api("/api/param", jsonBody({ obj: OBJ_BASE + slot, param, value }))
+        .then(() => {
+            if (!ccPending.has(key)) tick(`-> S${slot + 1} ${SPEC[param]?.label || "#" + param} = ${value}`);
+        })
+        .catch((e) => tick(`! send failed: ${e.message}`))
+        .finally(() => {
+            ccInFlight.delete(key);
+            const next = ccPending.get(key);
+            if (next) {
+                ccPending.delete(key);
+                sendParamCoalesced(next.slot, next.param, next.value);
+            }
+        });
+}
+
+export function handleExternalCC(cc, ccVal) {
+    if (learnMode && learnParam != null && state.sel != null) {
+        const param = learnParam;
+        const slot = state.sel;
+        assignParamCC(param, cc, slot);
+        learnMode = false;
+        syncCcBadges();
+        tick(`MIDI learn: pinned ${fmtCc(cc)} -> S${slot + 1} ${SPEC[param]?.label || "#" + param}`);
+    }
+    const binding = ccMap[cc];
+    if (!binding) {
+        tick(`MIDI ${fmtCc(cc)} = ${ccVal} (click LEARN to pin to a sample control)`);
+        return false;
+    }
+    const { slot, param } = binding;
+    const s = state.bank?.slots?.[slot];
+    // Respect hardware rule: Pitch Change (bpm_sync === 2) locks Tune and Semitone
+    if ((param === PARAM.TUNE || param === PARAM.SEMITONE) && s?.bpm_sync === 2) return true;
+    const value = ccToParamValue(param, ccVal);
+    const before = readModel(slot, param);
+    if (before === value) {
+        if (slot === state.sel) setControl(param, value);
+        return true;
+    }
+    if (before != null) {
+        const top = undoStack[undoStack.length - 1];
+        if (top && top.slot === slot && top.param === param && top.ccSweep) {
+            top.after = value;
+        } else {
+            undoStack.push({ slot, param, before, after: value, ccSweep: true });
+            if (undoStack.length > 200) undoStack.shift();
+            redoStack.length = 0;
+        }
+    }
+    cacheParam(slot, param, value);
+    if (slot === state.sel) {
+        flash(param);
+        setControl(param, value);
+    }
+    sendParamCoalesced(slot, param, value);
+    return true;
+}
+
+{
+    const strip = $(".strip");
+    if (strip?.addEventListener) {
+        strip.addEventListener(
+            "click",
+            (e) => {
+                if (!learnMode) return;
+                const ctl = closestEl(e.target, ".ctl[data-flash]");
+                if (!ctl) return;
+                const param = +ctl.dataset.flash;
+                if (!SPEC[param]) return;
+                e.preventDefault();
+                e.stopPropagation();
+                learnParam = param;
+                syncCcBadges();
+                const who = state.sel != null ? `S${state.sel + 1} ` : "";
+                tick(`MIDI learn: move a slider/knob to pin to ${who}${SPEC[param].label}`);
+            },
+            true
+        );
+        strip.addEventListener("contextmenu", (e) => {
+            const ctl = closestEl(e.target, ".ctl[data-flash]");
+            if (!ctl) return;
+            const param = +ctl.dataset.flash;
+            if (!SPEC[param]) return;
+            e.preventDefault();
+            if (learnMode) {
+                const oldCc = unassignParamCC(param, state.sel);
+                const who = state.sel != null ? `S${state.sel + 1} ` : "";
+                tick(
+                    oldCc != null
+                        ? `MIDI learn: cleared ${fmtCc(oldCc)} from ${who}${SPEC[param].label}`
+                        : `${who}${SPEC[param].label} has no CC assigned`
+                );
+            } else {
+                setMidiLearn(true, param);
+            }
+        });
+        addEventListener("keydown", (e) => {
+            if (learnMode && e.key === "Escape") {
+                e.preventDefault();
+                setMidiLearn(false);
+            }
+        });
+        syncCcBadges();
+    }
 }

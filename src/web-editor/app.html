@@ -528,7 +528,7 @@
                                 class="follow-toggle"
                                 id="midi-toggle"
                                 hidden
-                                title="Play the device from a connected MIDI keyboard (uses your browser's Web MIDI). Honors the SAMPLE / KEYBOARD mode above."
+                                title="Play and control the device from a connected MIDI controller (uses your browser's Web MIDI). Honors the SAMPLE / KEYBOARD mode above and mapped MIDI CCs."
                             >
                                 <input type="checkbox" id="midi-in" />
                                 <span id="midi-cap"
@@ -543,6 +543,16 @@
                                     MIDI IN</span
                                 >
                             </label>
+                            <button
+                                type="button"
+                                class="kb-oct midi-learn-btn"
+                                id="midi-learn"
+                                hidden
+                                aria-pressed="false"
+                                title="MIDI Learn: click to arm, click any sample control above, and move a slider/knob on your MIDI controller to assign its CC (right-click a control to clear)"
+                            >
+                                LEARN
+                            </button>
                             <label
                                 class="follow-toggle"
                                 title="Type to play: your computer keyboard plays the highlighted keys through the device — home row = white keys, top row = black keys, Z / X (or ◀ ▶) shift the octave"
