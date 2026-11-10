@@ -10,16 +10,14 @@
 # Invalid/Rejected it prints the notary log and exits 1.
 set -euo pipefail
 FILE="$1"
+AUTH=(--apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD")
 OUT=$(mktemp)
 trap 'rm -f "$OUT"' EXIT
 
 # a failed attempt can still leave output in $OUT, so track success explicitly
 ok=0
 for attempt in 1 2 3; do
-  if xcrun notarytool submit "$FILE" \
-    --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" \
-    --password "$APPLE_APP_PASSWORD" \
-    --output-format json > "$OUT"; then
+  if xcrun notarytool submit "$FILE" "${AUTH[@]}" --output-format json > "$OUT"; then
     ok=1
     break
   fi
@@ -32,18 +30,14 @@ echo "submission id: $SUB_ID ($FILE)"
 STATUS=Unknown
 for i in $(seq 1 360); do              # ≤3 h, 30 s apart
   sleep 30
-  STATUS=$( { xcrun notarytool info "$SUB_ID" \
-      --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" \
-      --password "$APPLE_APP_PASSWORD" --output-format json \
+  STATUS=$( { xcrun notarytool info "$SUB_ID" "${AUTH[@]}" --output-format json \
     | python3 -c "import json,sys; print(json.load(sys.stdin).get('status','Unknown'))"; \
     } 2>/dev/null || echo TransientError)
   echo "[$i/360] $STATUS"
   case "$STATUS" in
     Accepted) exit 0 ;;
     Invalid|Rejected)
-      xcrun notarytool log "$SUB_ID" \
-        --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" \
-        --password "$APPLE_APP_PASSWORD"
+      xcrun notarytool log "$SUB_ID" "${AUTH[@]}"
       exit 1 ;;
   esac
 done

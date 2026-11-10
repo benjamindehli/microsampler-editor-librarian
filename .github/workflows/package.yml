@@ -31,14 +31,12 @@ jobs:
         runs-on: ubuntu-22.04 # oldest LTS runner = widest glibc compatibility
         steps:
             - uses: actions/checkout@v7
-            - name: Check tag matches package.json
+            # the tag goes in via env, not inline: tag names can contain shell metacharacters
+            - name: Check tag matches package.json and the version is stamped
               if: github.event_name == 'release'
               env:
-                  TAG: ${{ github.event.release.tag_name }} # env, not inline: tag
-              run: | #  names can carry shell
-                  PKG="v$(node -p "require('./package.json').version")"
-                  test "$TAG" = "$PKG" || { echo "::error::tag $TAG does not match package.json $PKG (run npm version first)"; exit 1; }
-                  node tools/stamp-docs-version.mjs --check
+                  TAG: ${{ github.event.release.tag_name }}
+              run: bash tools/check-release-tag.sh "$TAG"
             - uses: actions/setup-python@v7
               with:
                   python-version: "3.12"
@@ -48,15 +46,7 @@ jobs:
             - name: Smoke test the frozen binary
               env:
                   MSMPL_NO_OPEN: "1" # no browser on a headless runner
-              run: |
-                  "./dist/bundle/microSAMPLER Library/microSAMPLER Library" &
-                  for i in $(seq 1 40); do
-                    curl -sf http://localhost:8766/api/status > /dev/null && break
-                    sleep 0.5
-                  done
-                  curl -sf http://localhost:8766/api/status | grep -q '"library": true'
-                  curl -sf http://localhost:8766/app.html | grep -q microSAMPLER
-                  curl -sf -X POST http://localhost:8766/api/shutdown | grep -q '"ok": true'
+              run: bash tools/bundle/smoke_library.sh "./dist/bundle/microSAMPLER Library/microSAMPLER Library"
             - name: Dump the Library log on failure
               if: failure()
               run: cat "$HOME/.local/share/DehliMusikk/microSAMPLER Library/library.log" || true
@@ -99,14 +89,12 @@ jobs:
             APP_ED: dist/bundle/microSAMPLER Editor Librarian.app
         steps:
             - uses: actions/checkout@v7
-            - name: Check tag matches package.json
+            # the tag goes in via env, not inline: tag names can contain shell metacharacters
+            - name: Check tag matches package.json and the version is stamped
               if: github.event_name == 'release'
               env:
-                  TAG: ${{ github.event.release.tag_name }} # env, not inline: tag
-              run: | #  names can carry shell
-                  PKG="v$(node -p "require('./package.json').version")"
-                  test "$TAG" = "$PKG" || { echo "::error::tag $TAG does not match package.json $PKG (run npm version first)"; exit 1; }
-                  node tools/stamp-docs-version.mjs --check
+                  TAG: ${{ github.event.release.tag_name }}
+              run: bash tools/check-release-tag.sh "$TAG"
             - uses: actions/setup-python@v7
               with:
                   python-version: "3.12"
@@ -132,14 +120,7 @@ jobs:
               env:
                   MSMPL_NO_OPEN: "1" # no browser on a headless runner
               run: |
-                  "./$APP_LIB/Contents/Resources/bridge/microSAMPLER Library" &
-                  for i in $(seq 1 40); do
-                    curl -sf http://localhost:8766/api/status > /dev/null && break
-                    sleep 0.5
-                  done
-                  curl -sf http://localhost:8766/api/status | grep -q '"library": true'
-                  curl -sf http://localhost:8766/app.html | grep -q microSAMPLER
-                  curl -sf -X POST http://localhost:8766/api/shutdown | grep -q '"ok": true'
+                  bash tools/bundle/smoke_library.sh "./$APP_LIB/Contents/Resources/bridge/microSAMPLER Library"
                   # editor daemon: no device on the runner — must still serve, report
                   # daemon mode, and survive a claim attempt + release
                   "./$APP_ED/Contents/Resources/bridge/msmpl-bridge" &
