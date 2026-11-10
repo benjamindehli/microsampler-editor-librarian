@@ -287,7 +287,7 @@ def main():
         if not args.src or not os.path.isfile(os.path.join(args.src, 'manifest.json')):
             ap.error('restore needs a backup directory (with manifest.json)')
         target = ('the CURRENT bank (RAM)' if bank is None
-                  else f'USER BANK {args.bank} — PERSISTENT, saved to flash')
+                  else f'USER BANK {args.bank} (persistent: saved to flash)')
         print(f"About to OVERWRITE {target} with '{args.src}'.")
         if not args.yes and input("Continue? [y/N] ").lower() != 'y':
             print("aborted.")

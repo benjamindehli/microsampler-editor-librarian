@@ -203,10 +203,10 @@ def main():
             print("slot is empty (dataSize 0) — nothing more to fetch.")
             return 0
         if args.header_only:
-            print("WARNING: func 0x16 SELECTED this sample — the device now "
-                  "waits for the data dump and will refuse further commands "
-                  "until a full download of this slot or a POWER-CYCLE "
-                  "(hardware-verified; the param request does NOT release it).")
+            print("Warning: func 0x16 selected this sample. The device now waits "
+                  "for its data dump and refuses other commands until this slot "
+                  "is fully downloaded or the device is power-cycled (a param "
+                  "request doesn't release it).")
             return 0
 
         # ---- phase 2: PCM ---------------------------------------------------

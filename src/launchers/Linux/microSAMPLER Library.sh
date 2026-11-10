@@ -1,12 +1,12 @@
 #!/bin/bash
-# Double-clickable LIBRARY-mode starter for Linux — browse, play and export the
+# Double-clickable library-mode starter for Linux: browse, play and export the
 # samples in microSAMPLER bank backups (original Korg ".msmpl_bank" files, or
-# this app's ".zip" backups) with NO hardware connected. No sudo: library mode
+# this app's ".zip" backups) with no hardware connected. No sudo: library mode
 # never touches USB.
 #
 # Tip: some file managers open .sh files in a text editor instead of running
 # them. Mark this file executable / "Allow launching" first, or run it from a
-# terminal:   ./'Linux/microSAMPLER Library.sh'
+# terminal:   ./'microSAMPLER Library.sh'
 
 # If launched without a terminal (double-clicked), relaunch inside one so the
 # bridge output is visible.

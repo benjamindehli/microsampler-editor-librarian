@@ -1,11 +1,11 @@
 @echo off
 REM Double-clickable starter for the microSAMPLER editor on Windows.
 REM
-REM Windows support is EXPERIMENTAL and untested. Before this works you must:
+REM Windows support is experimental and untested. Before this works you must:
 REM   1. Install Python 3 (https://python.org) and add it to PATH.
-REM   2. pip install pyusb   and have a libusb-1.0 DLL available.
-REM   3. Switch the microSAMPLER's USB driver to WinUSB using Zadig
+REM   2. Switch the microSAMPLER's USB driver to WinUSB using Zadig
 REM      (https://zadig.akeo.ie/) so libusb can open the device.
+REM pyusb and the libusb DLL are bundled in native-tools\vendor.
 REM See the documentation for details.
 
 setlocal

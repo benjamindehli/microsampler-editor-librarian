@@ -1,8 +1,7 @@
 name: Release
 
-# When you publish a GitHub release (you write the notes), build the dist ZIP and
-# attach it as the release asset. You keep control of the notes; the matching,
-# correctly-named ZIP is produced and uploaded automatically.
+# When a GitHub release is published, build the dist ZIP and attach it to the
+# release (the release notes are written by hand).
 on:
     release:
         types: [published]

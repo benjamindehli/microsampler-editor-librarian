@@ -1,13 +1,13 @@
 #!/bin/bash
-# Submit ONE file to Apple notarization and wait for the verdict (CI helper).
+# Submit one file to Apple notarization and wait for the verdict (CI helper).
 #
 #   APPLE_ID=… APPLE_TEAM_ID=… APPLE_APP_PASSWORD=… tools/bundle/notarize.sh <file>
 #
-# NOT `notarytool submit --wait`: its internal polling aborts on the first
-# transient network error (seen: NSURLError -1009/-1001 after 1¾ h of an
-# Apple-side slow queue). Submit, take the id, poll ourselves — a blip is
-# then just one failed poll among many. Exits 0 only on Accepted; on
-# Invalid/Rejected it prints the notary log and exits 1.
+# Submits and polls here rather than using `notarytool submit --wait`, whose
+# polling aborts on the first transient network error (e.g. NSURLError -1009/
+# -1001 during a slow Apple queue); here a blip is just one failed poll.
+# Exits 0 only on Accepted; on Invalid/Rejected it prints the notary log and
+# exits 1.
 set -euo pipefail
 FILE="$1"
 AUTH=(--apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD")

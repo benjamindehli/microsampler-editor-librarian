@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Regenerate the docs/assets screenshots, demo video, and Library screenshot from
-the live app — the single source of truth for the asset pipeline (previously only
-described in prose).
+the live app: the single source of truth for the asset pipeline.
 
 It drives the mock bridge headless via Playwright at 1540x940 DSR=1, then
 downscales LANCZOS to the published sizes. Full-colour PNGs (no 256-quantize — that
@@ -18,7 +17,7 @@ Dev-only — not shipped, not a runtime dependency. Needs (all permissively lice
 Usage (from anywhere):
     python3 tools/capture_assets.py                  # regenerate everything
     python3 tools/capture_assets.py --only samples   # just the SAMPLES screenshot
-    python3 tools/capture_assets.py --only screenshots  # all 5 device screenshots
+    python3 tools/capture_assets.py --only screenshots  # all 6 device screenshots
     python3 tools/capture_assets.py --only demo      # the mp4/webm + poster
     python3 tools/capture_assets.py --only library   # just the Library screenshot
     python3 tools/capture_assets.py --out /tmp/check # write elsewhere (e.g. to verify)
@@ -47,8 +46,8 @@ sys.path.insert(0, os.path.join(ROOT, 'src', 'native-tools'))
 sys.path.insert(0, os.path.join(ROOT, 'test', 'e2e'))
 from fixtures import bridge, make_wav, msmpl_chunk
 
-CAP = (1540, 940)        # capture viewport (rail needs ~1519px; DSR=1 keeps PNGs lean)
-SHOT = (1000, 610)       # static screenshots + gif
+CAP = (1540, 940)        # capture viewport (rail needs ~1525px; DSR=1 keeps PNGs lean)
+SHOT = (1000, 610)       # static screenshots
 VID = (1280, 782)        # demo poster + mp4/webm
 DEMO_VIEWS = ['samples', 'effect', 'patterns', 'utility']
 MOCK_PORT = 8801
@@ -217,7 +216,7 @@ def capture_device(base, wav_path, tmp):
         f = os.path.join(tmp, 'editor.png')
         pg.screenshot(path=f)
         frames['editor'] = f
-        pg.keyboard.press('Escape')   # Esc discards + closes (the CANCEL button is gone)
+        pg.keyboard.press('Escape')   # Esc discards + closes
         pg.wait_for_timeout(200)
         # UPLOAD: open the dialog over the SAMPLES view with a WAV loaded (SLICE on)
         pg.locator('.view-btn[data-view="samples"]').click()

@@ -51,8 +51,8 @@ for (const { file, patterns } of targets) {
     const src = readFileSync(path, "utf8");
     let out = src;
     for (const [re, sub] of patterns) {
-        // every pattern must MATCH — if a rewrite made one vanish (e.g. the button
-        // was reworded), a silent no-op would leave the guard blind to that target
+        // every pattern must match: if a docs edit removes one (e.g. a reworded
+        // button), a silent no-op would leave the guard blind to that target
         if (!src.match(re)) {
             broken = true;
             console.error(`${file}: stamped pattern not found: ${re} — update tools/stamp-docs-version.mjs`);

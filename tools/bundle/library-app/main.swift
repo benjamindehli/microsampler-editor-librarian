@@ -20,12 +20,10 @@ import Foundation
 let uiURL = URL(string: "http://localhost:8766")!
 let bridgePort: UInt16 = 8766
 
-// Is the bridge accepting connections? A raw socket connect to an explicit
-// IPv4 127.0.0.1 — NOT URLSession, whose per-request proxy discovery + IPv6
-// (localhost → ::1) attempt stalled ~60 s EACH on localhost here, so the two
-// launch-time checks cost ~2 min before the window appeared (measured). A
-// POSIX connect is instant: immediate refusal when nothing listens, immediate
-// accept when it's up. Same approach the Python side already uses.
+// Is the bridge accepting connections? A raw socket connect to explicit IPv4
+// 127.0.0.1 answers instantly (refused or accepted). URLSession's proxy
+// discovery plus an IPv6 ::1 attempt for `localhost` can stall ~60 s per
+// request. The Python side checks the same way.
 func bridgeIsUp() -> Bool {
     let fd = socket(AF_INET, SOCK_STREAM, 0)
     if fd < 0 { return false }
@@ -63,10 +61,10 @@ func shellLog(_ msg: String) {
     }
 }
 
-// The user's DEFAULT browser first when it's a Chromium (already running &
-// healthy → its app-mode window opens instantly); otherwise probe the known
-// Chromium browsers. Forcing a non-default, possibly-cold Chrome via a new
-// instance was the cause of multi-minute stalls before an app window appeared.
+// The user's default browser first when it's a Chromium (already running, so
+// its app-mode window opens instantly); otherwise probe the known Chromium
+// browsers. Launching a new instance of a cold, non-default Chrome can stall
+// for minutes before the window appears.
 func browserOrder() -> [String] {
     let byBundleID = ["com.google.Chrome": "Google Chrome",
                       "com.microsoft.edgemac": "Microsoft Edge",

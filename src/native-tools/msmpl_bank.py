@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Read Korg microSAMPLER ".msmpl_bank" files — the bank backups the ORIGINAL
-Korg editor saved — and extract their samples. For owners who still have the
-backups but no longer have the hardware.
+"""Read Korg microSAMPLER ".msmpl_bank" files (the bank backups Korg's original
+editor saved) and extract their samples, patterns and bank blob. Works without
+the hardware.
 
 The file is a tree of 8-byte-tagged "6150…" chunks (32-byte header: 4B "6150",
 4B tag, u16 header-size=0x20, u32 payload-size, …):
@@ -10,7 +10,7 @@ The file is a tree of 8-byte-tagged "6150…" chunks (32-byte header: 4B "6150",
     6150BnkP  64-byte bank parameter blob (8-char name, u16 BPM*10 @8)
     6150SmpS  sample set → 36× 6150SmpD
       6150SmpD  per sample: 64-byte param blob + 8-byte header + raw 16-bit BE PCM
-    6150SeqS  sequence/pattern data
+    6150SeqS  sequence set → 6150SeqD per pattern (a SEQP blob)
     6150MfxD  master-effect blob (first 36 bytes = the device's packed effect)
 
 BnkP, the 36 SmpD param blobs and MfxD are byte-identical to the sections of
@@ -106,10 +106,12 @@ def _parse_bank(data):
                 if st != 'SeqD':
                     continue
                 blob = data[sb:sb + ss]
-                if len(blob) >= 8:              # SeqD pads past the SEQP's own
-                    used = struct.unpack_from('>I', blob, 4)[0]   # size (u32 BE
-                    if 0 < used <= len(blob):   # @4): 1312 vs 1308 — keep what
-                        blob = blob[:used]      # the device itself sends
+                # SeqD pads 4 bytes past the SEQP's own size (u32 BE @4, 1312 vs
+                # 1308): trim to what the device itself sends
+                if len(blob) >= 8:
+                    used = struct.unpack_from('>I', blob, 4)[0]
+                    if 0 < used <= len(blob):
+                        blob = blob[:used]
                 try:
                     p = P.parse_pattern(blob)
                     notes = len(p['notes']) if p else 0

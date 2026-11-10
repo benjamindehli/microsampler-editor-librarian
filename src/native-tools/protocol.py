@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
 Korg microSAMPLER SysEx + sample protocol (reverse-engineered from the original
-editor binary). Pure logic, no I/O — unit-testable. Used by the uploader on top
-of the msusb transport.
+editor binary). Pure logic, no I/O, unit-testable. Shared by all the tools and
+the bridge, on top of the msusb transport.
 
 Header bytes that the device expects:  F0 42 3g 7F <func> <payload> F7
   42=Korg, 3g=0x30|globalChannel, 7F=microSAMPLER model byte.
 
 Korg 7-bit data encoding (from SysExCommand::getSysExData tail): data is sent in
 groups of 7 bytes preceded by one "MSB" byte whose bit i holds bit7 of data
-byte i; the 7 data bytes follow with bit7 cleared. convert7to8 is the inverse.
+byte i; the 7 data bytes follow with bit7 cleared. korg_decode is the inverse.
 """
 
 SOX, EOX, KORG, MODEL = 0xf0, 0xf7, 0x42, 0x7f
@@ -110,11 +110,9 @@ def parse_sample_header(msg: bytes):
 def parse_param_blob(blob: bytes):
     """Decode a 64-byte PackedSampleParameter blob into fields.
 
-    flags8 (byte 8) — HARDWARE-DECODED 2026-06-08 by single-bit knob session:
-    bit7=LOOP, bits5-6=BPM SYNC (0 off / 1 time stretch / 2 pitch change),
-    bit4=REVERSE, bit3=FX SW. NOTE: bit7 is NOT an empty flag — it merely
-    LOOKED like one because initialized/empty slots default LOOP ON
-    (name 'INITSMPL', END=0). Emptiness test = END == 0."""
+    flags8 (byte 8): bit7 LOOP, bits5-6 BPM SYNC (0 off / 1 time stretch /
+    2 pitch change), bit4 REVERSE, bit3 FX SW. Test emptiness with END == 0:
+    init slots (name 'INITSMPL') default LOOP on, so bit 7 isn't an empty flag."""
     blob = bytes(blob[:64])
     f = blob[8]
     return {
@@ -251,9 +249,9 @@ def sequence_header_send(channel, seq_no, data_size):
 BANK_SEND_OK, BANK_SEND_ERR = {0x23}, {0x24, 0x29}
 
 
-# --- Pattern / sequence blob (1308 bytes, decoded 2026-06-05 from -----------
-# --- GetInitPatternPtr + ConvertToSmf/ConvertSeq in the original binary -----
-# Layout (ALL multi-byte fields BIG-endian):
+# --- Pattern / sequence blob (1308 bytes, decoded from GetInitPatternPtr + ---
+# --- ConvertToSmf/ConvertSeq in the original binary) ------------------------
+# Layout (all multi-byte fields big-endian):
 #   0x000 "SEQP"; 0x004 u32 size (0x51C); 0x008 u16 specified bars;
 #   0x00A u16 bars; 0x00C u32 = 8; 0x010 100*u32 bar-start offsets;
 #   0x1A0 64*0xFF reserved; 0x1E0 KEYBOARD-mode sample# (0xFF none — the
@@ -357,7 +355,7 @@ def _parse_smf(data):
     if division & 0x8000:
         raise ValueError('SMPTE time division not supported')
 
-    events = []                       # (tick96, seq#, kind, ch, a, b)
+    events = []                       # (tick96, seq#, ch, note, vel)
     programs = {}
     end_tick = 0
     track_name = None
@@ -576,13 +574,11 @@ def pattern_to_smf(blob, sample_channel=0, kbd_channel=1):
 
 
 def parameter_change(channel, obj, param, value):
-    """Live-edit Parameter Change (func 0x41) — THREE 14-bit LE values
-    (hardware-verified 2026-06-04; desc[5..7]=1; sent by
-    UsbSessionManager::sendParameterChangeMessage(obj, param, value)):
-      obj:   16 + sample slot for samples (bank/effect objects live below 16)
-      param: e.g. 16=LOOP, 17=BPM SYNC mode (0=off, 1=time stretch,
-             2=pitch change — user-verified), 18=REVERSE, 21=DECAY,
-             22=RELEASE, 28=TUNE
+    """Live-edit Parameter Change (func 0x41): three 14-bit LE values
+    (desc[5..7]=1; sent by UsbSessionManager::sendParameterChangeMessage):
+      obj:   0 = bank, 16 + slot = sample, 80 = effect
+      param: e.g. 16=LOOP, 17=BPM SYNC (0 off, 1 time stretch, 2 pitch
+             change), 18=REVERSE, 21=DECAY, 22=RELEASE, 28=TUNE (SAMPLE_PARAM)
       value: parameter value."""
     return bytes([SOX, KORG, fmt_byte(channel), MODEL, 0x41,
                   *pack14(obj), *pack14(param), *pack14(value), EOX])
@@ -592,16 +588,14 @@ SAMPLE_OBJ_BASE = 16          # object id of sample slot 0
 EFFECT_OBJ = 80              # object id of the bank effect (0x50)
 
 # Complete live-edit param-id map. The id is the `param` field of a func-0x41
-# message; object = SAMPLE_OBJ_BASE + slot. ALL HARDWARE-CONFIRMED by panel-
-# knob capture (2026-06-06): loop/bpm-sync/reverse/decay/release plus the
-# level/pan/semitone/tune/velo cluster. NOTE: the editor binary's
-# SampleParameterIdConverter table @0x25c220 did NOT match the device's real
-# panel id scheme for that cluster — trust the device, not the converter.
-# START/END/TEMPO are NOT live params: the converter refuses kinds 7..9, and
-# u32 frame counts can't fit a 14-bit value anyway — set them by patching the
-# 64-byte param blob (fetch func 0x14, modify, send func 0x44).
-# (no live id for sample tempo/ORIG BPM — it is display-only on the panel
-# and settable only at upload time via the 8-byte header, u16 BPM*10)
+# message; object = SAMPLE_OBJ_BASE + slot. All ids are confirmed on the
+# hardware by panel-knob capture. The editor binary's SampleParameterIdConverter
+# (@0x25c220) maps the level/pan/semitone/tune/velo cluster differently; these
+# are the ids the device uses.
+# START/END aren't live params (the converter refuses kinds 7..9, and u32 frame
+# counts don't fit 14 bits): patch the 64-byte param blob instead (fetch func
+# 0x14, modify, send func 0x44). The sample tempo (ORIG BPM) has no live id
+# either: it lives in the 8-byte upload header (u16 BPM*10).
 SAMPLE_PARAM = {
     'loop': 16, 'bpm_sync': 17, 'reverse': 18,
     'decay': 21, 'release': 22,
@@ -622,8 +616,8 @@ def effect_param(i):          # effect parameter index 0..31 -> live id
 def sample_header(channel, sample_no, data_size, rate_hz, stereo,
                   tempo_bpm=120.0, mode_bit=0):
     """Phase 1 of upload — SysEx func 0x42 (CommandId 9).
-    8-byte packed header: u32 dataSize, u16 tempo (0.1 BPM, 20.0..300.0 — the
-    once-mysterious SampleData+0xd0 field), flags, 0xFF; 7-bit encoded.
+    8-byte packed header: u32 dataSize, u16 tempo (0.1 BPM, 20.0..300.0;
+    SampleData+0xd0), flags, 0xFF; 7-bit encoded.
     Sample number carries the 0x40 bit (ParameterId 3, set by sendCommand)."""
     rate_code = RATE_CODE[rate_hz]
     flags = (1 if stereo else 0) | (rate_code << 2) | ((1 if mode_bit else 0) << 5)
@@ -644,20 +638,19 @@ def build_param_blob(name, long_name=None, start_frame=0, end_frame=0,
 
     With `template` (a blob downloaded from the device) only the names and
     start/end points are patched — everything else is kept verbatim. Without
-    one, unknown byte fields get the values observed on a real device sample
-    (hardware ground truth 2026-06-04)."""
+    one, the parameter bytes get the values observed on a fresh device sample."""
     if template is not None:
         blob = bytearray(template[:64].ljust(64, b'\xff'))
     else:
         blob = bytearray([0xff] * 64)
-        blob[8] = 0x00                       # flags (observed 0x00)
-        blob[0x14] = 127                     # param5 (Level?, observed 127)
-        blob[0x15] = 57                      # param6 (observed 57)
-        blob[0x17] = 101                     # param3 (Speed?, observed 101)
-        blob[0x18] = 64                      # param2 (Pan center?, observed 64)
+        blob[8] = 0x00                       # flags8: loop/sync/reverse/fx all off
+        blob[0x14] = 127                     # decay
+        blob[0x15] = 57                      # release
+        blob[0x17] = 101                     # level (AmpLevel index, 0 dB)
+        blob[0x18] = 64                      # pan centre
         blob[0x19] = 0x40                    # semitone 0
-        blob[0x1a] = 64                      # param1 (observed 64)
-        blob[0x1b] = 0x40                    # tune 0
+        blob[0x1a] = 64                      # tune (wire value, centre)
+        blob[0x1b] = 0x40                    # velo int 0
     blob[0:8] = name[:8].ljust(8).encode('latin1', 'replace')
     blob[0x0c:0x10] = start_frame.to_bytes(4, 'little')
     blob[0x10:0x14] = end_frame.to_bytes(4, 'little')
@@ -731,7 +724,7 @@ def _selftest():
     assert h[0] == 0xf0 and h[1] == 0x42 and h[3] == 0x7f and h[4] == 0x42
     assert h[5] == (5 | 0x40) and h[-1] == 0xf7
     # full sample param map: the 6 hardware-confirmed ids are present and the
-    # converter-derived ids are internally consistent (distinct, in range)
+    # all ids distinct
     assert SAMPLE_PARAM['loop'] == 16 and SAMPLE_PARAM['bpm_sync'] == 17
     assert SAMPLE_PARAM['reverse'] == 18 and SAMPLE_PARAM['decay'] == 21
     assert SAMPLE_PARAM['release'] == 22

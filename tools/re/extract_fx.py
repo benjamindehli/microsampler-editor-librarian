@@ -156,15 +156,15 @@ def extract(mem, strs):
 
 
 def xml_tables():
-    """The ms/Hz tables valueTables.js never included."""
+    """The ms/Hz value tables (not in valueTables.js)."""
     raw = open(XML, encoding='utf-8', errors='replace').read()
     out = {}
     for tbl in ['FxDelay_0_30', 'FxDelay_0_50', 'FxDelay_0_350',
                 'FxDelay_0_500', 'FxDelay_0_1400', 'FxFreq_0_12000']:
         m = re.search(r'<%s>(.*?)</%s>' % (tbl, tbl), raw, re.S)
-        # XML-unescape the attribute text: a raw regex grab leaves entities
-        # literal, which is how "S&amp;H" (Sample & Hold) once shipped as the
-        # display string "S&AMP;H". html.unescape handles &amp;/&AMP;/numeric.
+        # XML-unescape the attribute text (a raw regex grab leaves entities
+        # literal, e.g. "S&amp;H" for Sample & Hold); html.unescape handles
+        # &amp; / &AMP; / numeric entities
         out[tbl] = [html.unescape(t) for t in re.findall(r'Text="([^"]*)"', m.group(1))] if m else []
     return out
 

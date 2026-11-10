@@ -69,8 +69,8 @@ GONE_MSG = ('microSAMPLER disconnected (switched off, unplugged, or the '
 def usb_gone(e):
     """True for libusb NO_DEVICE ('No such device (it may have been
     disconnected)', errno ENODEV): the device was unplugged/power-cycled or
-    the host slept. The handle is dead for GOOD — a returning device
-    re-enumerates as a new one — so only a fresh open() recovers. Walks the
+    the host slept. The handle can't recover (a returning device
+    re-enumerates as a new one), so only a fresh open() works. Walks the
     cause/context chain: download/upload helpers may re-raise it wrapped."""
     for _ in range(5):
         if e is None:
@@ -85,10 +85,10 @@ class TooLarge(RuntimeError):
     """A request body or zip import over its size cap — HTTP 413."""
 
 
-# Size caps (A10: a huge body or a zip bomb would otherwise exhaust memory or
-# fill the disk). Generous vs real use: the device's whole sample pool is
-# 14.6 MB, a full backup is ~55 files — but a WAV upload arrives BEFORE
-# conversion, so a long 24-bit/96 kHz source can be several times that.
+# Size caps, so a huge body or a zip bomb can't exhaust memory or fill the
+# disk. Generous vs real use: the device's whole sample pool is 14.6 MB and a
+# full backup is ~55 files, but a WAV upload arrives before conversion, so a
+# long 24-bit/96 kHz source can be several times that.
 MAX_BODY = 256 << 20                  # any request body
 MAX_ZIP_BYTES = 64 << 20              # a backup zip, uncompressed total
 MAX_ZIP_FILES = 1000                  # … and member count
@@ -193,14 +193,13 @@ class Device:
             ms = _fresh_ms()
             reply, cable = _inquire(ms)
             if not reply:
-                # Last-resort recovery: a USB port reset re-enumerates the device
-                # and clears a stuck endpoint, so an intermittently wedged device
-                # often comes back WITHOUT a physical power-cycle. Only runs once
-                # the drained retries above have failed, so the normal open path
-                # is untouched. A deeper wedge can need a SECOND reset and a
-                # longer settle for macOS to finish re-enumerating; some still
-                # need a real power-cycle (the firmware, not USB, is stuck) — the
-                # final message says so. Reset invalidates the handle → reopen.
+                # Last-resort recovery after the drained retries above: a USB
+                # port reset re-enumerates the device and clears a stuck
+                # endpoint, so an intermittently wedged device often comes back
+                # without a power-cycle. A deeper wedge can need a second reset
+                # and a longer settle while macOS re-enumerates; some still need
+                # a real power-cycle (the firmware is stuck), which the final
+                # message says. A reset invalidates the handle, so reopen.
                 for settle in (0.7, 1.5):
                     try:
                         ms.dev.reset()
@@ -253,10 +252,10 @@ class Device:
                 self.ms = None
 
     def maybe_claim(self):
-        """DAEMON mode: lazily (re)claim the device — called when the editor
-        page loads or the bank is (re)read, NOT on passive status polls (the
+        """Daemon mode: lazily (re)claim the device. Called when the editor
+        page loads or the bank is (re)read, not on passive status polls (the
         menu-bar app polls /api/status and must never grab the USB device).
-        Failed attempts are throttled and attempts are SERIALIZED: repeated
+        Failed attempts are throttled and attempts are serialized: repeated
         fast open() cycles are exactly what wedges the device's USB stack
         (see the reopen-wedge gotcha), so a second concurrent trigger (two
         tabs, page load + focus resync) must wait and then see the first
@@ -302,8 +301,7 @@ class Device:
         report it as an open failure — so status() goes 'not connected' (the
         UI shows its connection helper), RETRY's open() isn't short-circuited
         by the stale self.ms, and the daemon's maybe_claim() re-claims on the
-        next editor visit. Without this every op failed with errno 19 until
-        the bridge was restarted. Returns whether it was dropped."""
+        next editor visit. Returns whether it was dropped."""
         if not usb_gone(e):
             return False
         was = self.ms is not None
@@ -321,7 +319,7 @@ class Device:
         self.open_error = GONE_MSG
         self._claim_fail_at = 0.0       # its return may be re-claimed at once
         if was:
-            # tell open pages NOW, once — the reader catches an idle unplug
+            # tell open pages now, once: the reader catches an idle unplug
             # too, so the helper appears without waiting for a failed op
             self._emit({'type': 'device', 'connected': False, 'gone': True,
                         'error': GONE_MSG})
@@ -623,20 +621,16 @@ class Device:
         return {'a': a, 'b': b}
 
     def clear_sample(self, slot):
-        """Empty a slot in the current bank (RAM) using two VERBATIM proven
-        flows, each in its own inquired session (no novel intra-session
-        ordering):
-          1. 0-size header — frees the audio (the old clear; confirmed to free
-             the data on hardware).
-          2. the exact rename()/set_points() param-write — fetch the blob
-             (func 0x14), blank the name + zero START/END, write back (func
-             0x44). END==0 is the bank's emptiness marker (@0x10); the header
-             alone leaves END/name stale, so the bank kept reporting the slot
-             as a non-empty sample and the GUI showed the old name. The 0x44
-             only lands when a func 0x14 fetch precedes it in the SAME clean
-             session — which is why an earlier "header then 0x44" attempt
-             didn't reset the param. Step 2 runs last so END=0 is the final
-             state."""
+        """Empty a slot in the current bank (RAM) with two hardware-proven
+        flows, each in its own inquired session:
+          1. a 0-size header frees the audio.
+          2. the rename()/set_points() param write: fetch the blob (func 0x14),
+             blank the name + zero START/END, write it back (func 0x44).
+             END == 0 (@0x10) is the bank's emptiness marker; the header alone
+             leaves END and the name stale, so the slot would still read as a
+             sample. A 0x44 only lands when a 0x14 fetch precedes it in the
+             same clean session, hence the separate session. Step 2 runs last
+             so END == 0 is the final state."""
         # 1. free the audio data (own session)
         self.write_sample(slot, {'empty': True})
         # 2. reset the param blob (own session, identical to rename())
@@ -729,7 +723,7 @@ class Device:
         threading.Thread(target=run, daemon=True).start()
 
     def play_pattern(self, q, bpm=120):
-        """Select a pattern + start the sequencer on the DEVICE. Owner's manual
+        """Select a pattern + start the sequencer on the device. Owner's manual
         MIDI guide (p.45-46): select the [PATTERN] dial via NRPN
         [Bn 63 20, Bn 62 01, Bn 06 mm] on the GLOBAL channel; per the value
         table mm 0-7→pattern 1 … 120-127→pattern 16, so 0-based pattern q ⇒
@@ -737,10 +731,9 @@ class Device:
         advances it) and send system-realtime Start (0xFA). send_short derives
         the USB-MIDI CIN automatically (0xB CC, 0xF single-byte real-time)."""
         mm = max(0, min(127, int(q) * 8))
-        # Always STOP first: a pattern-select (NRPN) doesn't register while the
-        # sequencer is running, and a Start during playback just restarts the
-        # CURRENT pattern — so switching patterns mid-play would replay the old
-        # one. Stop, let the device settle, then select + start the new one.
+        # Always stop first: a pattern select (NRPN) doesn't register while the
+        # sequencer runs, and a Start during playback restarts the current
+        # pattern. So stop, let the device settle, then select + start.
         self._stop_clock()
         with self.lock:
             self._require_device()
@@ -819,11 +812,10 @@ class Device:
         return {'ok': True}
 
     def bank_summary(self):
-        """Bank blob only, then leave dump mode. NO per-slot header requests:
-        func 0x16 opens a dump session that ONLY a data dump (0x1F) closes
-        (hardware-traced 2026-06-05; the 0x14 param request does NOT close it
-        — the original's Target=1 flow is dead code). Rate/length are filled
-        in lazily by the client from the WAV when a sample is downloaded."""
+        """Bank blob only, then leave dump mode. Never request per-slot headers:
+        func 0x16 opens a dump session that only a 0x1F data dump closes (a
+        0x14 param request doesn't). Rate/length are filled in lazily by the
+        client from the WAV when a sample is downloaded."""
         self._quiesce()
         with self.lock:
             self._inquire()
@@ -860,9 +852,8 @@ class Device:
 
     @staticmethod
     def _slot_json(i, par):
-        # empty/init slots have END == 0 (name 'INITSMPL', hardware-dumped
-        # 2026-06-08). NOT flags8 bit7 — that is LOOP, which merely defaults
-        # ON for initialized slots (the old bit7 test hid looping samples!).
+        # empty/init slots have END == 0 (name 'INITSMPL'). flags8 bit 7 is
+        # LOOP, which init slots default on, so it can't be the empty test.
         out = {'slot': i,
                'empty': par['u32_10'] in (0, 0xFFFFFFFF)}
         if not out['empty']:
@@ -936,7 +927,7 @@ class Device:
 
     def sample_params(self, slot):
         """Diagnostic: fetch a sample's raw 64-byte param blob (standalone
-        func 0x14, session-safe). Use THIS instead of `msusb.py params` for
+        func 0x14, session-safe). Use this instead of `msusb.py params` for
         repeated dumps — one-shot CLI sessions wedge the device's TX FIFO
         (nothing drains the clock stream after exit); the bridge's reader
         keeps draining."""
@@ -953,7 +944,7 @@ class Device:
         """Set START/END points. These are u32 frame counts — they don't fit a
         live 0x41 value (14-bit), and the editor binary's id converter refuses
         them — so (like the original) they go via the 64-byte param blob:
-        fetch the CURRENT blob (func 0x14, session-safe — does not open or
+        fetch the current blob (func 0x14, session-safe: it doesn't open or
         close a select session), patch the two u32s, send it back (func 0x44).
         Fetching first means panel edits made since the bank read survive."""
         with self.lock:
@@ -1219,10 +1210,8 @@ class MockDevice(Device):
                 continue
             frames = len(s['pcm']) // 2 // (2 if s['stereo'] else 1)
             start, end = s.get('points', (0, frames - 2))
-            # NB: like the real bank summary, do NOT include rate/stereo/
-            # frames/seconds — those aren't in the bank blob and only become
-            # known once a sample's WAV is loaded (so the meter starts
-            # estimated and LOAD ALL is offered, matching hardware).
+            # like the real bank summary: no rate/stereo/frames/seconds, which
+            # aren't in the bank blob and arrive with the sample's WAV
             slots.append({'slot': i, 'empty': False, 'name': s['name'],
                           'long_name': s['name'].title(), 'tempo_bpm': s['tempo'],
                           'start': start, 'end': end, 'level': 101,
@@ -1328,11 +1317,11 @@ def _pattern_json(q, blob):
 
 
 def backup_dir(dirname):
-    """Resolve a backup name (arrives in an HTTP body — untrusted) to a
-    directory STRICTLY inside BACKUP_ROOT. Allowlist the characters, reject
-    dot-names, and verify realpath containment (also defuses symlinks). The
-    realpath + `startswith(root + os.sep)` prefix guard is the form static
-    analysis recognises as a path-traversal sanitizer."""
+    """Resolve a backup name (from an HTTP body, so untrusted) to a directory
+    directly inside BACKUP_ROOT: allowlist the characters, reject dot-names,
+    and check realpath containment (which also defuses symlinks). The
+    `startswith(root + os.sep)` form is what static analysers recognise as a
+    path-traversal guard."""
     name = str(dirname)
     if not re.match(r'^[A-Za-z0-9._-]+$', name) or name.strip('.') == '':
         raise RuntimeError('invalid backup name: %r' % dirname)
@@ -1344,11 +1333,9 @@ def backup_dir(dirname):
     return src
 
 
-# Sample files: on disk a backup keeps the 0-based machine names sNN.wav /
-# sNN.param.bin (what restore, cherry-pick and older versions read), but the
-# ZIP a person downloads names them like the PADS — 1-based + note + sample
-# name, "01 C3 KICK.wav" — so a file lines up with its pad (user-reported:
-# s00 = pad 01 read as off by one). Import maps either form back.
+# Sample files: on disk a backup uses 0-based sNN.wav / sNN.param.bin; the ZIP a
+# person downloads names them like the pads (1-based + note + sample name,
+# "01 C3 KICK.wav") so each file lines up with its pad. Import accepts both.
 _NOTE_NAMES = ('C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B')
 _DISK_SAMPLE = re.compile(r'^s(\d{2})(\.wav|\.param\.bin)$')
 _ZIP_SAMPLE = re.compile(r'^(\d{2}) [^/]*?(\.param\.bin|\.wav)$')
@@ -1369,7 +1356,7 @@ def zip_sample_name(slot, name, ext):
 
 def disk_sample_name(fname):
     """Inverse of zip_sample_name: '01 C3 KICK.wav' → 's00.wav'. Anything else
-    (incl. the old sNN names) comes back unchanged."""
+    (e.g. sNN names) comes back unchanged."""
     m = _ZIP_SAMPLE.match(fname)
     if m and 1 <= int(m.group(1)) <= 36:
         return 's%02d%s' % (int(m.group(1)) - 1, m.group(2))
@@ -1600,9 +1587,9 @@ def import_msmpl_bank(data):
 
 def restorable_dir(dirname):
     """The backup's directory, if it can be written back to a device: RESTORE
-    sends its bank.bin (device backups, and Korg .msmpl_bank imports since
-    msmpl_bank.bank_blob — older imports lack it). Checked BEFORE the op starts, so the user gets a clear
-    error instead of a failed restore. `dirname` is untrusted HTTP input."""
+    sends its bank.bin, so a backup without one can't be restored. Checked
+    before the op starts, so the user gets a clear error instead of a failed
+    restore. `dirname` is untrusted HTTP input."""
     src = backup_dir(dirname)
     if not os.path.isfile(os.path.join(src, 'manifest.json')):
         raise RuntimeError('unknown backup: %s' % dirname)
@@ -2107,8 +2094,8 @@ def main():
                          'backups + original .msmpl_bank files, no device needed')
     ap.add_argument('--daemon', action='store_true',
                     help='background-service mode (the Editor .app\'s launchd '
-                         'daemon): start UNCLAIMED, claim lazily when the editor '
-                         'opens, auto-release after idle (MSMPL_IDLE_RELEASE s)')
+                         'daemon): start without claiming the device, claim it when '
+                         'the editor opens, release it after MSMPL_IDLE_RELEASE s idle')
     ap.add_argument('--no-reader', action='store_true',
                     help='disable the background panel-edit reader (diagnostic; '
                          'the /api/events stream stays silent)')

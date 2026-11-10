@@ -1,16 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
-# PyInstaller spec for the BUNDLED 'microSAMPLER Library' bridge (hardware-free
+# PyInstaller spec for the bundled 'microSAMPLER Library' bridge (hardware-free
 # librarian; no USB, no sudo). Build (from the repo, PyInstaller installed):
 #
 #   pyinstaller --noconfirm --distpath dist/bundle --workpath build/bundle \
 #     tools/bundle/library.spec
 #
-# → dist/bundle/microSAMPLER Library/   onedir: the Linux AppImage payload, AND
+# → dist/bundle/microSAMPLER Library/   onedir: the Linux AppImage payload, and
 #                                       what make_library_app.sh embeds into the
-#                                       macOS .app. A Swift shell supervises it
-#                                       there — a plain frozen process has no
-#                                       macOS app lifecycle: no reopen handling,
-#                                       no ⌘Q, ghost "not open anymore" states.
+#                                       macOS .app, where a Swift shell
+#                                       supervises it (see library-app/main.swift).
 #
 # Bundles the RAW src/web-editor/ (no build step — served as-is like in dev) and
 # the native-tools python modules. vendor/ (pyusb + libusb) is deliberately
@@ -41,9 +39,11 @@ exe = EXE(
     a.scripts,
     exclude_binaries=True,
     name=APP_NAME,
-    console=True,                        # a supervised child process, not a GUI
-    icon=ICON,                           # app; logs go to the user-data dir
-    codesign_identity=None,              # (see library_app.py). Signing happens
-    entitlements_file=None,              # in CI, post-assembly.
+    # a supervised child process, not a GUI app; logs go to the user-data dir
+    # (see library_app.py). Signing happens in CI, after assembly.
+    console=True,
+    icon=ICON,
+    codesign_identity=None,
+    entitlements_file=None,
 )
 coll = COLLECT(exe, a.binaries, a.datas, name=APP_NAME)

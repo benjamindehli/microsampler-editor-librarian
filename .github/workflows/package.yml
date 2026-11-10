@@ -77,11 +77,9 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                    # macos-14 retired 2026-11-02 (brownouts before that); the
-                    # Swift shells pin their minimum macOS via swiftc -target
+                    # arm64 runner; the Swift shells pin their minimum macOS via swiftc -target
                     - { runner: macos-15, arch: arm64 }
-                    # macos-13 (the old Intel label) is retired — macos-15-intel is
-                    # GitHub's current x86_64 image; update again when that one goes
+                    # x86_64 runner; replace when GitHub retires this image
                     - { runner: macos-15-intel, arch: x86_64 }
         env:
             HAVE_SIGNING: ${{ secrets.MACOS_CERT_P12 != '' }}
@@ -187,7 +185,7 @@ jobs:
                   APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
                   APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
               run: |
-                  # ONE submission for both apps (Apple scans everything in the zip)
+                  # one submission for both apps (Apple scans everything in the zip)
                   mkdir build/notarize
                   ditto "$APP_LIB" "build/notarize/$(basename "$APP_LIB")"
                   ditto "$APP_ED" "build/notarize/$(basename "$APP_ED")"
@@ -195,9 +193,9 @@ jobs:
                   tools/bundle/notarize.sh build/notarize.zip
                   tools/bundle/staple.sh "$APP_LIB" "$APP_ED"
 
-            # DMG, not zips: drag-installing from a mounted DMG is the one install
-            # path macOS never App-Translocates (the zip flow reliably did, blocking
-            # SMAppService until a manual de-quarantine — user-hit twice)
+            # DMG, not zips: an app dragged from a mounted DMG is never
+            # App-Translocated; a quarantined zip extract is, and that blocks
+            # SMAppService until the app is manually de-quarantined
             - name: Build DMG (both apps + Applications shortcut)
               run: |
                   VERSION=$(node -p "require('./package.json').version")

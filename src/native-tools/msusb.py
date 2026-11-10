@@ -8,15 +8,18 @@ UsbMidiInterpreter::createPackets):
     packets and written to bulk OUT (0x01).
   * The device streams MIDI Timing Clock (0xF8) continuously, so the receiver
     must filter System Real-Time bytes while reassembling SysEx replies.
-  * Bulk sample payloads are sent as RAW 8-bit bytes (see send_raw_blocks) — used by the
-    uploader, not here.
+  * Bulk sample payloads are raw 8-bit bytes (send_raw_blocks), used by the
+    upload and bank tools.
 
-This module provides the transport plus an `inquiry`/`monitor` CLI to validate
-the connection. pyusb + libusb are vendored (see vendor/), so nothing needs
-installing beyond Python 3 itself. Run it with sudo on macOS (CoreMIDI holds the
-interface):
-    sudo python3 msusb.py inquiry
-    sudo python3 msusb.py monitor
+This module provides the transport plus a diagnostic CLI. pyusb + libusb are
+vendored (see vendor/), so nothing needs installing beyond Python 3. Run it with
+sudo on macOS (CoreMIDI holds the interface):
+    sudo python3 msusb.py inquiry      device inquiry: is it there, which cable?
+    sudo python3 msusb.py monitor      print incoming panel edits (SysEx)
+    sudo python3 msusb.py params N     dump slot N's 64-byte param blob
+    sudo python3 msusb.py raw|debug    low-level packet dumps
+    sudo python3 msusb.py play|listen  audible / receive bring-up tests
+    python3 msusb.py selftest          offline packet-codec self-test
 """
 import logging, os, platform, sys, time
 
@@ -65,7 +68,7 @@ _add_vendored_pyusb()
 logging.getLogger("usb").setLevel(logging.CRITICAL)
 
 # ---------------------------------------------------------------------------
-# USB-MIDI 4-byte event packet codec  (cable 0)
+# USB-MIDI 4-byte event packet codec
 # ---------------------------------------------------------------------------
 def to_usb_midi(midi: bytes, cable: int = 0) -> bytes:
     """Encode a MIDI byte stream (here: one whole SysEx F0..F7) into 4-byte

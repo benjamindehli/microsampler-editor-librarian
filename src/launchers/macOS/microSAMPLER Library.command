@@ -31,8 +31,8 @@ PY="$(command -v python3 || true)"
 [ -n "$PY" ] || pause_exit "python3 not found in PATH"
 echo "python: $PY"
 
-PORT=8766                 # library mode has its own port — never collides with
-URL="http://localhost:$PORT"   # a device bridge on 8765
+PORT=8766                 # library mode uses 8766; the device bridge uses 8765
+URL="http://localhost:$PORT"
 port_open() { (exec 3<>"/dev/tcp/127.0.0.1/$PORT") 2>/dev/null; }
 open_ui() { open -na "Google Chrome" --args --app="$URL" 2>/dev/null || open "$URL"; }
 

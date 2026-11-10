@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """End-to-end smoke test: boot the mock bridge, drive the web app in a headless
 browser, and assert it loads and the core interactions work with NO page or
-console errors. Catches frontend regressions the unit/offline suites can't —
-e.g. a module that throws at import time (the missing `api` import once did).
+console errors. Catches frontend regressions the unit/offline suites can't,
+e.g. a module that throws at import time.
 
 Dev/CI only — needs Playwright:
     pip install playwright && playwright install chromium

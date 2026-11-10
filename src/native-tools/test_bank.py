@@ -31,8 +31,8 @@ class FakeMS:
         self.cur_seq = None
         self.left_dump = None
         self.selected = None     # hardware rule: 0x16 on a non-empty slot
-                                 # SELECTS it; next 0x16 -> error 0x29 until
-                                 # the session completes via 0x1F or 0x14
+                                 # selects it; another 0x16 -> error 0x29 until
+                                 # a 0x1F data dump closes the session
 
     def send_short(self, status, d1=0, d2=0, cable=None):
         pass        # short MIDI msgs (e.g. the Stop sent before a dump) — no-op
@@ -61,10 +61,9 @@ class FakeMS:
                 self.selected = self.cur_sample
             self._push_sysex(bytes([0xf0, 0x42, 0x30, 0x7f, 0x42, midi[5],
                                     *P.korg_encode(hdr), 0xf7]))
-        elif func == 0x14:                     # param request — does NOT close
-            # the select session (hardware-verified 2026-06-05; the original's
-            # Target=1 flow is dead code on real firmware). Works standalone
-            # too — real firmware answers for the slot named IN the message.
+        elif func == 0x14:                     # param request: doesn't close
+            # the select session. Also works standalone: the firmware answers
+            # for the slot named in the message.
             q = midi[5] & 0x3f
             if q in getattr(self, 'w_params', {}):
                 blob = bytes(self.w_params[q])
@@ -136,8 +135,8 @@ class FakeMS:
 blob = bytearray([0xff] * P.BANK_BLOB_SIZE)
 blob[0:8] = b'TESTBANK'
 blob[8:10] = (905).to_bytes(2, 'little')              # 90.5 BPM
-# realistic EMPTY/init param blobs (hardware-dumped 2026-06-08): name
-# INITSMPL, flags8 0x80 (init default = LOOP ON), START=END=0
+# realistic empty/init param blobs, as dumped from the hardware: name
+# INITSMPL, flags8 0x80 (init default = LOOP on), START=END=0
 for q in range(36):
     o = 0x40 + q * 0x40
     blob[o:o + 8] = b'INITSMPL'

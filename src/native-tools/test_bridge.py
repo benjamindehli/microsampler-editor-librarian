@@ -215,8 +215,7 @@ assert st == 200
 st, _, data = req('GET', '/api/bank')
 assert json.loads(data)['slots'][6]['name'] == 'MY KIT'
 
-# a non-WAV upload body is client input → 400 (and must not kill the handler
-# thread — load_wav used to raise SystemExit, which except Exception misses)
+# a non-WAV upload body is client input → 400, and must not kill the handler thread
 st, _, _ = req('POST', '/api/sample/7?name=BAD', body=b'this is not a wav')
 assert st == 400
 
@@ -281,7 +280,7 @@ imp = json.loads(data)
 assert st == 200 and imp['note_count'] == 20 and imp['bars'] == 4, imp
 st, _, mid5 = req('GET', '/api/pattern/5.mid')
 assert mid5 == mid0                       # converters reach a fixpoint
-# init endpoint resets notes but keeps the sample assignment (was 0)
+# init endpoint resets notes but keeps the sample assignment
 st, _, data = req('POST', '/api/pattern/5/init')
 ini = json.loads(data)
 assert ini['note_count'] == 0 and ini['name'] == 'INITPTRN' and ini['sample'] == 0
@@ -296,7 +295,7 @@ assert bk2['name'] == 'MYBANK' and bk2['bpm'] == 98.5
 st, _, _ = req('POST', '/api/bank/settings', body=json.dumps({'name': ''}))
 assert st == 400
 
-# --- sample params (authoritative switch state for self-heal) --------------------
+# --- sample params (diagnostic read of a slot's switch state) ---------------------
 st, _, data = req('GET', '/api/sample/1/params')
 pp = json.loads(data)
 assert pp['empty'] is False and pp['loop'] is True and pp['fx_sw'] is False
@@ -440,9 +439,9 @@ assert st == 200
 
 srv.shutdown()
 
-# --- real Device paths against the fake transport (regression: the device
-# requires a fresh inquiry per session; the bank summary must be blob-only —
-# bare func 0x16 selects would strand the device's sample-select state)
+# --- real Device paths against the fake transport: every session starts with a
+# fresh inquiry, and the bank summary is blob-only (bare func 0x16 selects would
+# strand the device in a sample-select session)
 from test_bank import FakeMS, FakeWriteDev, FakeWriteMS, blob, samples, seqs
 
 real = B.Device()
@@ -454,8 +453,8 @@ assert out['name'] == 'TESTBANK'
 assert len(out['effect']['params']) == 32          # packed @0x950 -> JSON
 assert len(out['seq_lengths']) == 16               # pattern storage units
 used = [s for s in out['slots'] if not s['empty']]
-# emptiness = END==0, NOT flags8 bit7 (bit7 is LOOP — a looping used sample
-# must NOT vanish as "empty"; regression for the 2026-06-08 discovery)
+# emptiness = END==0, not flags8 bit7 (bit7 is LOOP: a looping sample must
+# not read as empty)
 assert len(used) == 2, [s['slot'] for s in used]
 assert used[0]['name'] == 'SMPA' and used[0]['end'] == 62
 assert used[0]['loop'] is False and used[0]['bpm_sync'] == 0
@@ -464,7 +463,7 @@ assert used[1]['bpm_sync'] == 1 and used[1]['fx_sw'] is True
 assert used[1]['reverse'] is False
 assert real.ms.left_dump == 1                  # committed leave-dump-mode
 assert real.ms.selected is None                # no select session left open
-wavbytes, wavtempo = real.download_wav(0)       # now returns (bytes, orig BPM)
+wavbytes, wavtempo = real.download_wav(0)       # (bytes, orig BPM)
 with wave.open(io.BytesIO(wavbytes)) as w:
     assert w.getnframes() == 64
 assert wavtempo is not None                     # orig BPM rides the header
@@ -613,8 +612,8 @@ assert rs.op['done'] and rs.op['ok'], rs.op['lines']
 assert rs.ms.w_bank == 4 and rs.ms.left_dump == 1
 assert bytes(rs.ms.w_samples[0][1]) == samples[0][1]      # PCM round-trips
 
-# RESTORE needs bank.bin: device backups have one, a complete Korg .msmpl_bank
-# import now gets one, and an older import without it is refused up front
+# RESTORE needs bank.bin: device backups and complete Korg .msmpl_bank imports
+# have one; a backup without it is refused up front
 from test_msmpl import build_bank, build_full_bank
 _full = B.import_msmpl_bank(build_full_bank()[0])
 _part = B.import_msmpl_bank(build_bank('PARTIAL')[0])    # no MfxD → no bank.bin
@@ -733,7 +732,7 @@ _s0 = next(s for s in _m['samples'] if not s['empty'])
 assert 'samples/' + B.zip_sample_name(_s0['slot'], _s0['name'], '.wav') in zsamples
 _disk = sorted(os.listdir(os.path.join(B.BACKUP_ROOT, res['dir'], 'samples')))
 assert sorted(os.listdir(os.path.join(B.BACKUP_ROOT, newdir, 'samples'))) == _disk
-# an OLD-style zip (sNN names, made by v1.17.4 and earlier) still imports as-is
+# a zip with sNN-style sample names still imports as-is
 old = io.BytesIO()
 with _zf.ZipFile(old, 'w') as z:
     z.writestr('OLDBANK/manifest.json', '{}')
@@ -790,7 +789,7 @@ try:
 except RuntimeError as e:
     assert 'invalid backup name' in str(e)
 
-# busy guard: second op while one runs must 409 at the device layer
+# busy guard: a second op while one runs is refused at the device layer
 try:
     bk.op['done'] = False
     bk.start_backup()

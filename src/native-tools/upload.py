@@ -148,10 +148,10 @@ def main():
     ap.add_argument('--dry-run', action='store_true',
                     help='convert + print everything; do not touch the device')
     ap.add_argument('--header-only', action='store_true',
-                    help='send only phase 1 (DEVICE WILL WAIT FOR PCM — '
+                    help='send only phase 1 (the device then waits for PCM: '
                          'power-cycle it afterwards)')
     ap.add_argument('--verify', action='store_true',
-                    help='read the sample back in the SAME session afterwards '
+                    help='read the sample back in the same session afterwards '
                          'and compare byte-for-byte (recommended)')
     ap.add_argument('--yes', action='store_true', help='skip the overwrite prompt')
     args = ap.parse_args()
@@ -210,7 +210,7 @@ def main():
                                           stereo, tempo_bpm=args.tempo))
             _wait_korg_reply(ms, P.UPLOAD_HDR_OK, P.UPLOAD_HDR_ERR,
                              timeout_ms=8000, what='header ACK')
-            print("header ACKed — STOPPING (power-cycle the device now).")
+            print("header ACKed; stopping here (power-cycle the device now).")
             return 0
 
         upload(ms, channel, args.slot, pcm, rate, stereo, blob, args.tempo)

@@ -61,7 +61,7 @@ def open_ui(url):
 
 def resource_root():
     """Where bundled data files live: PyInstaller extracts datas next to the
-    binary (_MEIPASS); unfrozen = the repo root (two levels up from here)."""
+    binary (_MEIPASS); unfrozen = the repo's src/ directory."""
     if getattr(sys, 'frozen', False):
         return sys._MEIPASS
     return os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -95,9 +95,9 @@ def port_free(port):
     try:
         s = socket.socket()
         # SO_REUSEADDR so this pre-check matches the actual server (HTTPServer
-        # sets allow_reuse_address): without it, a just-killed bridge's socket
-        # in TIME_WAIT makes this falsely report "busy", which sent the child
-        # to a random port the shell can't find → "Library not responding".
+        # sets allow_reuse_address): otherwise a just-killed bridge's socket in
+        # TIME_WAIT reads as "busy" and the child moves to a port the Swift
+        # shell doesn't know.
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind(('127.0.0.1', port))
         s.close()
