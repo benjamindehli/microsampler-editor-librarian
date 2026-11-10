@@ -65,6 +65,9 @@ jobs:
               run: |
                   npm ci
                   npm test
+            # the release build (fails if app.html's stylesheets aren't merged into css/app.css)
+            - name: release build
+              run: npm run build
 
     lint:
         name: lint (ruff + eslint)
