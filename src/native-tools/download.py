@@ -140,14 +140,14 @@ def fetch_params(ms, channel, sample_no):
     return par
 
 
-def be_pcm_to_le(pcm):
-    # Wire PCM is 16-bit signed BIG-endian (setByPackedData: first byte << 8);
-    # WAV wants little-endian, so swap. array.byteswap is fast and portable —
-    # audioop.byteswap was removed in Python 3.13, so don't reach for it.
+def swap16(pcm):
+    """Swap the byte order of 16-bit samples: device wire PCM (big-endian,
+    setByPackedData reads the first byte << 8) ⇄ WAV (little-endian). The swap
+    is its own inverse, so it serves both directions. Uses array.byteswap
+    (audioop.byteswap is gone in Python 3.13)."""
     samples = array.array('h')
     samples.frombytes(pcm[:len(pcm) & ~1])
-    if sys.byteorder == 'little':
-        samples.byteswap()
+    samples.byteswap()
     return samples.tobytes()
 
 
@@ -158,7 +158,7 @@ def pcm_to_wav_bytes(pcm, rate_hz, stereo):
         w.setnchannels(2 if stereo else 1)
         w.setsampwidth(2)
         w.setframerate(rate_hz)
-        w.writeframes(be_pcm_to_le(pcm))
+        w.writeframes(swap16(pcm))
     return buf.getvalue()
 
 

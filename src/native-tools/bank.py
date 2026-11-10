@@ -39,12 +39,12 @@ Usage (sudo: CoreMIDI owns the interface):
   sudo python3 bank.py restore bank_current   # directory -> current bank (RAM)
   sudo python3 bank.py restore mybackup -b 8  # directory -> user bank 8 (FLASH)
 """
-import argparse, array, json, os, sys, wave
+import argparse, json, os, sys, wave
 
-from msusb import MicroSampler, _hex
+from msusb import MicroSampler, _hex, send_raw_blocks
 import protocol as P
 from download import (DownloadError, _drain, _wait_korg_reply,
-                      fetch_header, fetch_direct, fetch_pcm, write_wav)
+                      fetch_header, fetch_direct, fetch_pcm, write_wav, swap16)
 
 BANK_ERR_FUNCS = {0x29}
 
@@ -162,8 +162,7 @@ def send_sequence(ms, channel, q, data):
     _wait_korg_reply(ms, P.UPLOAD_HDR_OK, P.UPLOAD_HDR_ERR,
                      timeout_ms=8000, what=f'q{q:02d} header ACK')
     if data:
-        for off in range(0, len(data), 0x4000):
-            ms.dev.write(0x01, data[off:off + 0x4000], timeout=5000)
+        send_raw_blocks(ms, data)
         _wait_korg_reply(ms, P.UPLOAD_DATA_OK, P.UPLOAD_DATA_ERR,
                          timeout_ms=15000, what=f'q{q:02d} data ACK')
 
@@ -175,11 +174,15 @@ def _read_wav_as_wire_pcm(path):
             raise DownloadError(f"{path}: expected 16-bit WAV from backup")
         rate, nch = w.getframerate(), w.getnchannels()
         data = w.readframes(w.getnframes())
-    samples = array.array('h')
-    samples.frombytes(data[:len(data) & ~1])
-    if sys.byteorder == 'little':
-        samples.byteswap()                       # wire is big-endian
-    return samples.tobytes(), rate, nch == 2
+    return swap16(data), rate, nch == 2             # WAV LE -> wire BE
+
+
+def _pcm_progress(slot, name, total):
+    """A send_raw_blocks progress callback printing one sample's upload line."""
+    def show(sent):
+        print(f"\r  s{slot:02d}: '{name}' {sent}/{total} bytes "
+              f"({sent * 100 // total}%)", end='', flush=True)
+    return show
 
 
 def restore(ms, channel, bank, src, log=print, progress=True):
@@ -226,13 +229,7 @@ def restore(ms, channel, bank, src, log=print, progress=True):
                                           tempo_bpm=entry.get('tempo_bpm', 120.0)))
             _wait_korg_reply(ms, P.UPLOAD_HDR_OK, P.UPLOAD_HDR_ERR,
                              timeout_ms=8000, what=f's{i:02d} header ACK')
-            sent = 0
-            for off in range(0, len(pcm), 0x4000):
-                ms.dev.write(0x01, pcm[off:off + 0x4000], timeout=5000)
-                sent += min(0x4000, len(pcm) - off)
-                if progress:
-                    print(f"\r  s{i:02d}: '{entry['name']}' {sent}/{len(pcm)} bytes "
-                          f"({sent * 100 // len(pcm)}%)", end='', flush=True)
+            send_raw_blocks(ms, pcm, _pcm_progress(i, entry['name'], len(pcm)) if progress else None)
             if progress:
                 print()
             _wait_korg_reply(ms, P.UPLOAD_DATA_OK, P.UPLOAD_DATA_ERR,

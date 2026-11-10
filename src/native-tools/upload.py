@@ -33,7 +33,7 @@ Usage:
 import argparse, os, sys, wave
 from array import array
 
-from msusb import MicroSampler, _hex
+from msusb import MicroSampler, _hex, send_raw_blocks
 import protocol as P
 from download import (_drain, _wait_korg_reply,
                       fetch_header, fetch_pcm, fetch_params)
@@ -117,12 +117,8 @@ def upload(ms, channel, slot, pcm, rate, stereo, blob, tempo, mode_bit=0, progre
     say("  header ACKed")
 
     # phase 2: raw PCM, 0x4000-byte blocks
-    sent = 0
-    for off in range(0, len(pcm), 0x4000):
-        ms.dev.write(0x01, pcm[off:off + 0x4000], timeout=5000)
-        sent += len(pcm[off:off + 0x4000])
-        say(f"\r  PCM {sent}/{len(pcm)} bytes ({sent * 100 // len(pcm)}%)",
-            end='', flush=True)
+    send_raw_blocks(ms, pcm, lambda sent: say(
+        f"\r  PCM {sent}/{len(pcm)} bytes ({sent * 100 // len(pcm)}%)", end='', flush=True))
     say()
     _wait_korg_reply(ms, P.UPLOAD_DATA_OK, P.UPLOAD_DATA_ERR,
                      timeout_ms=30000, what='PCM ACK')

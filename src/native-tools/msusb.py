@@ -8,7 +8,7 @@ UsbMidiInterpreter::createPackets):
     packets and written to bulk OUT (0x01).
   * The device streams MIDI Timing Clock (0xF8) continuously, so the receiver
     must filter System Real-Time bytes while reassembling SysEx replies.
-  * Bulk sample payloads are sent as RAW 8-bit bytes (see send_raw) — used by the
+  * Bulk sample payloads are sent as RAW 8-bit bytes (see send_raw_blocks) — used by the
     uploader, not here.
 
 This module provides the transport plus an `inquiry`/`monitor` CLI to validate
@@ -127,6 +127,17 @@ class SysExReassembler:
 # ---------------------------------------------------------------------------
 # Transport
 # ---------------------------------------------------------------------------
+def send_raw_blocks(ms, data, on_progress=None, block=0x4000):
+    """Write a raw 8-bit bulk payload (sample PCM, pattern data) to EP OUT in
+    `block`-byte chunks, no framing. `on_progress(sent)` runs after each chunk.
+    Takes the MicroSampler (uses ms.dev) so the offline tests' fake devices
+    exercise this loop too."""
+    for off in range(0, len(data), block):
+        ms.dev.write(EP_OUT, data[off:off + block], timeout=5000)
+        if on_progress:
+            on_progress(min(off + block, len(data)))
+
+
 class MicroSampler:
     def __init__(self, cable=1):
         import usb.core, usb.util
@@ -207,11 +218,6 @@ class MicroSampler:
         cin = (status >> 4) & 0x0f          # CIN == status nibble for voice msgs
         pkt = bytes([((cable & 0xf) << 4) | cin, status, d1, d2])
         self.dev.write(EP_OUT, pkt, timeout=2000)
-
-    def send_raw(self, data: bytes, block=0x4000):
-        """Raw 8-bit bulk payload (sample PCM). No framing."""
-        for off in range(0, len(data), block):
-            self.dev.write(EP_OUT, data[off:off+block], timeout=5000)
 
     def _read_raw(self, timeout=300):
         """One bulk read; returns the raw USB-MIDI packet bytes ([] on timeout)."""

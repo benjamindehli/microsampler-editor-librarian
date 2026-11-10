@@ -37,7 +37,6 @@ import sys
 import download as DL
 import protocol as P
 
-RATES = {0: 48000, 1: 24000, 2: 12000, 3: 6000}
 EFFECT_SIZE = 0x24                     # packed effect section of the bank blob
 CHUNK_HDR = 32
 
@@ -97,7 +96,7 @@ def _parse_bank(data):
                 s = {'slot': i, 'name': _name(param[0:8]), 'param': param,
                      'long_name': _name(param[0x20:0x40]), 'empty': data_size == 0}
                 if data_size:
-                    s.update(rate_hz=RATES.get((flags >> 2) & 3, 48000),
+                    s.update(rate_hz=P.CODE_RATE.get((flags >> 2) & 3, 48000),
                              stereo=bool(flags & 1), data_size=data_size,
                              tempo_bpm=tempo10 / 10.0,
                              pcm=data[sb + 72:sb + 72 + data_size])

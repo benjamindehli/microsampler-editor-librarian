@@ -455,10 +455,7 @@ class Device:
         original's standalone SequenceReceive flow) and parse. Each fetch's
         data dump closes its own select session; patterns are a fixed 1308
         bytes on this hardware so the data phase always runs."""
-        # the device answers dump requests with err 0x29 while its sequencer is
-        # playing — stop it (no-op if idle) and let it settle before the dump
-        self.stop_pattern()
-        time.sleep(0.06)
+        self._quiesce()
         with self.lock:
             self._inquire()
             out = []
@@ -493,12 +490,15 @@ class Device:
             return None
         return P.pattern_to_smf(blob)
 
-    def pattern_write(self, q, blob):
-        """Write a pattern blob (standalone SequenceWrite flow), update cache."""
-        # the device errs 0x29 on a write while its sequencer is playing (same as
-        # the dumps) — stop it (no-op if idle) and let it settle first
+    def _quiesce(self):
+        """Stop the sequencer (a no-op when idle) and let the device settle: it
+        answers dumps and pattern writes with err 0x29 while a pattern plays."""
         self.stop_pattern()
         time.sleep(0.06)
+
+    def pattern_write(self, q, blob):
+        """Write a pattern blob (standalone SequenceWrite flow), update cache."""
+        self._quiesce()
         with self.lock:
             self._inquire()
             try:
@@ -824,9 +824,7 @@ class Device:
         (hardware-traced 2026-06-05; the 0x14 param request does NOT close it
         — the original's Target=1 flow is dead code). Rate/length are filled
         in lazily by the client from the WAV when a sample is downloaded."""
-        # dumps fail with err 0x29 while the sequencer plays — stop it first
-        self.stop_pattern()
-        time.sleep(0.06)
+        self._quiesce()
         with self.lock:
             self._inquire()
             try:
@@ -1256,11 +1254,8 @@ class MockDevice(Device):
         chans, rate = UL.load_wav(io.BytesIO(wav_bytes))
         target = min(UL.RATES, key=lambda r: abs(r - rate))
         pcm, frames = UL.to_device_pcm(chans, rate, target)
-        # store as LE mono mixdown of channel 0 for simplicity
-        le = bytearray(pcm)
-        le[0::2], le[1::2] = pcm[1::2], pcm[0::2]
-        self._slots[slot] = {'name': name, 'rate': target,
-                             'stereo': len(chans) == 2, 'pcm': bytes(le),
+        self._slots[slot] = {'name': name, 'rate': target,      # stored as WAV LE
+                             'stereo': len(chans) == 2, 'pcm': DL.swap16(pcm),
                              'tempo': tempo}
         return {'slot': slot, 'frames': frames, 'rate_hz': target,
                 'stereo': len(chans) == 2}
@@ -1411,15 +1406,29 @@ def backup_zip(name):
     return buf.getvalue()
 
 
-def backup_sample_list(dirname):
-    """Non-empty samples in a backup (for the cherry-pick picker). `dirname` is
-    validated by backup_dir() (untrusted HTTP input)."""
+def _require_manifest(dirname):
+    """(backup dir, parsed manifest.json) for an existing backup; RuntimeError
+    (→ 400) when it has no manifest. `dirname` is untrusted HTTP input,
+    validated by backup_dir()."""
     src = backup_dir(dirname)
     mf = os.path.join(src, 'manifest.json')
     if not os.path.isfile(mf):
         raise RuntimeError('unknown backup: %s' % dirname)
     with open(mf) as f:
-        m = json.load(f)
+        return src, json.load(f)
+
+
+def _unused_backup_dir(base):
+    """backup_dir(base), or base-1, base-2 … if that folder already exists."""
+    dest, n = backup_dir(base), 1
+    while os.path.exists(dest):
+        dest = backup_dir('%s-%d' % (base, n)); n += 1
+    return dest
+
+
+def backup_sample_list(dirname):
+    """Non-empty samples in a backup (for the cherry-pick picker)."""
+    src, m = _require_manifest(dirname)
     return [{'slot': s['slot'], 'name': s.get('name') or '?',
              'rate_hz': s.get('rate_hz'), 'stereo': s.get('stereo'),
              'tempo_bpm': s.get('tempo_bpm')}
@@ -1453,12 +1462,7 @@ def backup_sample_wav(dirname, frm):
 
 def backup_pattern_list(dirname):
     """Non-empty patterns in a backup (for the library pattern list)."""
-    src = backup_dir(dirname)
-    mf = os.path.join(src, 'manifest.json')
-    if not os.path.isfile(mf):
-        raise RuntimeError('unknown backup: %s' % dirname)
-    with open(mf) as f:
-        m = json.load(f)
+    src, m = _require_manifest(dirname)
     return [{'pattern': s['pattern'], 'name': s.get('name') or '',
              'note_count': s.get('note_count')}
             for s in m.get('sequences', [])
@@ -1551,10 +1555,7 @@ def import_backup_zip(data):
         # derive a name: the zip's common top folder, else a timestamp
         tops = {n.split('/', 1)[0] for n in names if '/' in n}
         base = tops.pop() if len(tops) == 1 else 'import'
-        dest = backup_dir(base)
-        n = 1
-        while os.path.exists(dest):
-            dest = backup_dir('%s-%d' % (base, n)); n += 1
+        dest = _unused_backup_dir(base)
         root = os.path.realpath(dest) + os.sep
         total = 0
         try:
@@ -1592,10 +1593,7 @@ def import_msmpl_bank(data):
     base = re.sub(r'[^A-Za-z0-9._-]', '', (bank['name'] or 'bank')) or 'bank'
     _check_backup_writable()
     os.makedirs(BACKUP_ROOT, exist_ok=True)
-    dest = backup_dir(base)                           # allowlist + containment guard
-    n = 1
-    while os.path.exists(dest):
-        dest = backup_dir('%s-%d' % (base, n)); n += 1
+    dest = _unused_backup_dir(base)                   # allowlist + containment guard
     msmpl_bank.extract_bytes(data, dest)
     return os.path.basename(dest)
 
