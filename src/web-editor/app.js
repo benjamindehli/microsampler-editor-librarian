@@ -8,6 +8,7 @@ import "components/ux/ux.js"; // keyboard shortcuts, theming, help overlay
 import "components/keyboard/keyboard.js"; // QWERTY pad-play (computer MIDI keyboard)
 
 import { fxFromBank, renderFx } from "components/effect/effect.js";
+import { releaseLatched } from "components/keyboard/keyboard.js";
 import { initLibrary, renderLibrary } from "components/library/library.js";
 import { loadAllSamples, renderMeter } from "components/meter/meter.js";
 import { renderPads } from "components/pads/pads.js";
@@ -164,6 +165,10 @@ export async function refreshBank() {
     try {
         const prevName = state.bank && state.bank.name;
         state.bank = await apiJson("/api/bank");
+        // a bank read cuts any notes the device was sounding (HW-observed: LOOP
+        // HOLD loops stop on a focus re-sync), so drop the latches without sending
+        // note-offs — otherwise pads stay lit and the next press only "releases"
+        releaseLatched(false);
         // a different bank (switched on the device, or the first load) invalidates
         // cached audio; same bank keeps it — re-stamp persisted formats so the meter
         // stays exact and load state survives a focus re-sync.
@@ -224,11 +229,23 @@ $("#refresh-btn").onclick = () => refreshBank().catch((e) => tick("⚠ " + e.mes
 // only transmits panel param-edits while on its SAMPLE-EDIT page, so toggles
 // made elsewhere on the hardware leave the GUI snapshot stale; re-reading the
 // authoritative bank blob on focus-return fixes that transparently. Guarded:
-// online only, skip while any device op holds the lock (#refresh-btn busy),
-// debounced to 2 s so a quick click-in doesn't double-read.
+// AUTO-SYNC toggle, online only, skip while any device op holds the lock
+// (#refresh-btn busy), debounced to 2 s so a quick click-in doesn't double-read.
+let autoSync = lsGet("msmpl.autosync") !== "0";
+{
+    const ab = $("#auto-sync");
+    if (ab) {
+        ab.checked = autoSync;
+        ab.addEventListener("change", () => {
+            autoSync = ab.checked;
+            lsSet("msmpl.autosync", autoSync ? "1" : "0");
+            tick(`auto-sync: ${autoSync ? "ON" : "OFF"}`);
+        });
+    }
+}
 let lastSync = Date.now();
 function maybeResync() {
-    if (document.visibilityState !== "visible" || !state.online) return;
+    if (!autoSync || document.visibilityState !== "visible" || !state.online) return;
     if (!$("#device-help").hidden) return; // disconnected: RETRY reconnects
     if ($("#refresh-btn").hasAttribute("aria-busy")) return; // device busy
     if (Date.now() - lastSync < 2000) return;

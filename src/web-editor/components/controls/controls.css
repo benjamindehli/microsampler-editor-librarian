@@ -3,6 +3,7 @@
 /* ── control strip ────────────────────────────────────────────────────── */
 /* groups wrap as whole units — controls inside a group never line-break */
 .strip {
+    --ctl-badge-gutter: 2.1rem; /* .ctl-cc width (~32px) + breathing room, minus the .ctl side padding */
     margin-top: 1.1rem;
     display: flex;
     flex-wrap: wrap;
@@ -13,14 +14,14 @@
 .ctl-group {
     display: flex;
     gap: 0.6rem;
-    min-width: 0;
+    min-width: min-content;
     padding: 0.35rem 0.5rem;
     border: 1px solid var(--line);
     border-radius: 5px;
 }
 .ctl-group .ctl {
     flex: 1 1 0;
-    min-width: 0;
+    min-width: min-content; /* never narrower than the label + its badge gutters */
 }
 .ctl-group.g2 {
     flex: 2 1 252px;
@@ -29,6 +30,7 @@
     flex: 3 1 380px;
 }
 .ctl {
+    position: relative; /* anchors the corner MIDI badge (.ctl-cc) */
     /* flat: controls sit directly on the panel, grouped by whitespace rather than
        each boxed in its own card (avoids the "boxes-in-boxes" density) */
     border-radius: 5px;
@@ -52,6 +54,39 @@
     font-size: 0.58rem;
     letter-spacing: 0.24em;
     color: var(--ink-dim);
+    /* symmetric gutters as wide as the corner badge: the label stays centred and
+       the box always has room right of it for LEARN / CCnn without resizing */
+    padding-inline: var(--ctl-badge-gutter);
+    white-space: nowrap;
+}
+/* MIDI badge (LEARN / CC21 / PB): pinned in the control's top-right corner, out
+   of flow, so arming or binding never resizes the box */
+.ctl-cc {
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-family: "Share Tech Mono", monospace;
+    font-size: 0.5rem;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    color: var(--amber);
+    background: color-mix(in srgb, rgb(var(--amber-rgb)) 14%, #000);
+    /* flush in the corner like a tab: the control's own outline is its top and
+       right edge, so only the inner (left/bottom) sides get a border, and the
+       outer corner follows the control's radius */
+    border: solid var(--amber-dk);
+    border-width: 0 0 1px 1px;
+    border-radius: 0 5px 0 4px;
+    padding: 0.15rem 0.3rem 0.15rem 0.3rem;
+    pointer-events: none;
+}
+.strip.midi-learn .ctl {
+    cursor: pointer;
+    box-shadow: inset 0 0 0 1px var(--line-hi);
+}
+.ctl.midi-target {
+    box-shadow: 0 0 0 1px var(--amber) !important;
+    background: color-mix(in srgb, rgb(var(--amber-rgb)) 10%, transparent);
 }
 .ctl-val {
     font-family: "Share Tech Mono", monospace;

@@ -4,7 +4,7 @@
 .rail {
     display: flex;
     align-items: center;
-    gap: 1.4rem;
+    gap: 1.1rem; /* minimum spacing — .bank-lcd's auto margins spread the rest */
     flex-wrap: wrap;
     row-gap: 0.55rem; /* narrow widths: wrap instead of clipping the right cluster */
     padding: 0.8rem 1.2rem;
@@ -23,8 +23,7 @@
     height: 38px;
     width: auto;
     display: block;
-    margin-right: 1.1rem;
-    padding-right: 1.1rem;
+    padding-right: 1.1rem; /* divider spacing; the rail gap sets the brand's side */
     border-right: 1px solid var(--line);
     box-sizing: content-box;
     opacity: 0.92;
@@ -102,6 +101,22 @@
     font-size: 0.52rem;
     letter-spacing: 0.22em;
     color: var(--ink-dim);
+}
+/* STACKED control: the checkbox/select on top, a small caption underneath —
+   same shape as the CONNECTED LED block, and narrower than a side-by-side label
+   (.follow-toggle.stack beats .follow-toggle's row gap, which loads later) */
+.stack,
+.follow-toggle.stack {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+.stack-cap {
+    font-size: 0.52rem;
+    letter-spacing: 0.22em;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 /* ── deck layout ─────────────────────────────────────────────────────── */
@@ -575,6 +590,7 @@
 /* LIBRARY mode (no device) — hide device-only chrome */
 body.library-mode .view-btn:not(.lib-tab),
 body.library-mode #refresh-btn,
+body.library-mode #autosync-toggle,
 body.library-mode .rail-vol,
 body.library-mode #bank-lcd,
 body.library-mode #panic-btn {

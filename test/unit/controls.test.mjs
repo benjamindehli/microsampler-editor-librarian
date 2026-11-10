@@ -8,8 +8,21 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 globalThis.document = { querySelector: () => ({ querySelectorAll: () => [] }) };
-const { tuneCents, tuneDisplay, fmtPan, fmtLevel, dec14, BIPOLAR, PARAM, OBJ_BASE } =
-    await import("../../src/web-editor/components/controls/controls.js");
+const {
+    tuneCents,
+    tuneDisplay,
+    fmtPan,
+    fmtLevel,
+    dec14,
+    BIPOLAR,
+    PARAM,
+    OBJ_BASE,
+    ccToParamValue,
+    getCcForParam,
+    assignParamCC,
+    unassignParamCC,
+    PITCH_BEND_CC
+} = await import("../../src/web-editor/components/controls/controls.js");
 
 test("tuneCents: 0..127 wire → −99..+99 cents (hardware-measured curve)", () => {
     // edges clamp to ±99
@@ -69,4 +82,62 @@ test("param-id constants and bipolar set are as hardware-confirmed", () => {
     assert.ok(BIPOLAR.has(PARAM.SEMITONE));
     assert.ok(BIPOLAR.has(PARAM.VELO_INT));
     assert.ok(!BIPOLAR.has(PARAM.LEVEL));
+});
+
+test("ccToParamValue scales 7-bit CC (0..127) to each parameter's model range", () => {
+    // 0..127 faders pass through directly
+    assert.equal(ccToParamValue(PARAM.LEVEL, 0), 0);
+    assert.equal(ccToParamValue(PARAM.LEVEL, 101), 101);
+    assert.equal(ccToParamValue(PARAM.LEVEL, 127), 127);
+    assert.equal(ccToParamValue(PARAM.PAN, 64), 64);
+
+    // bipolar SEMITONE (-24..+24) with centre detent at CC=64
+    assert.equal(ccToParamValue(PARAM.SEMITONE, 0), -24);
+    assert.equal(ccToParamValue(PARAM.SEMITONE, 64), 0);
+    assert.equal(ccToParamValue(PARAM.SEMITONE, 127), 24);
+
+    // bipolar VELO_INT (-63..+63) with centre at CC=64
+    assert.equal(ccToParamValue(PARAM.VELO_INT, 0), -63);
+    assert.equal(ccToParamValue(PARAM.VELO_INT, 64), 0);
+    assert.equal(ccToParamValue(PARAM.VELO_INT, 127), 63);
+
+    // switches: <64 -> 0, >=64 -> 1
+    assert.equal(ccToParamValue(PARAM.LOOP, 0), 0);
+    assert.equal(ccToParamValue(PARAM.LOOP, 63), 0);
+    assert.equal(ccToParamValue(PARAM.LOOP, 64), 1);
+    assert.equal(ccToParamValue(PARAM.LOOP, 127), 1);
+
+    // 3-way BPM_SYNC segmented switch: 0, 1, 2
+    assert.equal(ccToParamValue(PARAM.BPM_SYNC, 0), 0);
+    assert.equal(ccToParamValue(PARAM.BPM_SYNC, 64), 1);
+    assert.equal(ccToParamValue(PARAM.BPM_SYNC, 127), 2);
+});
+
+test("per-slot MIDI CC mapping isolates bindings per sample slot", () => {
+    // Pin CC#7 to slot 2 (SMPL 03) LEVEL and CC#14 to slot 0 (SMPL 01) LEVEL
+    assignParamCC(PARAM.LEVEL, 7, 2);
+    assignParamCC(PARAM.LEVEL, 14, 0);
+    assert.equal(getCcForParam(PARAM.LEVEL, 2), 7);
+    assert.equal(getCcForParam(PARAM.LEVEL, 0), 14);
+    assert.equal(getCcForParam(PARAM.LEVEL, 1), null);
+
+    // Rebinding CC#7 to slot 0 replaces slot 2's binding for CC#7
+    assignParamCC(PARAM.PAN, 7, 0);
+    assert.equal(getCcForParam(PARAM.LEVEL, 2), null);
+    assert.equal(getCcForParam(PARAM.PAN, 0), 7);
+
+    // Unassigning clears only that slot's parameter binding
+    assert.equal(unassignParamCC(PARAM.PAN, 0), 7);
+    assert.equal(getCcForParam(PARAM.PAN, 0), null);
+    assert.equal(unassignParamCC(PARAM.LEVEL, 0), 14);
+});
+
+test("only real CCs (0..127) and pitch bend (pseudo-CC 128) are bindable", () => {
+    assert.equal(PITCH_BEND_CC, 128);
+    assignParamCC(PARAM.TUNE, PITCH_BEND_CC, 3);
+    assert.equal(getCcForParam(PARAM.TUNE, 3), PITCH_BEND_CC);
+    // the old aftertouch / program-change pseudo-CCs (129..131) are rejected
+    assignParamCC(PARAM.PAN, 129, 3);
+    assert.equal(getCcForParam(PARAM.PAN, 3), null);
+    assert.equal(unassignParamCC(PARAM.TUNE, 3), PITCH_BEND_CC);
 });

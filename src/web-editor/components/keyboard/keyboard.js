@@ -1,14 +1,16 @@
 // On-screen keyboard + QWERTY pad-play. A piano under the editor mirrors the 36
 // pads (C3..B5 = exactly three octaves); clicking a key plays it through the
-// device (POST /api/note — real envelope/FX/pitch). Ticking "⌨ TYPE TO PLAY"
+// device (POST /api/note — real envelope/FX/pitch). Ticking "TYPE TO PLAY"
 // arms the computer keyboard as a one-octave piano (home row = white keys, top
 // row = black keys; Z / X or the ◀ ▶ buttons shift the octave). The piano always
 // shows which computer key maps to which note, lit brighter while armed. Off by
 // default so the letter keys stay free for the normal shortcuts (ux.js).
+import { handleExternalCC, hasCcBinding, isMidiLearnActive, PITCH_BEND_CC, setMidiLearn, syncCcBadges } from "components/controls/controls.js";
+import { followSelect } from "components/sample-editor/waveform.js";
 import { noteName, QWERTY_KEYMAP, QWERTY_OCTAVES, qwertySlot } from "functions/notes.js";
 import { state } from "functions/state.js";
 import { tick } from "functions/ticker.js";
-import { $, api, closestEl, jsonBody, lsGet, lsSet, setSegActive } from "functions/util.js";
+import { $, $$, api, closestEl, jsonBody, lsGet, lsSet, setSegActive } from "functions/util.js";
 
 // the on-screen caption letter for each mapped computer key (see QWERTY_KEYMAP)
 const KEYLABEL = {
@@ -34,10 +36,16 @@ const WHITE = [0, 2, 4, 5, 7, 9, 11]; // white-key semitones within an octave
 const BLACK_AFTER = { 0: 1, 1: 3, 3: 6, 4: 8, 5: 10 }; // white-index → black-key semitone
 
 let enabled = false;
+let loopHold = false;
 let octave = 1; // index into QWERTY_OCTAVES (default C4, the middle)
 let mode = "sample"; // 'sample' = one sample per key; 'kbd' = selected sample, pitched
 const held = new Map(); // e.code → slot currently sounding (keyboard)
+const latched = new Map(); // "s:<slot>" or "k:<note>" → { slot, note, kbd } held by LOOP HOLD
 let clickSlot = null; // slot currently held by the mouse on the piano
+
+export const isLoopHold = () => loopHold;
+export const isSlotLatched = (slot) => latched.has("s:" + slot);
+const isPianoSlotLatched = (slot) => latched.has("s:" + slot) || latched.has("k:" + (48 + slot));
 
 // ── device note + visual paint ───────────────────────────────────────────────
 // SAMPLE mode plays note 48+slot on the global channel (triggers that pad);
@@ -56,12 +64,56 @@ function note(slot, on) {
 function paint(slot, sounding) {
     // always light the piano key; in KEYBOARD mode the pad isn't what's triggered
     // (the selected sample plays pitched), so don't light the pad grid there
-    const sels = [`#piano .pkey[data-slot="${slot}"]`];
-    if (mode !== "kbd") sels.push(`#pad-grid .pad[data-slot="${slot}"]`);
-    for (const sel of sels) {
-        const el = document.querySelector(sel);
-        if (el) el.classList.toggle("sounding", sounding);
+    const pkey = document.querySelector(`#piano .pkey[data-slot="${slot}"]`);
+    if (pkey) pkey.classList.toggle("sounding", sounding || isPianoSlotLatched(slot));
+    if (mode !== "kbd") {
+        const pad = document.querySelector(`#pad-grid .pad[data-slot="${slot}"]`);
+        if (pad) pad.classList.toggle("sounding", sounding || isSlotLatched(slot));
     }
+}
+function toggleLatch(target, velocity = 100) {
+    const id = target.kbd ? "k:" + target.note : "s:" + target.slot;
+    if (latched.has(id)) {
+        const entry = latched.get(id);
+        latched.delete(id);
+        send(entry.kbd ? { note: entry.note, on: false, keyboard: true } : { slot: entry.slot, on: false, keyboard: false });
+        if (entry.slot != null) {
+            const pkey = document.querySelector(`#piano .pkey[data-slot="${entry.slot}"]`);
+            if (pkey) pkey.classList.toggle("sounding", isPianoSlotLatched(entry.slot));
+            const pad = document.querySelector(`#pad-grid .pad[data-slot="${entry.slot}"]`);
+            if (pad) pad.classList.toggle("sounding", isSlotLatched(entry.slot));
+        }
+        return false;
+    }
+    const entry = { slot: target.slot, note: target.note ?? 48 + target.slot, kbd: !!target.kbd };
+    latched.set(id, entry);
+    send(entry.kbd ? { note: entry.note, on: true, velocity, keyboard: true } : { slot: entry.slot, on: true, velocity, keyboard: false });
+    if (entry.slot != null) {
+        const pkey = document.querySelector(`#piano .pkey[data-slot="${entry.slot}"]`);
+        if (pkey) pkey.classList.add("sounding");
+        if (!entry.kbd) {
+            const pad = document.querySelector(`#pad-grid .pad[data-slot="${entry.slot}"]`);
+            if (pad) pad.classList.add("sounding");
+        }
+    }
+    return true;
+}
+export function togglePadHold(slot, velocity = 100) {
+    return toggleLatch({ slot, note: 48 + slot, kbd: false }, velocity);
+}
+export function releaseLatched(sendOffNotes = true) {
+    for (const entry of latched.values()) {
+        if (sendOffNotes) {
+            send(entry.kbd ? { note: entry.note, on: false, keyboard: true } : { slot: entry.slot, on: false, keyboard: false });
+        }
+        if (entry.slot != null) {
+            const pkey = document.querySelector(`#piano .pkey[data-slot="${entry.slot}"]`);
+            if (pkey) pkey.classList.remove("sounding");
+            const pad = document.querySelector(`#pad-grid .pad[data-slot="${entry.slot}"]`);
+            if (pad) pad.classList.remove("sounding");
+        }
+    }
+    latched.clear();
 }
 function releaseKeys() {
     for (const slot of held.values()) {
@@ -112,6 +164,7 @@ export function syncKeybed() {
     if (!piano || !piano.children.length) return;
     $("#kb-oct-val").textContent = QWERTY_OCTAVES[octave];
     $("#keybed").classList.toggle("armed", enabled);
+    $("#keybed").classList.toggle("loop-hold", loopHold);
     // SAMPLE mode dims keys with no sample; KEYBOARD mode plays the selected
     // sample across all keys (so the per-key sample state is irrelevant)
     $("#keybed").classList.toggle("mode-sample", mode === "sample");
@@ -132,6 +185,7 @@ export function syncKeybed() {
         key.classList.toggle("used", !!(s && !s.empty));
         key.classList.toggle("loaded", state.buffers.has(slot));
         key.classList.toggle("sel", state.sel === slot);
+        key.classList.toggle("sounding", isPianoSlotLatched(slot));
     }
 }
 
@@ -146,6 +200,7 @@ function setOctave(next) {
 
 function setMode(next) {
     if (next === mode) return;
+    releaseLatched();
     releaseKeys();
     clickRelease();
     releaseMidi(); // release held notes on the OLD channel first
@@ -157,6 +212,14 @@ function setMode(next) {
     lsSet("msmpl.qwerty.mode", mode);
     syncKeybed();
     tick(mode === "kbd" ? "keyboard: KEYBOARD mode (selected sample, pitched)" : "keyboard: SAMPLE mode (one sample per key)");
+}
+
+function setLoopHold(on) {
+    loopHold = on;
+    if (!on) releaseLatched();
+    syncKeybed();
+    lsSet("msmpl.loophold", on ? "1" : "0");
+    tick(`loop hold: ${on ? "ON (click or press keys/pads to latch loops)" : "OFF"}`);
 }
 
 function setEnabled(on) {
@@ -196,6 +259,10 @@ addEventListener(
         if (e.repeat || held.has(e.code)) return;
         const slot = qwertySlot(e.code, octave);
         if (slot == null) return; // mapped but above B5 → consumed, silent
+        if (loopHold) {
+            toggleLatch({ slot, note: 48 + slot, kbd: mode === "kbd" });
+            return;
+        }
         held.set(e.code, slot);
         paint(slot, true);
         note(slot, true);
@@ -240,39 +307,63 @@ const midiHeld = new Map(); // controller note physically down → on-screen slo
 const sustainedOff = new Map(); // note whose key is UP but held sounding by the pedal → slot
 let sustainOn = false; // CC#64 damper pedal state
 
-// resolve a controller note for the current mode: KEYBOARD = raw pitch (full
-// range), SAMPLE = a pad (note−48, ignoring notes outside C3..B5). null = not playable.
-function midiTarget(m) {
-    const slot = m - 48,
-        inRange = slot >= 0 && slot <= 35;
-    if (mode === "kbd") return { body: { note: m }, slot: inRange ? slot : null };
-    return inRange ? { body: { slot }, slot } : null;
-}
-function sendOff(m, slot) {
-    send(mode === "kbd" ? { note: m, on: false } : { slot, on: false });
+// Optional per-channel routing (SMP CH / KBD CH fields, 0-based, null = "—"):
+// a controller message on the KBD channel always plays the selected sample
+// pitched, one on the SMP channel always triggers pads; any other channel (or
+// both fields "—", the default) follows the SAMPLE / KEYBOARD toggle. Lets a
+// split/zoned controller play pads and the pitched sample at the same time.
+const MIDI_CH_KEYS = { sample: "msmpl.midi.ch.sample", kbd: "msmpl.midi.ch.kbd" };
+const loadCh = (key) => {
+    const v = lsGet(key);
+    return v != null && /^([1-9]|1[0-6])$/.test(v) ? +v - 1 : null;
+};
+const midiCh = { sample: loadCh(MIDI_CH_KEYS.sample), kbd: loadCh(MIDI_CH_KEYS.kbd) };
+function midiKbd(ch) {
+    if (midiCh.kbd != null && ch === midiCh.kbd) return true;
+    if (midiCh.sample != null && ch === midiCh.sample) return false;
+    return mode === "kbd";
 }
 
-function midiNoteOn(m, vel) {
-    const t = midiTarget(m);
+// resolve a controller note: KEYBOARD routing = raw pitch (full range), SAMPLE
+// routing = a pad (note−48, ignoring notes outside C3..B5). null = not playable.
+function midiTarget(m, ch = 0) {
+    const slot = m - 48,
+        inRange = slot >= 0 && slot <= 35,
+        kbd = midiKbd(ch);
+    if (kbd) return { body: { note: m, keyboard: true }, slot: inRange ? slot : null, kbd: true };
+    return inRange ? { body: { slot, keyboard: false }, slot, kbd: false } : null;
+}
+function sendOff(m, entry) {
+    send(entry.kbd ? { note: m, on: false, keyboard: true } : { slot: entry.slot, on: false, keyboard: false });
+}
+
+function midiNoteOn(m, vel, ch = 0) {
+    const t = midiTarget(m, ch);
     if (!t) return;
+    if (loopHold) {
+        const nowOn = toggleLatch({ slot: t.slot, note: m, kbd: t.kbd }, vel);
+        if (nowOn && !t.kbd && state.follow && t.slot != null) followSelect(t.slot);
+        return;
+    }
     if (sustainedOff.has(m)) {
         sendOff(m, sustainedOff.get(m));
         sustainedOff.delete(m);
     } // clean re-attack
+    if (!t.kbd && state.follow && t.slot != null) followSelect(t.slot);
     send({ ...t.body, on: true, velocity: vel });
     if (t.slot != null) paint(t.slot, true);
-    midiHeld.set(m, t.slot);
+    midiHeld.set(m, { slot: t.slot, kbd: t.kbd });
 }
 function midiNoteOff(m) {
     if (!midiHeld.has(m)) return;
-    const slot = midiHeld.get(m);
+    const entry = midiHeld.get(m);
     midiHeld.delete(m);
     if (sustainOn) {
         // pedal down: keep it sounding (and lit) until the pedal lifts
-        sustainedOff.set(m, slot);
+        sustainedOff.set(m, entry);
     } else {
-        sendOff(m, slot);
-        if (slot != null) paint(slot, false);
+        sendOff(m, entry);
+        if (entry.slot != null) paint(entry.slot, false);
     }
 }
 function midiSustain(on) {
@@ -280,16 +371,16 @@ function midiSustain(on) {
     sustainOn = on;
     if (!on) {
         // pedal up: release everything it was holding
-        for (const [m, slot] of sustainedOff) {
-            sendOff(m, slot);
-            if (slot != null) paint(slot, false);
+        for (const [m, entry] of sustainedOff) {
+            sendOff(m, entry);
+            if (entry.slot != null) paint(entry.slot, false);
         }
         sustainedOff.clear();
     }
 }
 let bentKbd = false; // a non-centre bend is currently applied (keyboard channel)
-function midiPitchBend(lsb, msb) {
-    if (mode !== "kbd") return; // the device pitch-bends only the keyboard-mode voice
+function midiPitchBend(lsb, msb, ch = 0) {
+    if (!midiKbd(ch)) return; // the device pitch-bends only the keyboard-mode voice
     const value = (msb << 7) | lsb; // 14-bit, centre 8192
     bentKbd = value !== 8192;
     api("/api/pitch-bend", jsonBody({ value, keyboard: true })).catch(() => {
@@ -305,28 +396,34 @@ function resetBend() {
     });
 }
 function releaseMidi() {
-    for (const [m, slot] of midiHeld) {
-        sendOff(m, slot);
-        if (slot != null) paint(slot, false);
+    for (const [m, entry] of midiHeld) {
+        sendOff(m, entry);
+        if (entry.slot != null) paint(entry.slot, false);
     }
     midiHeld.clear();
-    for (const [m, slot] of sustainedOff) {
-        sendOff(m, slot);
-        if (slot != null) paint(slot, false);
+    for (const [m, entry] of sustainedOff) {
+        sendOff(m, entry);
+        if (entry.slot != null) paint(entry.slot, false);
     }
     sustainedOff.clear();
     sustainOn = false;
     resetBend();
 }
 function onMidiMessage(e) {
-    const [status, d1, d2] = e.data;
+    const [status, d1 = 0, d2 = 0] = e.data;
     const cmd = status & 0xf0;
-    if (cmd === 0x90 && d2 > 0) midiNoteOn(d1, d2);
+    const ch = status & 0x0f;
+    if (cmd === 0x90 && d2 > 0) midiNoteOn(d1, d2, ch);
     else if (cmd === 0x80 || (cmd === 0x90 && d2 === 0)) midiNoteOff(d1);
-    else if (cmd === 0xe0)
-        midiPitchBend(d1, d2); // pitch bend wheel
-    else if (cmd === 0xb0 && d1 === 64) midiSustain(d2 >= 64); // sustain pedal (CC#64)
-    // other CC / clock etc. ignored
+    else if (cmd === 0xe0) {
+        // pitch bend wheel: learnable/mappable as pseudo-CC 128 (PITCH_BEND_CC)
+        if (isMidiLearnActive() || hasCcBinding(PITCH_BEND_CC)) handleExternalCC(PITCH_BEND_CC, d2);
+        else midiPitchBend(d1, d2, ch);
+    } else if (cmd === 0xb0 && d1 === 64 && !isMidiLearnActive() && !hasCcBinding(64)) {
+        midiSustain(d2 >= 64); // sustain pedal (CC#64)
+    } else if (cmd === 0xb0) {
+        handleExternalCC(d1, d2); // assignable CC sliders/knobs (0..127)
+    } // clock / SysEx / other messages ignored
 }
 function midiInputNames() {
     return midiAccess ? [...midiAccess.inputs.values()].map((i) => i.name).filter(Boolean) : [];
@@ -351,9 +448,11 @@ async function setMidi(on) {
         }
         midiAccess.onstatechange = bindMidiInputs;
         bindMidiInputs();
+        syncCcBadges();
         const names = midiInputNames();
         tick(names.length ? `MIDI input: ON (${names.join(", ")})` : "MIDI input: ON (waiting for a device)");
     } else {
+        if (isMidiLearnActive()) setMidiLearn(false);
         if (midiAccess) {
             // also drop the hotplug handler — left bound, any device state change
             // would re-attach the inputs and silently re-enable MIDI while OFF
@@ -364,7 +463,22 @@ async function setMidi(on) {
         tick("MIDI input: OFF");
     }
     $("#keybed").classList.toggle("midi-on", on);
+    for (const sel of $$("#midi-ch select")) sel.disabled = !on; // routing only applies while MIDI IN is on
     lsSet("msmpl.midi", on ? "1" : "0");
+}
+
+// arm MIDI Learn (optionally targeting a param), switching MIDI IN on first —
+// a controller CC can't arrive otherwise. Used by LEARN and right-click on a control.
+export async function armMidiLearn(param = null) {
+    if (!MIDI_OK) return false;
+    const mi = $("#midi-in");
+    if (!mi.checked) {
+        mi.checked = true;
+        await setMidi(true);
+        if (!mi.checked) return false; // permission denied
+    }
+    setMidiLearn(true, param);
+    return true;
 }
 
 // ── mouse/touch on the on-screen piano (works even when not armed) ────────────
@@ -381,7 +495,12 @@ function clickRelease() {
         const key = closestEl(e.target, ".pkey");
         if (!key) return;
         e.preventDefault();
-        clickSlot = +key.dataset.slot;
+        const slot = +key.dataset.slot;
+        if (loopHold) {
+            toggleLatch({ slot, note: 48 + slot, kbd: mode === "kbd" });
+            return;
+        }
+        clickSlot = slot;
         paint(clickSlot, true);
         note(clickSlot, true);
     });
@@ -402,6 +521,12 @@ $("#kb-mode-kbd").onclick = () => setMode("kbd");
         [$("#kb-mode-sample"), mode === "sample"],
         [$("#kb-mode-kbd"), mode === "kbd"]
     ]);
+    const lh = $("#kb-loop-hold");
+    if (lh) {
+        lh.checked = lsGet("msmpl.loophold") === "1";
+        loopHold = lh.checked;
+        lh.addEventListener("change", () => setLoopHold(lh.checked));
+    }
     const t = $("#qwerty-play");
     t.checked = lsGet("msmpl.qwerty") === "1";
     enabled = t.checked;
@@ -410,8 +535,39 @@ $("#kb-mode-kbd").onclick = () => setMode("kbd");
     // MIDI input: only offer it where Web MIDI exists (Chrome/Edge/Firefox; not Safari)
     if (MIDI_OK) {
         $("#midi-toggle").hidden = false;
+        $("#midi-ch").hidden = false;
         const mi = $("#midi-in");
         mi.addEventListener("change", () => setMidi(mi.checked));
+        // SMP CH / KBD CH routing fields ("—" = follow the toggle)
+        for (const [which, other] of [
+            ["sample", "kbd"],
+            ["kbd", "sample"]
+        ]) {
+            const sel = $(`#midi-ch-${which}`);
+            if (!sel) continue;
+            sel.innerHTML =
+                '<option value="">—</option>' + Array.from({ length: 16 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join("");
+            sel.value = midiCh[which] == null ? "" : String(midiCh[which] + 1);
+            sel.disabled = true;
+            sel.addEventListener("change", () => {
+                releaseMidi(); // held notes were routed under the old mapping
+                midiCh[which] = sel.value ? +sel.value - 1 : null;
+                lsSet(MIDI_CH_KEYS[which], sel.value);
+                // one channel can't route both ways: clear the other field on a clash
+                if (midiCh[which] != null && midiCh[other] === midiCh[which]) {
+                    midiCh[other] = null;
+                    lsSet(MIDI_CH_KEYS[other], "");
+                    $(`#midi-ch-${other}`).value = "";
+                }
+                const desc = (c) => (c == null ? "—" : `ch ${c + 1}`);
+                tick(`MIDI IN routing: SAMPLE ${desc(midiCh.sample)} · KEYBOARD ${desc(midiCh.kbd)} (— = follow the toggle)`);
+            });
+        }
+        const ml = $("#midi-learn");
+        if (ml) {
+            ml.hidden = false;
+            ml.onclick = () => (isMidiLearnActive() ? setMidiLearn(false) : armMidiLearn());
+        }
         // re-enable only if it was on before — avoids a surprise permission prompt on every load
         if (lsGet("msmpl.midi") === "1") {
             mi.checked = true;
