@@ -71,20 +71,27 @@ if port_open; then
   exit 0
 fi
 
-# open the editor window as soon as the bridge starts listening
+echo
+echo "Starting the bridge — your password may be asked (root is needed to"
+echo "claim the USB interface). The editor window opens by itself."
+echo "Stop the bridge with Ctrl+C."
+echo "────────────────────────────────────────────────────────────────"
+# ask for the password first, so the window watcher's timeout below only
+# covers the bridge starting up, not the time spent typing it
+if ! sudo -v; then
+  read -r -p "No admin password given — press Enter to close… " _
+  exit 1
+fi
+
+# open the editor window as soon as the bridge starts listening (≤ 2 min)
 (
-  for _ in $(seq 1 240); do
+  for _ in $(seq 1 480); do
     port_open && { open_ui; exit 0; }
     sleep 0.25
   done
 ) &
 WATCHER=$!
 
-echo
-echo "Starting the bridge — your password may be asked (root is needed to"
-echo "claim the USB interface). The editor window opens by itself."
-echo "Stop the bridge with Ctrl+C."
-echo "────────────────────────────────────────────────────────────────"
 sudo "$PY" bridge.py
 RC=$?
 kill "$WATCHER" 2>/dev/null

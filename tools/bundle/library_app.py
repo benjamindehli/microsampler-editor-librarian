@@ -13,7 +13,8 @@ Wraps bridge.py --library for a double-clickable, no-terminal experience:
   * stdout/stderr go to <data dir>/library.log when frozen (windowed apps may
     have no usable stdio)
 
-Build: pyinstaller tools/bundle/library.spec  (see .github/workflows/package.yml)
+Build: pyinstaller --noconfirm --distpath dist/bundle --workpath build/bundle \
+         tools/bundle/library.spec  (see .github/workflows/package.yml)
 Plain `python3 tools/bundle/library_app.py` also works for a quick local run.
 """
 import json

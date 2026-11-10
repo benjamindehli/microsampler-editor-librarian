@@ -2,7 +2,8 @@
 # PyInstaller spec for the BUNDLED 'microSAMPLER Library' bridge (hardware-free
 # librarian; no USB, no sudo). Build (from the repo, PyInstaller installed):
 #
-#   pyinstaller --noconfirm tools/bundle/library.spec
+#   pyinstaller --noconfirm --distpath dist/bundle --workpath build/bundle \
+#     tools/bundle/library.spec
 #
 # → dist/bundle/microSAMPLER Library/   onedir: the Linux AppImage payload, AND
 #                                       what make_library_app.sh embeds into the

@@ -13,15 +13,19 @@ FILE="$1"
 OUT=$(mktemp)
 trap 'rm -f "$OUT"' EXIT
 
+# a failed attempt can still leave output in $OUT, so track success explicitly
+ok=0
 for attempt in 1 2 3; do
-  xcrun notarytool submit "$FILE" \
+  if xcrun notarytool submit "$FILE" \
     --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" \
     --password "$APPLE_APP_PASSWORD" \
-    --output-format json > "$OUT" && break
-  echo "submit attempt $attempt failed — retrying in 30 s"
-  sleep 30
+    --output-format json > "$OUT"; then
+    ok=1
+    break
+  fi
+  [ "$attempt" -lt 3 ] && { echo "submit attempt $attempt failed — retrying in 30 s"; sleep 30; }
 done
-[ -s "$OUT" ] || { echo "ERROR: all submit attempts failed"; exit 1; }
+[ "$ok" = 1 ] || { echo "ERROR: all submit attempts failed"; exit 1; }
 SUB_ID=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['id'])" "$OUT")
 echo "submission id: $SUB_ID ($FILE)"
 

@@ -44,8 +44,14 @@ func bridgeIsUp() -> Bool {
 // timestamped shell log next to the bridge's own library.log, so a slow or
 // failed launch pins the exact step (which browser, how long) instead of
 // leaving us guessing — this whole file has no other visible output.
-let shellLogPath = ("~/Library/Application Support/DehliMusikk/microSAMPLER Library/shell.log"
-                    as NSString).expandingTildeInPath
+let shellLogPath: String = {
+    let path = ("~/Library/Application Support/DehliMusikk/microSAMPLER Library/shell.log"
+                as NSString).expandingTildeInPath
+    // on a first launch the bridge hasn't created the folder yet
+    try? FileManager.default.createDirectory(atPath: (path as NSString).deletingLastPathComponent,
+                                             withIntermediateDirectories: true)
+    return path
+}()
 
 func shellLog(_ msg: String) {
     let stamp = ISO8601DateFormatter().string(from: Date())
