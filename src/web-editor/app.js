@@ -8,6 +8,7 @@ import "components/ux/ux.js"; // keyboard shortcuts, theming, help overlay
 import "components/keyboard/keyboard.js"; // QWERTY pad-play (computer MIDI keyboard)
 
 import { fxFromBank, renderFx } from "components/effect/effect.js";
+import { releaseLatched } from "components/keyboard/keyboard.js";
 import { initLibrary, renderLibrary } from "components/library/library.js";
 import { loadAllSamples, renderMeter } from "components/meter/meter.js";
 import { renderPads } from "components/pads/pads.js";
@@ -164,6 +165,10 @@ export async function refreshBank() {
     try {
         const prevName = state.bank && state.bank.name;
         state.bank = await apiJson("/api/bank");
+        // a bank read cuts any notes the device was sounding (HW-observed: LOOP
+        // HOLD loops stop on a focus re-sync), so drop the latches without sending
+        // note-offs — otherwise pads stay lit and the next press only "releases"
+        releaseLatched(false);
         // a different bank (switched on the device, or the first load) invalidates
         // cached audio; same bank keeps it — re-stamp persisted formats so the meter
         // stays exact and load state survives a focus re-sync.

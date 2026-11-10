@@ -124,7 +124,7 @@
                 <label
                     class="follow-toggle stack"
                     id="autosync-toggle"
-                    title="Auto-Sync: re-read the bank on tab focus to pick up hardware button edits (uncheck so focusing the tab never stops playing samples)"
+                    title="Auto-Sync: re-read the bank when you return to this window, to pick up edits made on the hardware. A bank read stops a playing pattern and cuts notes held by LOOP HOLD — untick to keep them playing (then press RECEIVE yourself after hardware edits)"
                 >
                     <input type="checkbox" id="auto-sync" checked /> <span class="stack-cap">AUTO-SYNC</span>
                 </label>
@@ -657,7 +657,8 @@
                     <p>
                         <b>RECEIVE</b> re-reads the bank from the device — use it after editing on the hardware (panel edits only reach the app while
                         the device is on its sample-edit page). With <b>AUTO-SYNC</b> ticked (top bar, default on), the app also auto-receives when
-                        you refocus the window — untick it if that's getting in the way, e.g. a bank read stops a playing pattern.
+                        you refocus the window — untick it if that's getting in the way, a bank read stops a playing pattern and cuts notes held by
+                        <b>LOOP HOLD</b>.
                     </p>
                     <p>
                         <b>Pattern editor</b> — on the PATTERNS view, <b>✎ EDIT</b> opens a piano roll: click to add a note, drag to move it, drag its
@@ -690,7 +691,8 @@
                     <p>
                         <b>Loop hold</b> — tick <b>LOOP HOLD</b> (keyboard bar) to latch notes: a pad <b>▶</b>, piano key, typed key or MIDI note
                         starts sounding and <i>keeps</i> sounding until you trigger it again — handy for looped samples. Unticking it, switching
-                        SAMPLE/KEYBOARD or <b>Panic</b> releases everything held.
+                        SAMPLE/KEYBOARD or <b>Panic</b> releases everything held. So does a bank read (RECEIVE, or AUTO-SYNC when you return to the
+                        window) — untick AUTO-SYNC to keep loops going while you work in another app.
                     </p>
                     <p>
                         <b>MIDI learn</b> — pin a knob or slider on your MIDI controller to a sample control. Click <b>LEARN</b> (next to MIDI IN) or
