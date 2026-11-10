@@ -102,6 +102,7 @@
                             "WAV sample download and upload with automatic resampling",
                             "Full sample parameter editing and waveform trimming",
                             "On-screen and computer-keyboard piano to play samples on the device",
+                            "MIDI controller input with channel routing, MIDI Learn for sample controls, and Loop Hold",
                             "All 22 effect types with their complete parameter sets",
                             "Pattern receive, playback, record, in-app piano-roll editing, and MIDI file import/export",
                             "Full bank backup and restore, including persistent user banks"
@@ -207,10 +208,10 @@
             <h2 id="what">What it is</h2>
             <p>
                 The <strong>microSAMPLER Editor / Librarian</strong> lets you edit and manage your Korg microSAMPLER from a modern computer. It
-                replaces Korg's original application, which was 32-bit and no longer runs on current macOS. It talks to the hardware over USB and
-                gives you a full graphical editor in your browser, with <strong>no installation and no build step</strong>: the interface is plain web
-                files served by a small local helper (the "bridge"). Get it as a <a href="getting-started#download">signed desktop app</a> for macOS
-                (plus a Linux AppImage), or as a small ZIP whose only requirement is Python 3.
+                replaces Korg's original application, which is 32-bit and won't run on macOS 10.15 or later. It talks to the hardware over USB and
+                gives you a full graphical editor in your browser: the interface is plain web files served by a small local helper (the "bridge"), so
+                there's nothing to build. Get it as a <a href="getting-started#download">signed desktop app</a> for macOS (plus the Library app as a
+                Linux AppImage), or as a small ZIP whose only requirement is Python 3.
             </p>
 
             <p>What you can do:</p>
@@ -227,11 +228,12 @@
                     them as MIDI files.
                 </li>
                 <li>
-                    <strong>Librarian</strong>: back up and restore entire banks (including the device's persistent user banks), even with no hardware
-                    connected.
+                    <strong>Librarian</strong>: back up and restore entire banks (including the device's persistent user banks), and, with no hardware
+                    connected, browse and export samples and patterns from backups, including Korg's <code>.msmpl_bank</code> files.
                 </li>
                 <li>
-                    <strong>Play it</strong>: an on-screen and computer-keyboard piano, plus live MIDI-keyboard input (velocity, pitch bend, sustain).
+                    <strong>Play it</strong>: an on-screen and computer-keyboard piano, live MIDI-controller input (velocity, pitch bend, sustain,
+                    channel routing), MIDI Learn for the sample controls, and Loop Hold to keep loops playing.
                 </li>
             </ul>
 

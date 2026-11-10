@@ -79,7 +79,7 @@
                         "name": "Can I use the banks I saved with Korg's original editor?",
                         "acceptedAnswer": {
                             "@type": "Answer",
-                            "text": "Yes. In the Utility view, IMPORT… takes a .msmpl_bank file, and RESTORE… writes the whole bank to the device: samples, their settings, the effect and the patterns. Banks imported with v1.17.4 or earlier need importing again first."
+                            "text": "Yes. In the Utility view, IMPORT… takes a .msmpl_bank file, and RESTORE… writes the whole bank to the device: samples, their settings, the effect and the patterns. If RESTORE… is greyed out for an older import, import the file again."
                         }
                     }
                 ]
@@ -151,8 +151,8 @@
                 <li><strong>Pattern playback</strong> needs <code>GLOBAL → MIDI CLK = AUTO</code> on the device.</li>
                 <li><strong>Remote sampling &amp; record</strong> give no feedback in the editor, so watch the device screen.</li>
                 <li>
-                    <strong>Panel edits</strong> only transmit while the device is on its sample-edit page. Press <strong>RECEIVE</strong> (or refocus
-                    the window) to re-sync after fiddling with the hardware.
+                    <strong>Panel edits</strong> only transmit while the device is on its sample-edit page. Press <strong>RECEIVE</strong>, or return
+                    to the window with <strong>AUTO-SYNC</strong> on (the default), to re-sync after working on the hardware.
                 </li>
             </ul>
 
@@ -173,9 +173,8 @@
                     <td>"microSAMPLER disconnected" / "[Errno 19] No such device"</td>
                     <td>
                         The USB connection dropped: the microSAMPLER was switched off, the cable was unplugged, or the computer slept. Make sure the
-                        device is on and connected, then click <strong>Retry</strong>. Older versions showed the raw "Errno 19" error and couldn't
-                        reconnect on their own. Update to the latest version, or restart the editor (macOS app: menu bar ♪ →
-                        <strong>Release Device</strong>, then reload the page).
+                        device is on and connected, then click <strong>Retry</strong>. If Retry doesn't help, restart the editor (macOS app: menu bar
+                        ♪ → <strong>Release Device</strong>, then reload the page).
                     </td>
                 </tr>
                 <tr>
@@ -212,8 +211,8 @@
                 <tr>
                     <td>Edits made on the device don't show in the app</td>
                     <td>
-                        The microSAMPLER only transmits panel edits while it's on its sample-edit page. Press <strong>RECEIVE</strong> (or just
-                        refocus the window) to re-read the bank.
+                        The microSAMPLER only transmits panel edits while it's on its sample-edit page. Press <strong>RECEIVE</strong>, or return to
+                        the window with <strong>AUTO-SYNC</strong> on, to re-read the bank.
                     </td>
                 </tr>
                 <tr>
@@ -224,14 +223,37 @@
                     <td>A connected MIDI keyboard doesn't play</td>
                     <td>
                         Tick <strong>MIDI IN</strong> on the Samples view and approve the browser's Web MIDI prompt. Web MIDI needs Chrome, Edge or
-                        Firefox (not Safari).
+                        Firefox (not Safari). If notes arrive but trigger the wrong thing, check the <strong>SMP CH</strong> / <strong>KBD CH</strong>
+                        fields next to MIDI IN.
+                    </td>
+                </tr>
+                <tr>
+                    <td>Held loops or a playing pattern stop when I switch back to the editor</td>
+                    <td>
+                        That's <strong>AUTO-SYNC</strong> re-reading the bank: a bank read stops the sequencer and releases held notes. Untick
+                        AUTO-SYNC in the top bar, and press <strong>RECEIVE</strong> yourself after editing on the device.
+                    </td>
+                </tr>
+                <tr>
+                    <td>A MIDI-learned knob changes the wrong pad, or nothing</td>
+                    <td>
+                        A binding belongs to the pad that was selected when you learned it. Select that pad to see its badge, or learn the knob again
+                        on the pad you want.
+                    </td>
+                </tr>
+                <tr>
+                    <td>Sustain pedal or pitch bend stopped working</td>
+                    <td>
+                        CC#64 or the pitch-bend wheel is MIDI-learned to a sample control. Click <strong>LEARN</strong>, right-click that control to
+                        clear its binding, then press <kbd>Esc</kbd>.
                     </td>
                 </tr>
                 <tr>
                     <td>Uploaded sample sounds wrong</td>
                     <td>
-                        The device plays 16-bit audio at fixed rates, and the editor resamples automatically. Re-upload if you changed the source
-                        file.
+                        The device plays 16-bit audio at 48, 24, 12 or 6&nbsp;kHz, and the upload resamples to the nearest of those, so a low-rate
+                        source stays lo-fi. Heavy <strong>GAIN</strong> can clip; upload again with less gain, or with <strong>NORMALIZE</strong>
+                        instead.
                     </td>
                 </tr>
                 <tr>
@@ -242,21 +264,18 @@
                     </td>
                 </tr>
                 <tr>
-                    <td>macOS app won't reopen, launches slowly, or lingers in the background</td>
+                    <td>macOS app won't reopen or seems stuck</td>
                     <td>
-                        Update to <strong>v1.15.1 or later</strong>, which fixes several app lifecycle issues (instant launch, clean quit, reliable
-                        reopen). After updating the Editor app it refreshes its background helper on the next launch. If it shows a one-time error
-                        right after an update, quit and reopen it.
+                        Quit it from the menu bar and open it again. Right after an update, the Editor app refreshes its background helper on first
+                        launch; if that shows a one-time error, quit and reopen it.
                     </td>
                 </tr>
                 <tr>
                     <td>Editor app opens the browser to "This site can't be reached"</td>
                     <td>
-                        The macOS Editor app serves the editor from a background service that needs a one-time approval — usually right after a fresh
-                        install or an update, and until it's approved the browser opens to a dead page. Enable it in
-                        <strong>System Settings → General → Login Items &amp; Extensions</strong> ("microSAMPLER Editor Librarian"), then reopen the
-                        app. On <strong>v1.17.2 or later</strong> the app waits for the service and points you straight to that setting instead of
-                        showing an unreachable page.
+                        The macOS Editor app serves the editor from a background service that needs a one-time approval, usually right after a fresh
+                        install or an update. Enable it in <strong>System Settings → General → Login Items &amp; Extensions</strong> ("microSAMPLER
+                        Editor Librarian"), then reopen the app.
                     </td>
                 </tr>
             </table>
@@ -290,8 +309,8 @@
             <h3 id="korg-banks">Can I use the banks I saved with Korg's original editor?</h3>
             <p>
                 Yes. In the Utility view, <strong>IMPORT…</strong> takes a <code>.msmpl_bank</code> file, and <strong>RESTORE…</strong> writes the
-                whole bank to the device: samples, their settings, the effect and the patterns. A bank imported with v1.17.4 or earlier has RESTORE…
-                greyed out; import the file again.
+                whole bank to the device: samples, their settings, the effect and the patterns. If RESTORE… is greyed out for an older import, import
+                the file again.
             </p>
 
             <h3 id="no-sound">Why don't I hear anything from my computer?</h3>
@@ -306,7 +325,14 @@
             <p>
                 Not at the same time. The device can only have one USB owner, and its sample/pattern transfers aren't ordinary MIDI. Close the DAW
                 (and any other MIDI software) while the bridge is running, and close the bridge before using the microSAMPLER as a USB-MIDI device in
-                your DAW.
+                your DAW. The macOS Editor app lets go of the device a few minutes after you close the editor tab, or right away via menu bar ♪ →
+                <strong>Release Device</strong>.
+            </p>
+
+            <h3 id="pattern-playback">Why does pattern playback do nothing?</h3>
+            <p>
+                The microSAMPLER's sequencer advances on incoming MIDI clock. Set <code>GLOBAL → MIDI CLK = AUTO</code> (or EXT MIDI) on the device so
+                it follows the editor's transport.
             </p>
 
             <h3>Will it work on Windows?</h3>

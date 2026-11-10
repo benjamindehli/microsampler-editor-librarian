@@ -89,7 +89,7 @@
                 <h1>The guide</h1>
                 <p>
                     A tour of every view. New to the hardware? Read
-                    <a href="concepts">how the microSAMPLER works</a> first. It makes the parameters here click into place.
+                    <a href="concepts">how the microSAMPLER works</a> first. It explains what each parameter does on the hardware.
                 </p>
             </div>
 
@@ -135,10 +135,29 @@
                     <strong>On-screen keyboard</strong>. A piano below the editor mirrors all 36 pads. Click a key to play it on the device. The
                     <strong>SAMPLE / KEYBOARD</strong> toggle switches how the keys play: <strong>SAMPLE</strong> triggers a different sample per key
                     (keys with no sample are dimmed), and <strong>KEYBOARD</strong> plays the currently selected sample across the keyboard, pitched.
-                    Tick <strong>⌨ TYPE TO PLAY</strong> to play from your computer keyboard too (the piano shows which key is which), with
-                    <kbd>Z</kbd>/<kbd>X</kbd> or the <kbd>◀ ▶</kbd> buttons to shift octave. Tick <strong>MIDI IN</strong> to play the device from a
-                    connected MIDI keyboard, with velocity, pitch bend and sustain pedal (it uses your browser's Web MIDI and honors the same SAMPLE /
-                    KEYBOARD mode, available in Chrome, Edge and Firefox).
+                    Tick <strong>TYPE TO PLAY</strong> to play from your computer keyboard too (the piano shows which key is which), with
+                    <kbd>Z</kbd>/<kbd>X</kbd> or the <kbd>◀ ▶</kbd> buttons to shift octave.
+                </li>
+                <li>
+                    <strong>MIDI IN</strong>. Tick it to play the device from a connected MIDI controller, with velocity, pitch bend and sustain
+                    pedal. Notes follow the SAMPLE / KEYBOARD toggle. MIDI IN uses your browser's Web MIDI, which Chrome, Edge and Firefox support.
+                </li>
+                <li>
+                    <strong>MIDI channel routing</strong>. With <strong>SMP CH</strong> / <strong>KBD CH</strong> next to MIDI IN, notes on the SMP
+                    channel always trigger pads and notes on the KBD channel always play the selected sample pitched, so a split controller can do
+                    both at once. Other channels, and the default <strong>—</strong>, follow the SAMPLE / KEYBOARD toggle.
+                </li>
+                <li>
+                    <strong>MIDI Learn</strong>. Click <strong>LEARN</strong> (next to MIDI IN) or right-click a sample control. The control shows a
+                    <strong>LEARN</strong> badge; move a knob or slider on your controller and the badge shows its CC number (<strong>PB</strong> for
+                    the pitch-bend wheel). A binding controls the pad that was selected when you learned it, even while you edit others, and each CC
+                    drives one control. While learning, right-click a control to clear its binding; <kbd>Esc</kbd> stops learning. Binding CC#64 or
+                    the pitch-bend wheel replaces its sustain or bend function. Bindings are saved in the browser.
+                </li>
+                <li>
+                    <strong>Loop hold</strong>. Tick <strong>LOOP HOLD</strong> to latch notes: a pad ▶, piano key, typed key or MIDI note keeps
+                    sounding until you trigger it again. Unticking it, switching SAMPLE / KEYBOARD, <strong>Panic</strong> or a bank read releases
+                    everything held.
                 </li>
                 <li>
                     <strong>Transfer</strong>. Download a slot as a WAV, or upload WAVs (auto-resampled to the device's 48/24/12/6&nbsp;kHz). Drop
@@ -340,6 +359,11 @@
                 <li><strong>Panic</strong> (⏻). All-sound-off / stop, if a note ever sticks.</li>
                 <li><strong>Theme</strong>. 12 accent colours from a swatch dropdown, and the whole interface recolours.</li>
                 <li><strong>RECEIVE</strong>. Re-read the bank from the device.</li>
+                <li>
+                    <strong>AUTO-SYNC</strong> (on by default). Re-reads the bank when you return to the window, to pick up hardware edits. A bank
+                    read stops a playing pattern and releases held notes; untick it to keep them going, and press RECEIVE yourself after editing on
+                    the device.
+                </li>
                 <li><strong>?</strong>. The in-app help overlay.</li>
             </ul>
             <table>
@@ -368,7 +392,7 @@
                     <td>Undo a parameter edit</td>
                 </tr>
                 <tr>
-                    <td><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>⇧</kbd> + <kbd>Z</kbd></td>
+                    <td><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>⇧</kbd> + <kbd>Z</kbd> (or <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>Y</kbd>)</td>
                     <td>Redo</td>
                 </tr>
                 <tr>
@@ -386,6 +410,14 @@
                 <tr>
                     <td><kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>A</kbd> / <kbd>C</kbd> / <kbd>V</kbd></td>
                     <td>Pattern editor: select all / copy / paste notes</td>
+                </tr>
+                <tr>
+                    <td>Arrow keys (<kbd>⇧</kbd> + arrows)</td>
+                    <td>Pattern editor: move the focused note (resize it)</td>
+                </tr>
+                <tr>
+                    <td><kbd>Esc</kbd></td>
+                    <td>Stop MIDI learn; in the pattern editor, discard changes and close</td>
                 </tr>
                 <tr>
                     <td><kbd>?</kbd></td>

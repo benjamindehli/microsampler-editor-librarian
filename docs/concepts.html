@@ -146,16 +146,15 @@
                 </p>
             </div>
             <p>
-                This RAM model is why the editor can be non-destructive: previewing a pattern, for instance, writes it to the current bank and plays
-                it, but nothing is permanent until you deliberately save. It's also why bank backups matter. A backup captures the whole RAM bank to a
-                file you can restore later.
+                Because the current bank is a working copy, nothing the editor does is permanent until you save it. A pattern preview, for example,
+                overwrites that pattern in RAM but not in your user banks. It's also why bank backups matter: a backup captures the whole RAM bank to
+                a file you can restore later.
             </p>
 
             <h2 id="samples">Samples &amp; the two play modes</h2>
             <p>
                 A bank has <strong>36 sample slots</strong>, laid out across the device's keys (and mirrored on the editor's pad grid). Each slot
-                holds one recorded or imported sound plus its parameters. The microSAMPLER plays those 36 sounds in two distinct ways, and
-                understanding the difference explains a lot of the editor:
+                holds one recorded or imported sound plus its parameters. The microSAMPLER plays those 36 sounds in two ways:
             </p>
             <ul>
                 <li>
@@ -221,8 +220,8 @@
                 <b class="label">PANEL EDITS &amp; LIVE SYNC</b>
                 <p>
                     The microSAMPLER only transmits a knob move while it's on its sample-edit page. Turned elsewhere, the value changes silently. So
-                    the editor re-reads the bank when you press
-                    <strong>RECEIVE</strong> or refocus the window, keeping the two in sync after you fiddle with the hardware.
+                    the editor re-reads the bank when you press <strong>RECEIVE</strong>, or when you return to the window with
+                    <strong>AUTO-SYNC</strong> on (the default), keeping the two in sync after you work on the hardware.
                 </p>
             </div>
 
@@ -321,7 +320,7 @@
                 <li>
                     <strong>Notes &amp; velocity</strong> play samples, and in keyboard mode they play the selected sample pitched.
                     <strong>Pitch bend</strong> bends the keyboard-mode voice, and the <strong>sustain pedal</strong> holds notes. The editor forwards
-                    all of these from a connected MIDI keyboard via your browser's Web MIDI.
+                    all of these from a connected MIDI controller via your browser's Web MIDI.
                 </li>
                 <li>
                     <strong>Continuous controllers and NRPNs</strong> drive things like volume, pan, pattern selection, and triggering record or
@@ -330,10 +329,14 @@
                 <li><strong>MIDI clock</strong> advances the sequencer (above).</li>
             </ul>
             <p>
-                The editor itself never touches your computer's MIDI directly. A small local
-                <strong>bridge</strong> owns the USB connection and the browser talks to it over HTTP, which is why the bridge needs elevated rights
-                while it holds the device (the macOS app's background service handles that after a one-time approval, and the classic launchers ask
-                for <code>sudo</code>).
+                The editor can also map your controller's knobs to sample parameters (MIDI Learn). That mapping happens in the browser, and the values
+                reach the device as ordinary parameter edits.
+            </p>
+            <p>
+                The editor never talks to the microSAMPLER through your computer's MIDI system (it only reads your MIDI controller, via Web MIDI). A
+                small local <strong>bridge</strong> owns the USB connection and the browser talks to it over HTTP, which is why the bridge needs
+                elevated rights while it holds the device (the macOS app's background service handles that after a one-time approval, and the classic
+                launchers ask for <code>sudo</code>).
             </p>
 
             <h2 id="audio">Audio format</h2>
