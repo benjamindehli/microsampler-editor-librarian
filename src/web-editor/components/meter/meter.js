@@ -2,9 +2,9 @@
 // Device storage accounting (RE'd from SampleSet/SequenceSet::
 // getFreeStorageSize): sample pool 0xEA0000 (14.6 MB), each sample occupies
 // frames×channels×2 rounded UP to 32 KB blocks; pattern pool 0x60000 (384 KB),
-// per-pattern usage = bank-blob seq_lengths[i] × 0x200. All samples are
-// preloaded on connect (loadAllSamples), so sizes are ALWAYS REAL — no
-// estimation: an as-yet-unloaded slot just counts 0 until its WAV arrives.
+// per-pattern usage = bank-blob seq_lengths[i] × 0x200. Sample sizes come
+// from the loaded WAVs (all are preloaded on connect by loadAllSamples); a slot
+// counts 0 until its WAV arrives.
 import { syncPads } from "components/pads/pads.js";
 import { loadSampleAudio } from "components/sample-editor/sampleLoad.js";
 import { renderChips } from "components/sample-editor/slot.js";
@@ -53,8 +53,8 @@ export const fmtMem = (b) => (b >= 1 << 20 ? (b / (1 << 20)).toFixed(1) + "MB" :
 
 // Download + decode every not-yet-loaded sample, so the meter is exact and pad
 // clicks / auditions / hardware-follow are instant (no per-select transfer).
-// Runs automatically on connect (app.js); shows a prominent progress bar. Full
-// downloads (the session-safe path) — never the header-only scan that wedged.
+// Runs automatically on connect (app.js) with a progress bar. Uses full
+// downloads: a header-only read leaves the device in a sample-select session.
 let loadingAll = false;
 export async function loadAllSamples() {
     if (loadingAll || !state.bank) return;
@@ -74,8 +74,8 @@ export async function loadAllSamples() {
     let failed = 0;
     for (const s of todo) {
         try {
-            // per-slot: one bad download
-            await loadSampleAudio(s.slot); // must not abort the rest
+            // per slot, so one bad download doesn't abort the rest
+            await loadSampleAudio(s.slot);
             renderMeter();
             syncPads(); // light the loaded indicator
             if (state.sel === s.slot) renderChips(s);

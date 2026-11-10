@@ -31,7 +31,7 @@ export async function loadBackups() {
         btn.innerHTML = '<span class="hw-btn-cap">RESTORE…</span>';
         btn.onclick = () => openRestore(b);
         if (!b.restorable) {
-            // no bank.bin (a Korg-bank import made before restore support)
+            // no bank.bin (an older Korg-bank import): nothing to restore from
             btn.disabled = true;
             btn.title = "Can't be restored to the device. Import the original .msmpl_bank file again to make a restorable copy.";
         }

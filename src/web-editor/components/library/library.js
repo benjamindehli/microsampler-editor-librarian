@@ -42,11 +42,12 @@ function renderBanks() {
 
 async function renderDetail() {
     const el = $("#lib-detail");
-    const dir = selDir; // guard against a stale response: bank A's
+    // remember which bank this render is for: bank A's fetch may resolve after B was clicked
+    const dir = selDir;
     if (!dir) {
         el.innerHTML = "";
         return;
-    } // fetch may resolve after B was clicked
+    }
     let samples;
     try {
         samples = (await apiJson(`/api/backup/${encodeURIComponent(dir)}/samples`)).samples;

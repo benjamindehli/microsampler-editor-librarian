@@ -96,12 +96,9 @@ function scheduleRedraw() {
     });
 }
 
-// The waveform is rendered to an OFFSCREEN canvas once per geometry/theme
-// change; a marker drag then just blits that bitmap + a dim overlay + two
-// marker lines (≈6 canvas ops) instead of re-drawing ~W bars + ~W trace
-// segments every frame (which ran at ~30fps on a wide/Retina canvas). The
-// only per-frame difference during a drag is the marker position, so the
-// heavy waveform pixels never need recomputing until zoom/sample/size/theme.
+// The waveform is rendered to an offscreen canvas once per zoom/sample/size/theme
+// change; a marker drag then only blits that bitmap plus a dim overlay and two
+// marker lines (≈6 canvas ops a frame instead of ~W bars + trace segments).
 let waveCache = null;
 // per-column lo/hi/mid PER CHANNEL — returns one {los,his,mids} per channel so
 // stereo can be drawn as two lanes (mono = a single-element array).
@@ -163,8 +160,8 @@ function buildWaveCache(buf, n, v0, vlen, W, H, rgb, hiRgb, dpr) {
         g.strokeStyle = A(0.07);
         g.lineWidth = 1; // baseline
         line(g, 0, mid, W, mid);
-        // min/max bars, filled as ONE path (flat — the per-column shadowBlur glow
-        // was rasterised at blit time and was the bulk of a zoom rebuild)
+        // min/max bars, filled as one flat path (a per-column shadowBlur glow
+        // would dominate the cost of every zoom rebuild)
         const bars = new Path2D();
         for (let x = 0; x < W; x++) {
             // fill the column from its most-negative to its most-positive sample
@@ -178,10 +175,9 @@ function buildWaveCache(buf, n, v0, vlen, W, H, rgb, hiRgb, dpr) {
         g.globalAlpha = 0.95;
         g.fill(bars);
         g.restore();
-        // connecting trace (avg) — only when zoomed in enough to be meaningful.
-        // Zoomed out it's a full-height aliased zigzag: visually noisy AND the
-        // dominant rasterisation cost of a rebuild (a tall anti-aliased polyline
-        // across every column), which is why zooming out felt laggy.
+        // connecting trace (avg), only when zoomed in enough to be meaningful:
+        // zoomed out it's a full-height aliased zigzag, visually noisy and the
+        // most expensive thing to rasterise (a tall anti-aliased polyline).
         if (vlen / W <= 12) {
             g.save();
             g.strokeStyle = `rgba(${hiRgb},.85)`;
@@ -195,9 +191,9 @@ function buildWaveCache(buf, n, v0, vlen, W, H, rgb, hiRgb, dpr) {
             g.restore();
         }
         if (nch > 1) {
-            // L / R lane label — bottom-left
-            g.fillStyle = `rgba(${hiRgb},.5)`; // of the lane, clear of the top
-            g.font = `${9 * dpr}px "Share Tech Mono", monospace`; // S/E marker flags
+            // L / R lane label, bottom-left of the lane (clear of the S/E marker flags at the top)
+            g.fillStyle = `rgba(${hiRgb},.5)`;
+            g.font = `${9 * dpr}px "Share Tech Mono", monospace`;
             g.fillText(c === 0 ? "L" : "R", 4 * dpr, (c + 1) * laneH - 5 * dpr);
         }
     });
@@ -242,8 +238,7 @@ function drawWave(buf, s) {
         waveCache = { key, buf, canvas: buildWaveCache(buf, n, v0, vlen, W, H, rgb, hiRgb, dpr) };
     g.drawImage(waveCache.canvas, 0, 0); // one blit — the whole waveform
 
-    // in/out-of-range: dim outside [start,end] with a cheap overlay that moves
-    // with the markers (was baked per-bar, forcing a full redraw every frame)
+    // dim outside [start,end] with a cheap overlay that moves with the markers
     const l = Math.max(0, Math.min(W, startX)),
         r = Math.max(0, Math.min(W, endX));
     g.fillStyle = "rgba(0,0,0,.72)";
@@ -422,11 +417,11 @@ wave.addEventListener("dblclick", () => {
         const mode = drag.mode;
         drag = null;
         wave.style.cursor = "";
+        // pan: redraw one final frame; panning sends nothing to the device
         if (mode === "pan") {
             scheduleRedraw();
             return;
-        } // full-quality final frame;
-        //                                                     panning sends nothing
+        }
         const s = slotData(state.sel);
         const buf = curBuf();
         // snap the just-dragged marker to the nearest zero crossing (numeric inputs
@@ -458,8 +453,8 @@ async function commitPoints(start, end) {
     if (state.sel == null) return;
     const i = state.sel,
         s = slotData(i);
-    if (!s.frames) return; // length unknown (WAV not loaded yet) —
-    // clamping here would collapse to 1 frame
+    // length unknown until the WAV is loaded; clamping now would collapse to 1 frame
+    if (!s.frames) return;
     const max = s.frames - 2; // start < end ≤ max, so start ≤ max-1
     s.start = Math.max(0, Math.min(max - 1, Math.round(start)));
     s.end = Math.max(s.start + 1, Math.min(max, Math.round(end)));
@@ -499,8 +494,8 @@ export function followSelect(i) {
 }
 
 // ───────────────────────────────────────────────────────────── audition ──
-// Audition plays the sample ON THE DEVICE (like the pad ▶), via a MIDI note —
-// click toggles note-on/off. The playhead is APPROXIMATE: the app can't read
+// Audition plays the sample on the device (like the pad ▶) via a MIDI note;
+// a click toggles note-on/off. The playhead is approximate: the app can't read
 // the device's true position, so a rAF line sweeps START→END over the region's
 // natural duration ((end−start)/rate), looping if the sample loops, mapped
 // through the zoom window. Needs the slot's WAV loaded (it is — its waveform is
@@ -611,7 +606,6 @@ addEventListener("resize", () => {
     }
 });
 addEventListener("msmpl-theme", () => {
-    // one-shot — sync is fine
     _themeColors = null; // re-read the new accent
     redrawCurrent();
 });

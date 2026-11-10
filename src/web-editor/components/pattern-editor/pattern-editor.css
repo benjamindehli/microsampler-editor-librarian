@@ -79,8 +79,7 @@
     flex: 0 0 52px;
     background: var(--steel-1);
 }
-/* absolutely positioned by row (top set inline) so labels can't drift out of step
-   with the lanes — block flow distorted the pad-range rows */
+/* absolutely positioned per row (top set inline) so labels stay aligned with the lanes */
 .pe-key {
     position: absolute;
     left: 0;

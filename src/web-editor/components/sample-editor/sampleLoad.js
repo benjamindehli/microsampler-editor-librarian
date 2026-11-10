@@ -18,8 +18,9 @@ export async function loadSampleAudio(i) {
     // header, not the bank blob) — used for the BPM chip + BPM-synced playhead
     const tempo = parseFloat(resp.headers.get("X-Sample-Tempo"));
     const wav = await resp.arrayBuffer();
-    const byteLen = wav.byteLength; // read BEFORE decode —
-    const fmt = wavFormat(wav.slice(0, 44)); // decodeAudioData may detach
+    // read size + format before decoding: decodeAudioData may detach the buffer
+    const byteLen = wav.byteLength;
+    const fmt = wavFormat(wav.slice(0, 44));
     state.audio = state.audio || new AudioContext();
     const buf = await state.audio.decodeAudioData(wav);
     state.buffers.set(i, buf);

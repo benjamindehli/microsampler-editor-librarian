@@ -2,7 +2,7 @@
 // channels, optionally convert channels / trim silence / normalize / gain /
 // fade, then re-encode a 16-bit PCM WAV the bridge accepts (it resamples to the
 // nearest device rate itself). Pure functions, no DOM — unit-tested in plain
-// node (test/audioTools.test.mjs; `npm test`).
+// node (test/unit/audioTools.test.mjs; `npm test`).
 
 // Walk a RIFF/WAVE header's chunks → { format, channels, rate, bits, dataOff,
 // dataLen } (dataOff/dataLen are 0 when there's no data chunk), or null when the
@@ -156,7 +156,7 @@ export function processBuffer(src, o) {
     // 4. gain (dB)
     if (o.gainDb) chans = scale(chans, Math.pow(10, o.gainDb / 20));
 
-    // 5. linear fades
+    // 5. fades (raised cosine)
     const fi = Math.min(chans[0].length, Math.round(((o.fadeInMs || 0) * rate) / 1000));
     const fo = Math.min(chans[0].length, Math.round(((o.fadeOutMs || 0) * rate) / 1000));
     if (fi > 0 || fo > 0) {

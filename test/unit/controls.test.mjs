@@ -136,7 +136,7 @@ test("only real CCs (0..127) and pitch bend (pseudo-CC 128) are bindable", () =>
     assert.equal(PITCH_BEND_CC, 128);
     assignParamCC(PARAM.TUNE, PITCH_BEND_CC, 3);
     assert.equal(getCcForParam(PARAM.TUNE, 3), PITCH_BEND_CC);
-    // the old aftertouch / program-change pseudo-CCs (129..131) are rejected
+    // sources above 128 (e.g. 129) are rejected
     assignParamCC(PARAM.PAN, 129, 3);
     assert.equal(getCcForParam(PARAM.PAN, 3), null);
     assert.equal(unassignParamCC(PARAM.TUNE, 3), PITCH_BEND_CC);

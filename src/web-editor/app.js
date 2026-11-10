@@ -70,9 +70,9 @@ function enterLibraryMode(st) {
 async function onConnected(st) {
     $("#device-help").hidden = true;
     if (!subscribed) {
-        subscribeEvents();
+        subscribeEvents(); // SSE, once
         subscribed = true;
-    } // SSE, once
+    }
     try {
         await refreshBank();
     } catch (e) {
@@ -84,7 +84,7 @@ async function onConnected(st) {
     }
     restoreView(); // now that the app is up
     checkForUpdate(st.version).catch(() => {}); // GitHub releases → toast
-} // refreshBank() preloads samples
+}
 
 // The bundled app has no terminal to Ctrl+C, so its bridge enables
 // POST /api/shutdown (advertised via status.shutdown) and the rail shows QUIT.
@@ -144,9 +144,10 @@ $("#device-help-retry").addEventListener("click", async () => {
             showDeviceHelp(st);
         }
     } catch {
-        setOnline(false); // bridge went away mid-retry —
-        setTimeout(boot, 2500); // resume the reconnect polling
-    } // (boot's own catch keeps it up)
+        // the bridge went away mid-retry: resume the reconnect polling (boot's own catch keeps it going)
+        setOnline(false);
+        setTimeout(boot, 2500);
+    }
     btn.disabled = false;
     cap.textContent = was;
 });

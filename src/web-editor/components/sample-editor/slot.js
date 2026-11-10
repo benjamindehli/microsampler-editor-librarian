@@ -21,8 +21,7 @@ export async function showSlot(i, { keepWave = false } = {}) {
 
     renderChips(s);
 
-    // controls — fully initialised from the bank blob (flags8 decoded
-    // 2026-06-08: bit7=loop, bits5-6=bpm sync, bit4=reverse, bit3=fx sw)
+    // controls are initialised from the bank blob values
     applySlotControls(s);
 
     // start/end points — editable by dragging the S/E flags on the waveform

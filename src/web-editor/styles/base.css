@@ -1,7 +1,7 @@
 /* design tokens + shared primitives (LCD, buttons) */
 
 /* ════════════════════════════════════════════════════════════════════════
-   microSAMPLER Editor — sample edit page
+   microSAMPLER Editor
    Aesthetic: matte powder-coat hardware panel · amber phosphor LCD ·
    silkscreen labels. Fonts: Chakra Petch (silkscreen) + Share Tech Mono (LCD).
    ════════════════════════════════════════════════════════════════════════ */
@@ -14,7 +14,7 @@
     --line: #2b2b33; /* panel seams                */
     --line-hi: #3a3a44;
     --ink: #b9b2a6; /* silkscreen text            */
-    --ink-dim: #837d71; /* muted labels — lifted from #6d685f for legible contrast */
+    --ink-dim: #837d71; /* muted labels (≥4.5:1 on the panels) */
     /* accent = one tunable colour (the theme switcher overrides these three RGB
      triplets; everything else — glows, borders, the phosphor backgrounds, the
      canvas waveform — derives from them so a theme change is total). */
@@ -98,7 +98,7 @@ body {
 
 /* ── silkscreen + LCD primitives ─────────────────────────────────────── */
 .lcd {
-    /* flat phosphor panel — no gradient sheen, inset depth, or amber glow */
+    /* flat phosphor panel */
     background: var(--phos-bg);
     border: 1px solid #000;
     border-radius: var(--ctl-r);
@@ -147,9 +147,8 @@ body {
     text-decoration: none;
     display: inline-block;
 }
-/* flat, legible button: solid face + hairline border, no bevel/press/gradient.
-   Every button looks the same; the accent is reserved for the SELECTED option in
-   a group (nav tabs, segmented switches), not for "primary" actions. */
+/* solid face + hairline border. All buttons share one style; the accent marks
+   only the selected option in a group (nav tabs, segmented switches). */
 .hw-btn-cap {
     display: inline-block;
     font:
@@ -185,7 +184,7 @@ body {
 }
 
 /* ── form fields ─────────────────────────────────────────────────────────
-   ONE phosphor style + size for every text/number/search field and native
+   One phosphor style + size for every text/number/search field and native
    <select>, so a row of mixed controls (e.g. NAME · BARS · GRID · PLAY in the
    pattern editor) lines up. Components set only widths/min-widths on top. */
 input[type="text"],

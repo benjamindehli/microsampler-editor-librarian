@@ -2,7 +2,7 @@
 // a format-0 SMF (96 ticks/quarter, the device's resolution). The bridge feeds
 // it straight into the proven smf_to_pattern → pattern_write path, so the editor
 // reuses the exact, hardware-verified converter rather than serialising SEQP in
-// the browser. Pure (no DOM) — unit-tested in test/smfWrite.test.mjs.
+// the browser. Pure (no DOM) — unit-tested in test/unit/smfWrite.test.mjs.
 //
 // notes: [{ start, dur, note, vel, track }]  (ticks @96/quarter; track 0 =
 //   sample-mode/pad, 1 = keyboard-mode). opts: { bars, sample, name }. The

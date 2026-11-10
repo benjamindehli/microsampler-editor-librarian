@@ -23,8 +23,7 @@
     color: var(--ink-dim);
 }
 
-/* SAMPLE / KEYBOARD play-mode toggle (segmented, like the pattern editor's) */
-/* .keybed-mode / .kb-mode are styled by the shared segmented control (controls.css) */
+/* SAMPLE / KEYBOARD play-mode toggle: styled by the shared segmented control (controls.css) */
 
 .keybed-oct {
     display: inline-flex;
@@ -81,7 +80,7 @@
     align-items: center;
     gap: 0.6rem;
 }
-/* stacked keybed controls share ONE explicit height (checkbox size differs per
+/* stacked keybed controls share one explicit height (checkbox size differs per
    OS), so the checkboxes and channel selects match and every caption lines up */
 .keybed .stack input[type="checkbox"] {
     width: var(--kb-ctl-h);
@@ -229,10 +228,10 @@
 }
 
 /* ── play-mode emphasis ──────────────────────────────────────────────────── */
-/* SAMPLE mode: each key triggers its own pad, so recolour the keys with no
-   sample to a dark, recessed tone (opaque — opacity made the black keys
-   translucent, letting the white-key seams bleed through) so the loaded ones
-   stand out. A sounding key still lights amber via the rule above. */
+/* SAMPLE mode: each key triggers its own pad, so keys with no sample get a dark,
+   recessed tone and the loaded ones stand out. Use opaque colours, not opacity:
+   translucent black keys let the white-key seams show through. A sounding key
+   still lights amber via the rule above. */
 .keybed.mode-sample .pkey.white:not(.used):not(.sounding) {
     background: linear-gradient(#2e2e35, #202026);
     border-color: #131317;

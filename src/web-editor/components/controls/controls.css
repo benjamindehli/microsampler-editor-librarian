@@ -1,5 +1,3 @@
-/* GENERATED SPLIT of the former app.css — component stylesheet. */
-
 /* ── control strip ────────────────────────────────────────────────────── */
 /* groups wrap as whole units — controls inside a group never line-break */
 .strip {
@@ -31,8 +29,7 @@
 }
 .ctl {
     position: relative; /* anchors the corner MIDI badge (.ctl-cc) */
-    /* flat: controls sit directly on the panel, grouped by whitespace rather than
-       each boxed in its own card (avoids the "boxes-in-boxes" density) */
+    /* unboxed: the enclosing .ctl-group frames each cluster */
     border-radius: 5px;
     padding: 0.55rem 0.7rem;
     display: flex;
@@ -147,10 +144,10 @@
 }
 
 /* ── segmented control ────────────────────────────────────────────────────
-   ONE style for every mutually-exclusive button group: BPM SYNC, INPUT source,
+   One style for every mutually-exclusive button group: BPM SYNC, INPUT source,
    the SAMPLE/KEYBOARD play toggle, the nav tabs, and the pattern-editor tool +
    track pickers. A bordered bar of segments; the selected one carries the
-   accent. Restyled in place (markup/JS keep their own class hooks). */
+   accent. Each group keeps its own class as a JS hook. */
 .seg,
 .views,
 .keybed-mode,
@@ -257,7 +254,6 @@
     gap: 0.45rem;
     flex-wrap: wrap;
 }
-/* plain label + input, no dashed box */
 .ro {
     display: inline-flex;
     align-items: center;

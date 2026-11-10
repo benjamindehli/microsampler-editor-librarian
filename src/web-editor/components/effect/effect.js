@@ -183,8 +183,8 @@ function renderFxKnobs() {
         const sel = $(k ? "#fx-knob2" : "#fx-knob1");
         const cur = fxSnapKnob(state.fx.knobs[k]);
         const html = opts.map((p) => `<option value="${p.idx}"${p.idx === cur ? " selected" : ""}>${esc(p.name)}</option>`).join("");
-        if (sel.innerHTML !== html) sel.innerHTML = html; // don't disturb an
-        sel.disabled = !opts.length; // open dropdown
+        if (sel.innerHTML !== html) sel.innerHTML = html; // unchanged options: leave an open dropdown alone
+        sel.disabled = !opts.length;
     }
 }
 

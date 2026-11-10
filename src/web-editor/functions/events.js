@@ -37,13 +37,8 @@ export function subscribeEvents() {
         }
         const shown = isFx || BIPOLAR.has(evt.param) ? fmtSigned(dec14(evt.value)) : evt.param === PARAM.TUNE ? tuneDisplay(evt.value) : evt.value;
         tick(`← ${who} #${evt.param} = ${shown}`);
-        if (evt.sample != null)
-            // panel edits update the cache
-            cacheParam(
-                evt.sample,
-                evt.param, // for EVERY slot, selected or not
-                BIPOLAR.has(evt.param) ? dec14(evt.value) : evt.value
-            );
+        // panel edits update the cache for every slot, selected or not
+        if (evt.sample != null) cacheParam(evt.sample, evt.param, BIPOLAR.has(evt.param) ? dec14(evt.value) : evt.value);
         if (evt.sample === state.sel) reflect(evt.param, evt.value);
         if (isFx) fxReflect(evt.param, evt.value);
     };

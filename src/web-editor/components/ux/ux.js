@@ -32,9 +32,9 @@ const THEMES = [
     { name: "PINK", rgb: "255, 110, 152", hi: "255, 178, 200", dk: "140, 48, 78" }
 ];
 const DEFAULT_THEME = THEMES.findIndex((t) => t.name === "AMBER");
-// custom dropdown: each row previews its accent with a real colour swatch (a
-// native <select> can't — macOS Chrome draws the popup with the OS menu and
-// ignores option colours)
+// custom dropdown so each row can show its accent as a real colour swatch
+// (macOS Chrome draws a native <select> popup with the OS menu, which ignores
+// option colours)
 const themeTrigger = $("#theme-trigger");
 const themeMenu = $("#theme-menu");
 const themeName = $("#theme-name");
@@ -118,7 +118,7 @@ document.addEventListener("click", (e) => {
 let themeIdx = (() => {
     const saved = lsGet("msmpl.theme");
     const i = THEMES.findIndex((t) => t.name === saved);
-    return i >= 0 ? i : DEFAULT_THEME; // unknown / legacy numeric value → AMBER
+    return i >= 0 ? i : DEFAULT_THEME; // anything that isn't a known theme name → AMBER
 })();
 applyTheme(themeIdx);
 

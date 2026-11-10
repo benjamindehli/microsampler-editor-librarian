@@ -19,8 +19,9 @@ const ROWH = 18; // px per note row
 const PAD_LO = 48,
     PAD_HI = 83; // sample-mode notes map to pads 0..35 (note−48)
 
-let cur = null; // { pattern, notes:[{start,dur,note,vel,track}], bars, sample, name, track, sel:Set, primary, origSmf, deviceDirty }
-let drag = null; // { mode:'move'|'resize', idx, grabTick, origNote, orig:Map }
+let cur = null; // { pattern, notes:[{start,dur,note,vel,track}], bars, sample, name, track, tool, sel:Set, primary, origSmf, deviceDirty }
+// { mode:'move'|'resize', idx, grabTick, origNote, orig:Map } | { mode:'erase', erased } | { mode:'marquee', x0, y0, add, el }
+let drag = null;
 let pePlaying = false; // previewing on the device (transport running)
 let clipboard = []; // copied notes (relative to earliest start); persists across opens
 let history = [],
@@ -120,11 +121,10 @@ function renderRoll() {
     if (refocus != null) focusNote(refocus);
 }
 
-// Patch existing note elements' selection outline + velocity fill in place —
-// used when the note SET (count + indices) is unchanged, so rebuilding every
-// div (bars, ~25 row shades, up to 199 notes) is unnecessary. The velocity
-// slider dragged over a big selection hit renderRoll per input event; a click
-// rebuilt the whole roll just to move one .sel outline.
+// Patch existing note elements' selection outline + velocity fill in place.
+// Used when the note set (count + indices) is unchanged, e.g. a velocity-slider
+// drag or a click that only moves the .sel outline, instead of rebuilding the
+// roll (bars, ~25 row shades, up to 199 notes).
 function paintNotes() {
     for (const el of $$(".pe-note", $("#pe-roll"))) {
         const i = +el.dataset.i;
@@ -362,10 +362,8 @@ function onPointerMove(e) {
     syncNoteEls([...drag.orig.keys()]); // geometry-only — full renderRoll on release
 }
 
-// During a move/resize drag only the DRAGGED notes' geometry changes — patch
-// their inline styles in place. renderRoll() (bars + ~25 row shades + up to
-// 199 note divs rebuilt) ran on EVERY pointermove; the full rebuild now waits
-// for pointerup.
+// During a move/resize drag only the dragged notes' geometry changes: patch
+// their inline styles in place, and leave the full renderRoll() for pointerup.
 function syncNoteEls(idxs) {
     const roll = $("#pe-roll"),
         tot = total();
@@ -422,10 +420,10 @@ function onPointerUp() {
     else if (drag.mode === "erase") {
         if (drag.erased) pushHistory();
     } else {
-        renderRoll();
+        renderRoll(); // move / resize / pencil-add: the deferred full rebuild
         pushHistory();
-    } // move / resize / pencil-add:
-    drag = null; // the deferred full rebuild
+    }
+    drag = null;
 }
 
 function onWheel(e) {
@@ -550,7 +548,7 @@ function fillSampleSelect() {
     const slots = (state.bank && state.bank.slots) || [];
     for (let i = 0; i < 36; i++) {
         const s = slots[i];
-        const label = s && !s.empty ? esc(s.name) : "· · · ·"; // device name → innerHTML: escape (cf. the S&H bug)
+        const label = s && !s.empty ? esc(s.name) : "· · · ·"; // device names are user data: escape before innerHTML
         opts.push(`<option value="${i}">${String(i + 1).padStart(2, "0")} · ${midiLabel(48 + i)} · ${label}</option>`);
     }
     sel.innerHTML = opts.join("");
@@ -617,7 +615,7 @@ function setPlayBtn() {
     $("#pe-play-cap").textContent = pePlaying ? "■ STOP" : "▶ PLAY";
 }
 
-// APPROXIMATE preview playhead (the app can't read the device's true position):
+// Approximate preview playhead (the app can't read the device's true position):
 // a rAF line sweeps the roll over the pattern's duration (bars × 4 beats at the
 // bank BPM) and loops, the way the device loops the pattern.
 let peStop = null;

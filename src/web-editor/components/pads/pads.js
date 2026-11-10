@@ -12,16 +12,15 @@ export function selectSlot(i) {
     state.sel = i;
     syncPads();
     showSlot(i)
-        .then(syncPads)
-        .catch(() => {}); // light the loaded dot
+        .then(syncPads) // light the loaded dot
+        .catch(() => {});
 }
 
-// In-place refresh of sel/loaded/name on the EXISTING buttons — the hot paths
-// (every pad click ×2, once per preloaded sample) don't need renderPads()'s
-// full 36-button rebuild, which repaints the whole grid and destroys the
-// focused pad (keyboard focus silently dropped to <body>). Falls back to the
-// rebuild when the grid doesn't match the bank (first render, or a slot
-// flipped empty↔used — those change a pad's children/draggable).
+// Refresh sel/loaded/name on the existing buttons in place. The hot paths
+// (every pad click, every preloaded sample) skip renderPads()'s 36-button
+// rebuild, which repaints the grid and drops keyboard focus to <body>. Falls
+// back to the rebuild when the grid doesn't match the bank (first render, or a
+// slot flipped empty↔used, which changes a pad's children/draggable).
 export function syncPads() {
     const kids = $("#pad-grid").children;
     const slots = state.bank.slots;
@@ -100,10 +99,9 @@ function applyPadFilter() {
 }
 $("#pad-search").addEventListener("input", applyPadFilter);
 
-// play pads THROUGH THE DEVICE: hold the ▶ corner of a pad → MIDI note
-// on/off via the bridge (note 48+slot on the global channel — the same
-// sample-mode numbering patterns use). The device plays the sample with
-// its real envelope/FX, unlike the browser-side audition.
+// play pads on the device: hold the ▶ corner of a pad → MIDI note on/off via
+// the bridge (note 48+slot on the global channel, the sample-mode numbering
+// patterns use), so the sample plays with its real envelope and FX.
 {
     const grid = $("#pad-grid");
     let down = null; // slot currently sounding

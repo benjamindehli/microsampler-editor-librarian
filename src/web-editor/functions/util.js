@@ -1,14 +1,10 @@
 // Shared helpers: DOM lookup, escaping, formatting, bridge API access.
 import { readWavHeader } from "functions/audioTools.js";
 
-// AppEl is deliberately PERMISSIVE: every element type the app actually pulls
-// out of its own markup, intersected. The DOM lookups really return `Element`,
-// which would make `.value` / `.checked` / `.showModal` / `.getContext` /
-// `.dataset` an error at ~180 call sites and force a cast on each one. The
-// intersection trades that precision (a `$("#some-div").value` still passes) for
-// keeping the rest of the type checking — misspelled methods, bad arithmetic,
-// wrong argument types — available without a mass refactor. Tighten it later by
-// splitting out typed helpers ($input, $dialog) if the looseness ever bites.
+// AppEl is a permissive intersection of the element types the app queries, so
+// `.value` / `.showModal()` / `.getContext()` type-check at ~180 call sites
+// without a cast each (the lookups really return Element). The trade-off: a
+// `$("#some-div").value` also passes. Split into typed helpers if that bites.
 /** @typedef {HTMLElement & HTMLInputElement & HTMLDialogElement & HTMLCanvasElement & HTMLAnchorElement} AppEl */
 
 /** @type {(s: string) => AppEl} */
@@ -113,9 +109,8 @@ export function sweepPlayhead(el, durMs, width, alive) {
     };
 }
 
-// toggle `.on` + aria-pressed across a segmented button group. `pairs` is
-// [[element, isActive], …] — the single spelling of the pattern that was
-// hand-rolled in the keyboard mode switch, pattern-editor tool/track, etc.
+// toggle `.on` + aria-pressed across a segmented button group;
+// `pairs` = [[element, isActive], …]
 export function setSegActive(pairs) {
     for (const [el, on] of pairs) {
         el.classList.toggle("on", on);

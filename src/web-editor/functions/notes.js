@@ -1,9 +1,8 @@
 // Pure note/keyboard theory for the 36 pads (C3..B5; MIDI C3 = 48, the Korg
-// octave). A leaf module that imports nothing, so it never sits in an import cycle
-// — both pads.js and qwerty.js use it (pads.js imports qwerty.js for syncKeybed, so
-// a shared definition in either would form a cycle, and a back-import once hit
-// NOTE_NAMES's temporal dead zone while qwerty.js built the piano at module-eval).
-// Being import-free it's also directly unit-testable (test/notes.test.mjs).
+// octave). A leaf module with no imports: pads.js and keyboard.js both use it,
+// and pads.js imports keyboard.js, which builds the piano at module-eval, so
+// defining these in either would hit a temporal dead zone through the cycle.
+// Unit-tested in test/unit/notes.test.mjs.
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
 export function noteName(slot) {
@@ -16,7 +15,7 @@ export function noteName(slot) {
 const BLACK_KEYS = new Set([1, 3, 6, 8, 10]);
 export const isBlackKey = (midiNote) => BLACK_KEYS.has(((midiNote % 12) + 12) % 12);
 
-// ── QWERTY computer-keyboard piano (used by qwerty.js) ───────────────────────
+// ── QWERTY computer-keyboard piano (used by keyboard.js) ─────────────────────
 // DAW-style layout: home row = white keys, top row = black keys. e.code → semitone
 // offset from the base C. The keyboard sits at one of three base octaves.
 export const QWERTY_KEYMAP = {

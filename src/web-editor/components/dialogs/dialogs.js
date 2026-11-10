@@ -283,9 +283,9 @@ $("#bd-ok").onclick = async (e) => {
     if (!name) return;
     $("#bd-ok").setAttribute("aria-busy", "true");
     try {
-        // one batched request — the bridge sends all 9 messages (8 name chars +
-        // BPM) in a single device-lock acquisition; per-message /api/param
-        // round-trips were user-visibly sluggish
+        // one batched request: the bridge sends all 9 messages (8 name chars +
+        // BPM) under one device-lock grab; separate /api/param calls would
+        // contend for the lock and feel sluggish
         const res = await apiJson("/api/bank/settings", jsonBody({ name, bpm }));
         state.bank.name = res.name;
         state.bank.bpm = res.bpm;

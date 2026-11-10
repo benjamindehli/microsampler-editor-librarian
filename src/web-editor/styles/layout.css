@@ -1,4 +1,4 @@
-/* GENERATED SPLIT of the former app.css — component stylesheet. */
+/* Page layout: top rail, deck grid, ticker, curtains, view nav, toasts. */
 
 /* ── top rail ─────────────────────────────────────────────────────────── */
 .rail {
@@ -134,8 +134,7 @@
         grid-template-columns: 1fr;
     }
 }
-/* gentle entrance when a view is shown (display none->grid restarts the anim on
-   every tab switch), so switching SAMPLES/EFFECT/PATTERNS/UTILITY feels smooth */
+/* short fade-in each time a view is shown (display none→grid restarts it) */
 .deck:not([hidden]) {
     animation: view-in 0.16s cubic-bezier(0.2, 0.8, 0.25, 1) both;
 }
@@ -279,8 +278,6 @@
 }
 
 /* ── view nav ─────────────────────────────────────────────────────────── */
-/* backlit channel-select buttons (was browser-style tabs): the active one is
-   lit amber like the panel's segmented switches, not underlined like a web tab */
 /* nav tabs are a segmented control (styled in controls.css); only the layout
    position lives here */
 .views {
@@ -367,10 +364,9 @@
     text-align: right;
 }
 
-/* accent-theme picker (swatch + named select) */
-/* theme picker — a custom dropdown (native <select> options can't show colour
-   swatches: macOS Chrome renders the popup with the OS menu, ignoring option
-   styling), so the list previews each accent with a real colour swatch. */
+/* theme picker: a custom dropdown so each row can show its accent as a colour
+   swatch (macOS Chrome draws a native <select> popup with the OS menu, which
+   ignores option styling) */
 .theme-pick {
     position: relative;
     background: var(--steel-3);

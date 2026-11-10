@@ -53,9 +53,8 @@ async function loadPatterns() {
     }
 }
 
-// the theme accent as an "r,g,b" string. getComputedStyle forces a sync style
-// recalc, so read it ONCE per render (was 16 forced reflows — one per card) and
-// pass it into drawRoll, never read it per card.
+// the theme accent as an "r,g,b" string. getComputedStyle forces a style
+// recalc, so read it once per render and pass it to drawRoll.
 const accentRgb = () => getComputedStyle(document.documentElement).getPropertyValue("--amber-rgb").trim() || "255,138,30";
 
 function renderPatterns(patterns) {
@@ -175,9 +174,6 @@ function drawRoll(canvas, p, rgb) {
     canvas.height = H;
     const g = canvas.getContext("2d");
     const total = Math.max(p.ticks, 1);
-    // sample-mode track follows the theme accent (passed in — read once per
-    // render); keyboard-mode track keeps its distinct pale-cream so the two
-    // tracks stay tellable apart on any theme.
     // bar grid
     g.strokeStyle = `rgba(${rgb},.14)`;
     g.lineWidth = 1;
@@ -197,7 +193,7 @@ function drawRoll(canvas, p, rgb) {
         const x = (t / total) * W;
         const w = Math.max((dur / total) * W, 2 * dpr);
         const y = H - ((note - lo) / span) * (H - 8 * dpr) - 6 * dpr;
-        // sample-mode track = amber, keyboard-mode track = pale cream
+        // sample-mode track = theme accent; keyboard-mode track = pale cream on every theme
         g.fillStyle = ch ? "#ffe9c9" : `rgb(${rgb})`;
         g.shadowColor = ch ? "rgba(255,233,201,.6)" : `rgba(${rgb},.7)`;
         g.globalAlpha = 0.4 + (vel / 127) * 0.6;
@@ -215,7 +211,7 @@ function drawRoll(canvas, p, rgb) {
 // transport, so only one pattern plays at a time.
 let playing = null; // { pattern, btn } currently transport-playing, or null
 
-// APPROXIMATE play sweep on the card's mini-roll (the app can't read the device's
+// Approximate play sweep on the card's mini-roll (the app can't read the device's
 // true position): a rAF line over the pattern's duration (bars × 4 beats at the
 // bank BPM, ticks == bars×384 so it maps linearly), looping like the device does.
 let pStop = null,

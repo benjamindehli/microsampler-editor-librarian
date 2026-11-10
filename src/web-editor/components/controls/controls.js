@@ -5,11 +5,10 @@ import { tick } from "functions/ticker.js";
 import { $, api, closestEl, fmtSigned, jsonBody, lsGet, lsSet, setSegActive } from "functions/util.js";
 import { VALUE_TABLES } from "functions/valueTables.js";
 
-// Live-edit param ids — HARDWARE-CONFIRMED 2026-06-06 by panel-knob capture
-// (the editor binary's converter table did NOT match the device's actual
-// panel id scheme for the level/pan/semitone/tune/velo cluster — the device
-// is authoritative). START/END are NOT live params (u32 frames > 14 bits);
-// they're set via the param blob — see the waveform marker dragging.
+// Live-edit param ids, confirmed on the hardware by panel-knob capture. The
+// original editor's converter table maps level/pan/semitone/tune/velo
+// differently; these are the ids the device uses. START/END aren't live params
+// (u32 frames don't fit 14 bits): waveform.js sets them through the param blob.
 export const PARAM = {
     LOOP: 16,
     BPM_SYNC: 17,
@@ -32,8 +31,8 @@ export const fmtLevel = (v) => AMP_LEVEL[v] || String(v);
 export const BIPOLAR = new Set([PARAM.SEMITONE, PARAM.VELO_INT]);
 export const dec14 = (v) => (v >= 8192 ? v - 16384 : v);
 
-// TUNE: 0..127 wire → −99..+99 cents, fully decoded from hardware (2026-06-06,
-// exact at 35 measured points). The fine region is two linear halves around a
+// TUNE: 0..127 wire → −99..+99 cents, decoded from the hardware (exact at 35
+// measured points). The fine region is two linear halves around a
 // centre detent — negative HW = wire−62, positive HW = wire−66, with wire
 // 62..66 all reading 0 — and the panel's coarse settings step by 5 out to ±99.
 export function tuneCents(w) {
@@ -48,10 +47,9 @@ export function tuneCents(w) {
 export const tuneDisplay = (wire) => fmtSigned(tuneCents(wire));
 export const OBJ_BASE = 16;
 
-// One descriptor per live-edit param — the single source of truth that drives
-// caching, model readback, the control-strip wiring, setControl, and showSlot's
-// init (this replaced five parallel switch/call blocks that each had to be kept
-// in sync). kind: switch | fader | seg; key = the state.bank.slots[n] property;
+// One descriptor per live-edit param: the single source of truth for caching,
+// model readback, the control-strip wiring, setControl and showSlot's init.
+// kind: switch | fader | seg; key = the state.bank.slots[n] property;
 // bool = stored as a boolean; fmt = display formatter for faders; def = the
 // value shown for an empty slot.
 const SPEC = {
@@ -80,9 +78,8 @@ export function ccToParamValue(param, ccVal) {
     return v;
 }
 
-// keep the bank cache in sync with every edit — controls initialise from it
-// on pad selection, so without this, re-selecting a pad showed the state as
-// of the last RECEIVE. `v` is display/model space (signed for bipolar).
+// keep the bank cache in sync with every edit: the controls initialise from it
+// when a pad is selected. `v` is display/model space (signed for bipolar).
 export function cacheParam(slot, param, v) {
     const s = state.bank?.slots?.[slot];
     if (!s || s.empty) return;
