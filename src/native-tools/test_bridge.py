@@ -72,7 +72,7 @@ print('body size cap: OK')
 st, _, data = req('POST', '/api/release')       # nothing claimed → safe no-op
 assert st == 200 and json.loads(data) == {'released': True, 'was_claimed': False}
 
-_dev = B.Device(reader=False)                   # real ctor — no USB touched
+_dev = B.Device(reader=False)                   # real ctor - no USB touched
 _attempts = []
 def _fail_open():
     _attempts.append(1)
@@ -208,7 +208,7 @@ st, _, data = req('GET', '/api/bank')
 s5 = json.loads(data)['slots'][5]
 assert s5['name'] == 'BEEPY' and s5['tempo_bpm'] == 99.5
 
-# query values arrive percent-encoded (encodeURIComponent) — must be decoded,
+# query values arrive percent-encoded (encodeURIComponent) - must be decoded,
 # or 'MY KIT' lands on the device as literal 'MY%20KIT'
 st, _, _ = req('POST', '/api/sample/6?name=MY%20KIT&tempo=120', body=buf.getvalue())
 assert st == 200
@@ -219,7 +219,7 @@ assert json.loads(data)['slots'][6]['name'] == 'MY KIT'
 st, _, _ = req('POST', '/api/sample/7?name=BAD', body=b'this is not a wav')
 assert st == 400
 
-# --- ORIG BPM edit (mock HTTP) — re-uploads the sample with a new header tempo --
+# --- ORIG BPM edit (mock HTTP) - re-uploads the sample with a new header tempo --
 st, _, data = req('POST', '/api/sample/5/tempo', body=json.dumps({'bpm': 88.0}))
 assert st == 200 and json.loads(data) == {'slot': 5, 'tempo_bpm': 88.0}
 st, _, data = req('GET', '/api/bank')
@@ -496,7 +496,7 @@ assert real.ms.shorts == [(0x90, 48 + 7, 100, 1),   # note on, C3+slot, cable 1
 
 # --- start/end points over the real Device path (param-blob write) -------------
 # set_points must fetch the CURRENT blob (0x14), patch ONLY the two u32s,
-# and write it back (0x44) — without opening a select session.
+# and write it back (0x44) - without opening a select session.
 res_pts = real.set_points(0, 7, 55)
 assert res_pts == {'slot': 0, 'start': 7, 'end': 55}
 wp = bytes(real.ms.w_params[0])
@@ -643,7 +643,7 @@ for dev in (B.Device(), B.MockDevice()):
         assert 'no bank.bin' in str(e), e
 print('Korg bank restore (bank.bin gate): OK')
 
-# restore dir name is untrusted HTTP input — traversal must be rejected
+# restore dir name is untrusted HTTP input - traversal must be rejected
 for evil in ('..', '.', '...', '../x', 'a/b', '/etc', 'x\x00y', ''):
     try:
         B.backup_dir(evil)
@@ -671,7 +671,7 @@ if hasattr(os, 'geteuid') and os.geteuid() != 0:   # (root ignores perms; skip t
     finally:
         os.chmod(ro, 0o755)
         B.BACKUP_ROOT = _saved_root
-B._own_backups_to_invoker()                      # no-op here (not root) — must not raise
+B._own_backups_to_invoker()                      # no-op here (not root) - must not raise
 print('backups writability/ownership guard: OK')
 
 # pattern export: a backup with one recorded pattern → list / MIDI / zip

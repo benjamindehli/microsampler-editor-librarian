@@ -3,15 +3,15 @@
 the live app: the single source of truth for the asset pipeline.
 
 It drives the mock bridge headless via Playwright at 1540x940 DSR=1, then
-downscales LANCZOS to the published sizes. Full-colour PNGs (no 256-quantize — that
+downscales LANCZOS to the published sizes. Full-colour PNGs (no 256-quantize - that
 posterises the dark gradients); the demo mp4/webm are a 12 fps, 2 s-per-view slideshow.
 
 The author/copyright/location metadata (XMP + IPTC on PNGs; Exif+GPS + XMP + IPTC on
-the JPG) is carried forward — it reads the identical stamp from the already-tagged
+the JPG) is carried forward - it reads the identical stamp from the already-tagged
 committed assets and splices it into each regenerated file, so the manual tagging step
 isn't needed after a regen (retag once to change it; --no-metadata to skip).
 
-Dev-only — not shipped, not a runtime dependency. Needs (all permissively licensed):
+Dev-only - not shipped, not a runtime dependency. Needs (all permissively licensed):
     pip install playwright pillow imageio-ffmpeg && playwright install chromium
 
 Usage (from anywhere):
@@ -24,7 +24,7 @@ Usage (from anywhere):
 
 It reuses a bridge already serving on the chosen port, otherwise spawns a mock one
 (backups isolated to a temp dir). NOTE: screenshots depend on headless Chromium's
-font rendering, so a CI pixel-diff would be flaky — this is a regenerate-on-demand
+font rendering, so a CI pixel-diff would be flaky - this is a regenerate-on-demand
 tool, not a CI gate.
 """
 import argparse
@@ -62,7 +62,7 @@ def lanczos(src, size):
 
 # ── metadata carry-forward ────────────────────────────────────────────────────
 # The author/copyright/location stamp (XMP + IPTC on PNGs; Exif+GPS + XMP + IPTC on
-# the JPG) is identical on every committed asset, so we don't recreate it — we read
+# the JPG) is identical on every committed asset, so we don't recreate it - we read
 # the exact blocks from the already-tagged assets and splice them, byte-for-byte,
 # into each regenerated file. No exiftool needed; nothing to re-enter by hand. To
 # change the metadata, retag the assets once (any tool) and the next run carries the

@@ -20,7 +20,7 @@ if [ "${1:-}" != "--relaunched" ] && [ ! -t 0 ]; then
       *)              exec "$T" -e bash "$SELF" --relaunched ;;
     esac
   done
-  # no terminal emulator found — fall through and hope sudo can prompt
+  # no terminal emulator found - fall through and hope sudo can prompt
 fi
 
 set -u

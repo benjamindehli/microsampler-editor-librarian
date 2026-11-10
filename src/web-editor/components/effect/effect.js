@@ -1,4 +1,4 @@
-// EFFECT view — bank effect = object 80. Wire ids: param 1 = FX type, 2-3 =
+// EFFECT view - bank effect = object 80. Wire ids: param 1 = FX type, 2-3 =
 // the two assignable-knob targets, 16+i = effect param i. Wire VALUE =
 // display value (negatives travel as signed 14-bit, like sample params);
 // the bank blob stores byte = display + descriptor center.
@@ -158,7 +158,7 @@ function fxEnabledMap() {
 // currently-ACTIVE member of a swap pair (Reverb Time long/short, LFO
 // Frequency/Sync Note, delay Time-Ratio pairs…). The device does the same
 // internally when the physical knob is used; assigning the inactive twin
-// explicitly makes the device display INVALID — so the app never offers it.
+// explicitly makes the device display INVALID - so the app never offers it.
 function fxSnapKnob(idx) {
     for (const s of fxDesc().swaps) {
         const on = FX_PRED[s.when](state.fx.vals[s.cond]);
@@ -197,7 +197,7 @@ function applyFxEnable() {
         div.classList.toggle("locked", !on);
         $$("input,select,button", div).forEach((el) => (el.disabled = !on));
         // in-place swap pairs (Reverb Time long/short, delay ms-vs-sync-note):
-        // a disabled param whose same-named twin is enabled is HIDDEN outright —
+        // a disabled param whose same-named twin is enabled is HIDDEN outright -
         // the hardware and original GUI only ever show the active one.
         const p = fx.params.find((q) => q.idx === idx);
         div.hidden = !on && fx.params.some((q) => q.idx !== idx && q.name === p.name && enabled[q.idx] !== false);
@@ -253,7 +253,7 @@ for (const k of [0, 1])
     };
 
 // The panel's FX EDIT 1/2 knobs transmit plain MIDI CC (Korg's Effect
-// Control 1/2 = CC#12/13), not SysEx — map them onto the assigned params.
+// Control 1/2 = CC#12/13), not SysEx - map them onto the assigned params.
 // The 0..127 CC sweep covers the param's full display range.
 const FX_KNOB_CC = [12, 13];
 export function onCC(evt) {
@@ -263,7 +263,7 @@ export function onCC(evt) {
         return;
     }
     if (!state.fx) return;
-    // the device applies the knob to the ACTIVE swap twin — mirror that
+    // the device applies the knob to the ACTIVE swap twin - mirror that
     const idx = fxSnapKnob(state.fx.knobs[k]);
     const p = fxDesc().params.find((q) => q.idx === idx);
     if (!p) return;

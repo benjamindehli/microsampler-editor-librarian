@@ -1,12 +1,12 @@
 // Browser-side audio tools for the upload dialog: decode a PCM WAV to float
 // channels, optionally convert channels / trim silence / normalize / gain /
 // fade, then re-encode a 16-bit PCM WAV the bridge accepts (it resamples to the
-// nearest device rate itself). Pure functions, no DOM — unit-tested in plain
+// nearest device rate itself). Pure functions, no DOM - unit-tested in plain
 // node (test/unit/audioTools.test.mjs; `npm test`).
 
 // Walk a RIFF/WAVE header's chunks → { format, channels, rate, bits, dataOff,
 // dataLen } (dataOff/dataLen are 0 when there's no data chunk), or null when the
-// input isn't a RIFF/WAVE carrying a fmt chunk. Proper chunk traversal — fixed
+// input isn't a RIFF/WAVE carrying a fmt chunk. Proper chunk traversal - fixed
 // 44-byte offset assumptions break on files with LIST/INFO chunks before data.
 // The format code is NOT validated here: decodeWavPcm rejects non-PCM itself,
 // while the header-only readers (util.wavFormat, dialogs.riffFormat) accept any.
@@ -76,7 +76,7 @@ const DECLICK_OUT_MS = 10; // de-click fade on a trimmed end
 const TRIM_REL_DB = 66; // "silence" = this far below the sample's own peak…
 const TRIM_FLOOR_DB = -84; // …but never treat anything above this as silence
 
-// raised-cosine ramp 0→1 over n samples — smooth at both ends, so a fade to/from
+// raised-cosine ramp 0→1 over n samples - smooth at both ends, so a fade to/from
 // zero leaves no slope discontinuity (a linear ramp can still tick audibly).
 const rcos = (i, n) => 0.5 - 0.5 * Math.cos((Math.PI * i) / n);
 
@@ -180,13 +180,13 @@ function scale(chans, g) {
 }
 
 // ── slicing (auto-slice one sample across several pads) ────────────────────
-const SLICE_FADE_IN_MS = 2; // de-click slice head (short — keeps the attack)
+const SLICE_FADE_IN_MS = 2; // de-click slice head (short - keeps the attack)
 const SLICE_FADE_OUT_MS = 5; // de-click slice tail
 
 // Onset detection for transient slicing: an RMS "flux" novelty over ~10 ms
 // windows; keep windows whose rise peaks above a sensitivity-scaled threshold,
 // with a minimum gap between hits. Returns segment START frames, always
-// beginning at 0. Best-effort — the UI offers equal slicing as the fallback.
+// beginning at 0. Best-effort - the UI offers equal slicing as the fallback.
 function detectOnsets(src, sensitivity, minMs) {
     const rate = src.rate,
         ch = src.channels,

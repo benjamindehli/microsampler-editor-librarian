@@ -1,9 +1,9 @@
-// microSAMPLER Library — Dock-app shell (macOS 12+).
+// microSAMPLER Library - Dock-app shell (macOS 12+).
 //
 // A plain frozen (PyInstaller) process has no macOS app lifecycle: it can't
 // receive reopen events (double-clicking the "running" app does nothing),
 // has no ⌘Q, and lingers as an invisible ghost after its browser window
-// closes — which also confuses LaunchServices into "The application is not
+// closes - which also confuses LaunchServices into "The application is not
 // open anymore" states. This tiny NSApplication supervises the frozen
 // library bridge (Contents/Resources/bridge/) as a child process and gives
 // it real app semantics:
@@ -13,7 +13,7 @@
 //   • bridge exits by itself (web QUIT button, 2-min idle-exit) → shell
 //     quits too, so the Dock icon never outlives the server
 //
-// Built by make_library_app.sh with plain swiftc — no Xcode project.
+// Built by make_library_app.sh with plain swiftc - no Xcode project.
 import AppKit
 import Foundation
 
@@ -41,7 +41,7 @@ func bridgeIsUp() -> Bool {
 
 // timestamped shell log next to the bridge's own library.log, so a slow or
 // failed launch pins the exact step (which browser, how long) instead of
-// leaving us guessing — this whole file has no other visible output.
+// leaving us guessing - this whole file has no other visible output.
 let shellLogPath: String = {
     let path = ("~/Library/Application Support/DehliMusikk/microSAMPLER Library/shell.log"
                 as NSString).expandingTildeInPath
@@ -91,7 +91,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         openOrStart()
     }
 
-    // Dock icon click (and app double-click while running) lands here — the
+    // Dock icon click (and app double-click while running) lands here - the
     // whole reason this shell exists.
     func applicationShouldHandleReopen(_ sender: NSApplication,
                                        hasVisibleWindows: Bool) -> Bool {
@@ -134,7 +134,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         p.terminationHandler = { proc in
             DispatchQueue.main.async {
                 // the bridge ended on its own (web QUIT button, idle-exit, or
-                // a crash) — the Dock icon must not outlive the server
+                // a crash) - the Dock icon must not outlive the server
                 if !self.quitting {
                     shellLog("child bridge exited (status \(proc.terminationStatus)), quitting shell")
                     NSApp.terminate(nil)
@@ -172,7 +172,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// Open the UI in a Chromium "app mode" window — the user's default browser
+    /// Open the UI in a Chromium "app mode" window - the user's default browser
     /// first when it's Chromium (see browserOrder), else the known list; falls
     /// back to the plain default browser. Off the main thread: each `open`
     /// probe waits for exit.
@@ -229,7 +229,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 let app = NSApplication.shared
-app.setActivationPolicy(.regular)        // real Dock app — that's the point
+app.setActivationPolicy(.regular)        // real Dock app - that's the point
 let delegate = AppDelegate()
 app.delegate = delegate
 app.run()

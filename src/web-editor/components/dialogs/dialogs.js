@@ -13,7 +13,7 @@ import { tick } from "functions/ticker.js";
 import { $, api, apiJson, clampBpm, confirmDialog, jsonBody } from "functions/util.js";
 
 // the selected file decoded to float channels (null if not a PCM WAV we can
-// process) and its raw bytes — both cached so OK doesn't re-read the file.
+// process) and its raw bytes - both cached so OK doesn't re-read the file.
 let udDecoded = null,
     udBytes = null;
 const UD_TOOL_IDS = ["ud-channels", "ud-normalize", "ud-trim", "ud-gain", "ud-fadein", "ud-fadeout"];
@@ -34,7 +34,7 @@ const fileToName = (f) =>
         .slice(0, 8) || "SAMPLE";
 
 // Bulk-load several WAVs into consecutive slots starting at `startSlot`
-// (dropping >1 file on the grid/editor). Raw upload — no audio-tools panel —
+// (dropping >1 file on the grid/editor). Raw upload - no audio-tools panel -
 // using each filename as the sample name; one confirm, sequential transfer.
 export async function uploadBatch(startSlot, files) {
     files = files.slice(0, 36 - startSlot); // clamp to the last pad
@@ -120,7 +120,7 @@ async function syncNameFromFile() {
     uploadPreflight();
 }
 $("#ud-file").onchange = syncNameFromFile;
-// debounced: the pre-flight runs processBuffer (full-file DSP — peak scans,
+// debounced: the pre-flight runs processBuffer (full-file DSP - peak scans,
 // trim, fades) just to update the memory estimate; per-keystroke recompute
 // makes the dialog laggy while typing a value on a long sample
 let preflightT = null;
@@ -249,7 +249,7 @@ $("#rn-ok").onclick = async (e) => {
         s.long_name = res.long_name;
         tick(`✎ S${state.sel + 1} renamed "${res.name}"`);
         $("#rename-dialog").close();
-        syncPads(); // name-only change — in-place
+        syncPads(); // name-only change - in-place
         $("#sel-name").textContent = res.name.padEnd(8);
         $("#sel-long").textContent = res.long_name;
     } catch (err) {

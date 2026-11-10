@@ -1,5 +1,5 @@
 #!/bin/bash
-# Double-clickable LIBRARY-mode starter (macOS) — browse, play and export the
+# Double-clickable LIBRARY-mode starter (macOS) - browse, play and export the
 # samples in microSAMPLER bank backups (the original Korg ".msmpl_bank" files,
 # or this app's own ".zip" backups) with NO hardware connected. No password
 # needed: library mode never touches USB, so it doesn't run as root.

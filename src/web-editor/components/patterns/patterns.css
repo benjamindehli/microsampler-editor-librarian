@@ -42,7 +42,7 @@
     border-color: var(--amber-dk);
 }
 /* empty / unreadable patterns recede so the recorded ones stand out (still
-   fully usable — hover brings them back to full strength) */
+   fully usable - hover brings them back to full strength) */
 .pattern-card.is-empty {
     opacity: 0.5;
 }

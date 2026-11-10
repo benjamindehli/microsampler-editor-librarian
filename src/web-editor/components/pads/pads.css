@@ -145,7 +145,7 @@
         0 2px 0 #000;
 }
 
-/* pad ▶ play zone (plays the sample on the device while held) —
+/* pad ▶ play zone (plays the sample on the device while held) -
    lower-right, clear of the status LED in the upper-right */
 .pad-play {
     position: absolute;

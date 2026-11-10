@@ -9,7 +9,7 @@ Mirrors SampleReceiveInternal::process from the original editor:
      dataSize == 0 -> slot is empty, stop.
   3. func 0x1F (no args)  -> device sends one 64-byte DIRECT_MARKER block
      (FF FF FF + 61*00) on bulk IN, then dataSize bytes of RAW PCM
-     (16-bit signed BIG-endian, interleaved — hardware-verified; LE sounds
+     (16-bit signed BIG-endian, interleaved - hardware-verified; LE sounds
      like noise). funcs 0x24/0x26 = error.
   4. func 0x14 ss         -> reply func 0x44: 64-byte parameter blob
      (7-bit encoded).

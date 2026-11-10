@@ -4,7 +4,7 @@
 .rail {
     display: flex;
     align-items: center;
-    gap: 1.1rem; /* minimum spacing — .bank-lcd's auto margins spread the rest */
+    gap: 1.1rem; /* minimum spacing - .bank-lcd's auto margins spread the rest */
     flex-wrap: wrap;
     row-gap: 0.55rem; /* narrow widths: wrap instead of clipping the right cluster */
     padding: 0.8rem 1.2rem;
@@ -14,7 +14,7 @@
         0 1px 0 var(--line-hi) inset,
         0 6px 18px rgba(0, 0, 0, 0.5);
     /* sit above the deck so the theme dropdown (and the rail's shadow) overlay the
-     content below — the .reveal transform makes the rail a stacking context, so
+     content below - the .reveal transform makes the rail a stacking context, so
      its absolutely-positioned menu can't otherwise escape above main */
     position: relative;
     z-index: 50;
@@ -103,7 +103,7 @@
     letter-spacing: 0.22em;
     color: var(--ink-dim);
 }
-/* STACKED control: the checkbox/select on top, a small caption underneath —
+/* STACKED control: the checkbox/select on top, a small caption underneath -
    same shape as the CONNECTED LED block, and narrower than a side-by-side label
    (.follow-toggle.stack beats .follow-toggle's row gap, which loads later) */
 .stack,
@@ -226,7 +226,7 @@
     z-index: 80;
     display: grid;
     place-items: center;
-    background: rgba(8, 8, 10, 0.96); /* opaque dim, no blur — see dialogs.css note */
+    background: rgba(8, 8, 10, 0.96); /* opaque dim, no blur - see dialogs.css note */
 }
 .quit-curtain {
     z-index: 95;
@@ -404,7 +404,7 @@
     color: var(--amber-hi);
 }
 /* reserve the width of the longest name (a hidden ghost sizer stacked under the
-   current one) so the trigger never resizes between themes — and it adapts to
+   current one) so the trigger never resizes between themes - and it adapts to
    the web font automatically once it loads */
 .theme-name {
     display: inline-grid;
@@ -526,7 +526,7 @@
     transition: width 0.2s ease;
 }
 
-/* "update available" notice — top-right pill, dismissible */
+/* "update available" notice - top-right pill, dismissible */
 .update-toast {
     position: fixed;
     top: 1rem;
@@ -581,7 +581,7 @@
     color: var(--amber-hi);
 }
 
-/* LIBRARY mode (no device) — hide device-only chrome */
+/* LIBRARY mode (no device) - hide device-only chrome */
 body.library-mode .view-btn:not(.lib-tab),
 body.library-mode #refresh-btn,
 body.library-mode #autosync-toggle,

@@ -10,7 +10,7 @@
 #                                       macOS .app, where a Swift shell
 #                                       supervises it (see library-app/main.swift).
 #
-# Bundles the RAW src/web-editor/ (no build step — served as-is like in dev) and
+# Bundles the RAW src/web-editor/ (no build step - served as-is like in dev) and
 # the native-tools python modules. vendor/ (pyusb + libusb) is deliberately
 # EXCLUDED: library mode never opens USB, and msusb only reaches for pyusb
 # lazily when real hardware is opened.
@@ -29,7 +29,7 @@ a = Analysis(
     datas=[(os.path.join(ROOT, 'src', 'web-editor'), 'web-editor')],
     hiddenimports=['bridge', 'protocol', 'msusb', 'download', 'upload',
                    'bank', 'msmpl_bank'],
-    excludes=['usb'],                    # pyusb (vendored, lazy) — never needed here
+    excludes=['usb'],                    # pyusb (vendored, lazy) - never needed here
     noarchive=False,
 )
 pyz = PYZ(a.pure)

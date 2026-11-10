@@ -195,7 +195,7 @@
 }
 .lib-dl .ico {
     margin-right: 0;
-} /* icon-only — no trailing gap */
+} /* icon-only - no trailing gap */
 .lib-pad:hover .lib-dl {
     opacity: 1;
 }

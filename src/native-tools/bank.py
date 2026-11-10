@@ -93,7 +93,7 @@ def backup(ms, channel, bank, out, log=print, progress=True):
     try:
         bp = fetch_bank_blob(ms, channel, bank)
     except Exception:
-        # the dump request may have opened a session before the failure —
+        # the dump request may have opened a session before the failure -
         # best-effort abort so the device isn't stranded in dump mode
         try:
             leave_dump_mode(ms, channel, commit=False)
@@ -201,7 +201,7 @@ def restore(ms, channel, bank, src, log=print, progress=True):
         _wait_korg_reply(ms, P.BANK_SEND_OK, P.BANK_SEND_ERR,
                          timeout_ms=10000, what='bank blob ACK (func 0x23)')
     except Exception:
-        # the blob was already sent — the device may sit in dump mode waiting;
+        # the blob was already sent - the device may sit in dump mode waiting;
         # best-effort abort so it isn't stranded needing a power-cycle
         try:
             leave_dump_mode(ms, channel, commit=False)

@@ -52,7 +52,7 @@ export function renderPads() {
         b.dataset.slot = s.slot;
         // "loaded" = decoded audio cached → instant audition/waveform, exact meter
         const loaded = !s.empty && state.buffers.has(s.slot);
-        // sharps (C#/D#/F#/G#/A#) are a keyboard's black keys — tint them darker
+        // sharps (C#/D#/F#/G#/A#) are a keyboard's black keys - tint them darker
         const black = isBlackKey(48 + s.slot);
         b.className =
             "pad " +
@@ -144,7 +144,7 @@ $("#pad-search").addEventListener("input", applyPadFilter);
     );
 }
 
-// drag & drop a WAV straight onto a pad — selects that slot and opens the
+// drag & drop a WAV straight onto a pad - selects that slot and opens the
 // upload dialog pre-filled with the file (works for used AND empty pads)
 {
     const grid = $("#pad-grid");
@@ -177,7 +177,7 @@ $("#pad-search").addEventListener("input", applyPadFilter);
         if (wavs.length > 1) return uploadBatch(slot, wavs);
         state.sel = slot;
         syncPads();
-        showSlot(slot); // no await — dialog opens right away
+        showSlot(slot); // no await - dialog opens right away
         openUpload(wavs[0]);
     });
 }

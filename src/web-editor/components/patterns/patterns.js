@@ -19,7 +19,7 @@ addEventListener("msmpl-theme", () => {
     });
 });
 // the pattern editor reports the one changed pattern after a save (detail = the
-// updated pattern JSON) — update just that card, no full re-receive
+// updated pattern JSON) - update just that card, no full re-receive
 addEventListener("msmpl-pattern-changed", (e) => applyPattern(/** @type {CustomEvent} */ (e).detail));
 
 // live progress from the bridge (one SSE event per pattern read)
@@ -100,7 +100,7 @@ function buildCard(p) {
       </div>`;
     const actions = document.createElement("div");
     actions.className = "p-actions";
-    // PLAY/STOP on the device — icon + label both toggle via the .playing class
+    // PLAY/STOP on the device - icon + label both toggle via the .playing class
     const play = document.createElement("button");
     play.className = "hw-btn";
     play.disabled = !recorded;
@@ -122,7 +122,7 @@ function buildCard(p) {
     exp.download = `pattern${String(p.pattern + 1).padStart(2, "0")}.mid`;
     exp.title = "Export this pattern as a .mid file";
     exp.innerHTML = '<span class="hw-btn-cap"><span class="ico ico-dn"></span>EXPORT</span>';
-    // EDIT — in-app piano roll (works on empty patterns too, to build from scratch)
+    // EDIT - in-app piano roll (works on empty patterns too, to build from scratch)
     const ed = document.createElement("button");
     ed.className = "hw-btn";
     ed.disabled = !p.valid;
@@ -145,7 +145,7 @@ function buildCard(p) {
     return card;
 }
 
-// Update a single card in place after a save / INIT / import — avoids re-receiving
+// Update a single card in place after a save / INIT / import - avoids re-receiving
 // all 16 patterns from the device (slow + stops the sequencer). The write's POST
 // response already carries the changed pattern (bridge pattern_write → _pattern_json).
 function applyPattern(p) {
@@ -205,7 +205,7 @@ function drawRoll(canvas, p, rgb) {
 // ── pattern playback (on the DEVICE) ───────────────────────────────────────
 // Play patterns through the hardware sequencer (it sounds exactly like the
 // device). The bridge selects the pattern via NRPN on the [PATTERN] dial, then
-// streams MIDI clock and sends MIDI Start (0xFA) — the sequencer is a slave, so
+// streams MIDI clock and sends MIDI Start (0xFA) - the sequencer is a slave, so
 // the clock is what advances it; STOP sends MIDI Stop (0xFC) + clock off.
 // Hardware-confirmed (device must be on GLOBAL > MIDI CLK = AUTO/EXT MIDI). One
 // transport, so only one pattern plays at a time.
@@ -250,7 +250,7 @@ async function playPattern(p, btn) {
         stopTransport();
         return;
     } // click again = stop
-    // switching patterns: just revert the previous button — the new /play stops
+    // switching patterns: just revert the previous button - the new /play stops
     // it on the device itself (atomically), so we DON'T fire a separate /stop
     // (two racing requests sometimes restarted the OLD pattern).
     if (playing) playing.btn.classList.remove("playing");
@@ -259,7 +259,7 @@ async function playPattern(p, btn) {
     const bpm = (state.bank && state.bank.bpm) || 120;
     startPlayhead(p, btn, bpm);
     try {
-        // the device sequencer is a slave — the bridge streams MIDI clock at this
+        // the device sequencer is a slave - the bridge streams MIDI clock at this
         // tempo so Start actually advances (device needs MIDI CLK = AUTO/EXT MIDI)
         await apiJson(`/api/pattern/${p.pattern}/play`, jsonBody({ bpm }));
         tick(`▶ pattern ${p.pattern + 1} (device)`);
@@ -324,7 +324,7 @@ async function initPattern(q, recorded) {
 
 $("#patterns-refresh").onclick = () => loadPatterns();
 
-// REC — press the device's [REC] button (NRPN); fire-and-forget, no readback,
+// REC - press the device's [REC] button (NRPN); fire-and-forget, no readback,
 // so the user watches the device screen (arm → start → end). Mirrors SAMPLING.
 $("#pattern-rec").onclick = () =>
     apiJson("/api/pattern/rec", { method: "POST" })

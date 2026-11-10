@@ -10,7 +10,7 @@ export function noteName(slot) {
     return NOTE_NAMES[n % 12] + (Math.floor(n / 12) - 1);
 }
 
-// the black keys within an octave (C#, D#, F#, G#, A#) — tinted darker on the
+// the black keys within an octave (C#, D#, F#, G#, A#) - tinted darker on the
 // pads and the piano-roll gutter. Takes any MIDI note.
 const BLACK_KEYS = new Set([1, 3, 6, 8, 10]);
 export const isBlackKey = (midiNote) => BLACK_KEYS.has(((midiNote % 12) + 12) % 12);

@@ -1,4 +1,4 @@
-// microSAMPLER Editor / Librarian — entry module.
+// microSAMPLER Editor / Librarian - entry module.
 // Talks to the local bridge (same origin). Live edits = POST /api/param with
 // the hardware-verified 3-value Parameter Change (obj = 16 + slot).
 import "components/dialogs/dialogs.js"; // wires upload/rename dialogs + editor drop
@@ -41,7 +41,7 @@ async function boot() {
         enterLibraryMode(st);
         return;
     }
-    // bridge is up but couldn't claim the device (missing / wedged) — show the
+    // bridge is up but couldn't claim the device (missing / wedged) - show the
     // connection helper with a Retry button instead of failing into the editor.
     if (!st.connected) {
         showDeviceHelp(st);
@@ -76,7 +76,7 @@ async function onConnected(st) {
     try {
         await refreshBank();
     } catch (e) {
-        // bridge is up but the device op failed — stay online, surface the error
+        // bridge is up but the device op failed - stay online, surface the error
         tick(`⚠ bank read failed: ${e.message}`);
         $("#bank-name").textContent = "ERROR";
         $("#editor-empty").querySelector("p").textContent = "BANK READ FAILED: " + e.message.toUpperCase();
@@ -105,7 +105,7 @@ function wireQuit(st) {
 }
 
 // `gone` = it WAS connected and vanished (unplugged, switched off, host slept),
-// vs a claim that failed (missing / wedged) — different wording, same RETRY.
+// vs a claim that failed (missing / wedged) - different wording, same RETRY.
 function showDeviceHelp(st) {
     const gone = !!(st && st.gone);
     $("#device-help-title").textContent = gone ? "microSAMPLER DISCONNECTED" : "microSAMPLER NOT RESPONDING";
@@ -121,7 +121,7 @@ function showDeviceHelp(st) {
 
 // SSE 'device' event: the bridge dropped a vanished device's dead USB handle.
 // Show the helper at once (modal dialogs sit in the top layer, ABOVE it, so
-// close them), and reload every sample on reconnect — a power-cycle reverts the
+// close them), and reload every sample on reconnect - a power-cycle reverts the
 // device's RAM bank, so the cached audio may no longer match.
 export function onDeviceLost(evt) {
     $$("dialog[open]").forEach((d) => d.close());
@@ -168,10 +168,10 @@ export async function refreshBank() {
         state.bank = await apiJson("/api/bank");
         // a bank read cuts any notes the device was sounding (HW-observed: LOOP
         // HOLD loops stop on a focus re-sync), so drop the latches without sending
-        // note-offs — otherwise pads stay lit and the next press only "releases"
+        // note-offs - otherwise pads stay lit and the next press only "releases"
         releaseLatched(false);
         // a different bank (switched on the device, or the first load) invalidates
-        // cached audio; same bank keeps it — re-stamp persisted formats so the meter
+        // cached audio; same bank keeps it - re-stamp persisted formats so the meter
         // stays exact and load state survives a focus re-sync.
         const bankChanged = reloadAll || state.bank.name !== prevName;
         reloadAll = false;

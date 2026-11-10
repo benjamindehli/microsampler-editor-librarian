@@ -1,4 +1,4 @@
-# SHA-256 of the vendored libusb 1.0.26 binaries — the only opaque blobs the app
+# SHA-256 of the vendored libusb 1.0.26 binaries - the only opaque blobs the app
 # ships (they load into a root-privileged bridge to claim the USB device, so their
 # integrity is worth being able to verify). Origin: the pyocd `libusb-package`
 # 1.0.26.3 wheels, one platform tag per folder (see ../README.md "Refreshing").

@@ -31,7 +31,7 @@ import webbrowser
 PORT = 8766          # library mode's own port (device bridge uses 8765)
 
 # Chromium-family browsers that support `--app=URL` (own window, no tabs/URL
-# bar — feels like an app, keeps every browser feature incl. downloads)
+# bar - feels like an app, keeps every browser feature incl. downloads)
 CHROMIUM_MACOS = ('Google Chrome', 'Microsoft Edge', 'Brave Browser', 'Chromium')
 CHROMIUM_LINUX = ('google-chrome', 'microsoft-edge', 'brave-browser',
                   'chromium', 'chromium-browser')
@@ -122,7 +122,7 @@ def main():
     os.makedirs(os.path.join(data, 'backups'), exist_ok=True)
 
     if getattr(sys, 'frozen', False):
-        # windowed bundles may have no stdio — keep a log for troubleshooting
+        # windowed bundles may have no stdio - keep a log for troubleshooting
         log_path = os.path.join(data, 'library.log')
         try:
             if os.path.getsize(log_path) > 5 * 1024 * 1024:
@@ -134,7 +134,7 @@ def main():
         print('--- microSAMPLER Library started', time.strftime('%Y-%m-%d %H:%M:%S'))
 
     # under the Swift shell (macOS .app) the shell owns the browser + only knows
-    # PORT, so the child must NOT wander to a random port — bind PORT or fail.
+    # PORT, so the child must NOT wander to a random port - bind PORT or fail.
     shell_mode = os.environ.get('MSMPL_NO_OPEN') == '1'
     port = PORT
     if not port_free(port):
@@ -151,7 +151,7 @@ def main():
     os.environ['MSMPL_WEB_ROOT'] = os.path.join(root, 'web-editor')
     os.environ.setdefault('MSMPL_BACKUP_DIR', os.path.join(data, 'backups'))
     os.environ['MSMPL_ALLOW_SHUTDOWN'] = '1'
-    # exit ~2 min after the last UI window closes — the app must not linger as
+    # exit ~2 min after the last UI window closes - the app must not linger as
     # an invisible background process (ghost processes also confuse macOS
     # LaunchServices into "app is not open anymore" states)
     os.environ.setdefault('MSMPL_IDLE_EXIT', '120')

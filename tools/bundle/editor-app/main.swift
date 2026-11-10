@@ -1,4 +1,4 @@
-// microSAMPLER Editor Librarian — menu-bar app (macOS 13+).
+// microSAMPLER Editor Librarian - menu-bar app (macOS 13+).
 //
 // A thin native shell around the bridge: the actual work happens in the
 // launchd ROOT daemon this app registers via SMAppService (the frozen
@@ -9,7 +9,7 @@
 // the USB device only while the editor UI is open (claim-on-demand +
 // idle-release, implemented in the bridge's --daemon mode).
 //
-// Built by make_editor_app.sh with plain swiftc — no Xcode project.
+// Built by make_editor_app.sh with plain swiftc - no Xcode project.
 import AppKit
 import Foundation
 import ServiceManagement
@@ -32,7 +32,7 @@ let localSession: URLSession = {
     return URLSession(configuration: cfg)
 }()
 
-// Is the bridge accepting connections on 127.0.0.1:bridgePort? Raw socket —
+// Is the bridge accepting connections on 127.0.0.1:bridgePort? Raw socket -
 // instant, no proxy/DNS/IPv6 detour.
 func bridgeIsUp() -> Bool {
     let fd = socket(AF_INET, SOCK_STREAM, 0)
@@ -88,7 +88,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // ── background service lifecycle ─────────────────────────────────────────
     func ensureService(interactive: Bool) {
         // SMAppService needs the app at a stable path; a translocated or
-        // ad-hoc location makes register() fail confusingly — say so instead.
+        // ad-hoc location makes register() fail confusingly - say so instead.
         // App Translocation: a quarantined app can run from a randomized
         // read-only path even though its file sits in /Applications (e.g. a
         // zip unpacked in place); the fix is de-quarantining, not moving.
@@ -132,7 +132,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // The service is .enabled, but the running daemon may be a PREVIOUS app
     // version's binary: SMAppService doesn't reload the daemon when the app is
-    // updated, and we skip register() when already enabled — so a stale daemon
+    // updated, and we skip register() when already enabled - so a stale daemon
     // keeps running old code against the new on-disk bundle, which fails in
     // confusing ways (e.g. a replaced PyInstaller archive → zlib import errors).
     // Compare the running daemon's reported version to ours and reload it on a
@@ -200,7 +200,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     /// Open the editor in a Chromium "app mode" window when one is installed
-    /// (own window, no tabs/URL bar — app-like, keeps Web MIDI + downloads);
+    /// (own window, no tabs/URL bar - app-like, keeps Web MIDI + downloads);
     /// otherwise the default browser. Runs off the main thread: each `open`
     /// probe waits for exit, and a LaunchServices stall must not beachball
     /// the menu bar.
@@ -232,10 +232,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func pollBridge(attempt: Int) {
-        if attempt > 60 {   // ~18 s — daemon should be up long before this
+        if attempt > 60 {   // ~18 s - daemon should be up long before this
             // The daemon never answered. On a fresh install or version update
-            // the usual cause is a PENDING Login-Items approval — a (re)registered
-            // daemon won't launch until approved — so steer there rather than
+            // the usual cause is a PENDING Login-Items approval - a (re)registered
+            // daemon won't launch until approved - so steer there rather than
             // leaving the user at a dead browser page. Only fall back to the log
             // hint when the service is already approved (.enabled) yet silent.
             if service.status == .requiresApproval {
@@ -290,7 +290,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func alert(_ title: String, _ text: String) {
-        // an .accessory (menu-bar) app isn't frontmost — without activating,
+        // an .accessory (menu-bar) app isn't frontmost - without activating,
         // first-run alerts can appear behind other windows
         NSApp.activate(ignoringOtherApps: true)
         let a = NSAlert()

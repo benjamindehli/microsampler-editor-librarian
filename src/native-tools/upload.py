@@ -6,7 +6,7 @@ Mirrors SampleWrite::process from the original editor:
   1. func 0x42 (ss|0x40) + 8-byte header (7-bit enc)  -> ACK
      (funcs 0x23/0x27 = ok, 0x28/0x29 = error)
   2. raw 16-bit BIG-endian PCM straight to bulk OUT in 0x4000-byte blocks, no framing
-     (no marker in this direction — verified in DirectUsbAccessBase::sendCommand)
+     (no marker in this direction - verified in DirectUsbAccessBase::sendCommand)
      -> ACK (funcs 0x21/0x23 = ok, 0x22/0x24 = error)
   3. func 0x44 ss + 64-byte param blob (7-bit enc) -> ACK
 
@@ -16,11 +16,11 @@ with linear interpolation to the nearest supported rate (48/24/12/6 kHz) unless
 
 SAFETY: this OVERWRITES the target slot on the device. Test on a FREE slot.
 `--dry-run` converts and prints everything without touching the device.
-NOTE: after `--header-only` the device may sit waiting for PCM — power-cycle it
+NOTE: after `--header-only` the device may sit waiting for PCM - power-cycle it
 before doing anything else.
 
 PERSISTENCE (by design, per the editor manual): transfers go to the device's
-CURRENT BANK, which is RAM — lost on power-off or bank switch. To keep the
+CURRENT BANK, which is RAM - lost on power-off or bank switch. To keep the
 sample, save the current bank to a user bank on the device afterwards.
 Use `--verify` to read the sample back in the same USB session and compare
 byte-for-byte (separate back-to-back sessions tend to wedge the device).

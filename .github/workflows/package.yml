@@ -1,9 +1,9 @@
 name: Package apps
 
-# Build the double-clickable apps — "microSAMPLER Editor Librarian" (macOS:
+# Build the double-clickable apps - "microSAMPLER Editor Librarian" (macOS:
 # menu-bar shell + SMAppService root daemon, no sudo/terminal) and
 # "microSAMPLER Library" (hardware-free librarian, Linux + macOS).
-# Runs on demand (artifacts only) AND when a GitHub release is published —
+# Runs on demand (artifacts only) AND when a GitHub release is published -
 # then the DMGs + Linux builds are attached to the release, next to the
 # source ZIP that release.yml uploads. Asset names are UNVERSIONED so
 # /releases/latest/download/<name> gives permanent links for the docs.
@@ -119,7 +119,7 @@ jobs:
                   MSMPL_NO_OPEN: "1" # no browser on a headless runner
               run: |
                   bash tools/bundle/smoke_library.sh "./$APP_LIB/Contents/Resources/bridge/microSAMPLER Library"
-                  # editor daemon: no device on the runner — must still serve, report
+                  # editor daemon: no device on the runner - must still serve, report
                   # daemon mode, and survive a claim attempt + release
                   "./$APP_ED/Contents/Resources/bridge/msmpl-bridge" &
                   ED_PID=$!
@@ -161,7 +161,7 @@ jobs:
                   IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
               run: |
                   # inside-out: 1) loose Mach-O files (dylibs/.so/executables, incl.
-                  # the editor's embedded bridge + vendored libusb) — but NOT framework
+                  # the editor's embedded bridge + vendored libusb) - but NOT framework
                   # internals; 2) nested frameworks AS BUNDLES (signing their files
                   # individually leaves the framework unsealed → the app-level sign
                   # dies with "bundle format is ambiguous"); 3) each app bundle last

@@ -24,7 +24,7 @@ export async function showSlot(i, { keepWave = false } = {}) {
     // controls are initialised from the bank blob values
     applySlotControls(s);
 
-    // start/end points — editable by dragging the S/E flags on the waveform
+    // start/end points - editable by dragging the S/E flags on the waveform
     renderPoints(s);
     if (!s.empty) renderMetaFmt(s);
     else $("#meta-fmt").textContent = "";
@@ -33,7 +33,7 @@ export async function showSlot(i, { keepWave = false } = {}) {
     if (!keepWave) await loadWave(i);
 }
 
-// Rate/length aren't in the bank blob — they arrive once the WAV is fetched
+// Rate/length aren't in the bank blob - they arrive once the WAV is fetched
 // (reading headers per slot would strand the device's sample-select state).
 export function renderPoints(s) {
     const ro = $("#ro-row");
@@ -41,7 +41,7 @@ export function renderPoints(s) {
         ro.innerHTML = "";
         return;
     }
-    // editable START/END (device frames) — committed by waveform.js. Build the
+    // editable START/END (device frames) - committed by waveform.js. Build the
     // inputs once, then only update their values, so a drag redraw doesn't churn
     // the DOM or stomp a field the user is typing in.
     let si = /** @type {HTMLInputElement} */ (ro.querySelector('[data-point="start"]'));
@@ -53,7 +53,7 @@ export function renderPoints(s) {
     const ei = /** @type {HTMLInputElement} */ (ro.querySelector('[data-point="end"]'));
     const max = (s.frames || 2) - 2;
     si.max = ei.max = String(max);
-    // not editable until the WAV (hence the frame count) has loaded — committing a
+    // not editable until the WAV (hence the frame count) has loaded - committing a
     // point against an unknown length clamps to a 1-frame region (corrupts the
     // sample on the device). loadWave() re-renders to re-enable once frames known.
     si.disabled = ei.disabled = !s.frames;
@@ -76,7 +76,7 @@ export function renderChips(s) {
         pairs.push(["RATE", "-"], ["LEN", "-"]);
     }
     for (const [k, v] of pairs) chips.insertAdjacentHTML("beforeend", `<span class="chip">${k} <b>${v}</b></span>`);
-    // ORIG BPM is editable — a normal button (styled like the others) opens the
+    // ORIG BPM is editable - a normal button (styled like the others) opens the
     // dialog (it re-uploads); the static RATE/CH/LEN chips are plain readouts
     if (s.tempo_bpm)
         chips.insertAdjacentHTML(
@@ -86,7 +86,7 @@ export function renderChips(s) {
         );
 }
 
-// ORIG BPM lives only in the sample's upload header, so there is no live command —
+// ORIG BPM lives only in the sample's upload header, so there is no live command -
 // applying re-uploads the sample (audio + all other params preserved). A dialog
 // (like the bank name/BPM editor) makes the value + decimals legible and the
 // re-upload deliberate.
@@ -103,7 +103,7 @@ $("#td-ok").onclick = async (e) => {
     const i = state.sel,
         s = slotData(i);
     const raw = parseFloat($("#td-bpm").value);
-    // blank/garbage input must NO-OP — clamping it first would turn '' into 20
+    // blank/garbage input must NO-OP - clamping it first would turn '' into 20
     // and trigger the destructive re-upload at BPM 20
     if (!Number.isFinite(raw)) {
         $("#tempo-dialog").close();

@@ -1,7 +1,7 @@
 // LIBRARY mode (bridge --library): a hardware-free sample librarian. Import an
 // original Korg .msmpl_bank (or this app's .zip backup), browse a bank's 36
 // pads, play each sample in the browser, and download it (or the whole bank as
-// a ZIP of WAVs). No device involved — purely the backup files on disk.
+// a ZIP of WAVs). No device involved - purely the backup files on disk.
 import { noteName } from "functions/notes.js";
 import { tick } from "functions/ticker.js";
 import { $, $$, apiJson, esc } from "functions/util.js";
@@ -55,7 +55,7 @@ async function renderDetail() {
         if (dir === selDir) el.innerHTML = `<p class="backup-empty">${esc(e.message)}</p>`;
         return;
     }
-    if (dir !== selDir) return; // superseded — the newer click's render owns the pane
+    if (dir !== selDir) return; // superseded - the newer click's render owns the pane
     const bySlot = {};
     for (const s of samples) bySlot[s.slot] = s;
     const zip = `/api/backup/${encodeURIComponent(selDir)}.zip`;
@@ -89,7 +89,7 @@ async function renderDetail() {
     renderPatterns();
 }
 
-// patterns (sequences) are recovered as MIDI — list the non-empty ones with a
+// patterns (sequences) are recovered as MIDI - list the non-empty ones with a
 // per-pattern .mid download + an "all patterns" ZIP. Hidden if the bank has none.
 async function renderPatterns() {
     const dir = selDir,

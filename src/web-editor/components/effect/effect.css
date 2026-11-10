@@ -35,7 +35,7 @@
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
 }
 /* fixed three-zone layout (label / control / value) so the control always sits
-   in the same middle band — a select or switch with no value readout lines up
+   in the same middle band - a select or switch with no value readout lines up
    with the sliders' faders instead of dropping to the box floor. The value row
    is reserved even when empty to keep that middle band identical across params. */
 .fx-param {
@@ -59,7 +59,7 @@
     cursor: help;
 }
 
-/* params mapped to the device's physical FX EDIT 1/2 knobs — ringed + badged */
+/* params mapped to the device's physical FX EDIT 1/2 knobs - ringed + badged */
 .fx-param.knob {
     box-shadow: inset 0 0 0 1px var(--amber-dk);
 }
@@ -92,7 +92,7 @@
     min-height: 360px;
 }
 
-/* range/default hover hint — theme-styled (recolours with the accent) */
+/* range/default hover hint - theme-styled (recolours with the accent) */
 .fx-param[data-tip]::after {
     content: attr(data-tip);
     position: absolute;

@@ -1,4 +1,4 @@
-// Pattern editor: an in-app piano-roll for the device's two pattern tracks —
+// Pattern editor: an in-app piano-roll for the device's two pattern tracks -
 // sample-mode (note number triggers a pad) and keyboard-mode (one assigned
 // sample played chromatically). Edits a copy of the read-model note list, then
 // saves by writing an SMF (smfWrite) to the existing, hardware-proven
@@ -56,7 +56,7 @@ function buildGutter() {
     g.innerHTML = "";
     for (let n = HI; n >= LO; n--) {
         const d = document.createElement("div");
-        d.className = "pe-key" + (isBlackKey(n) ? " black" : "") + (n >= PAD_LO && n <= PAD_HI ? " pe-pad" : ""); // not ".pad" — collides with the pad-grid rule
+        d.className = "pe-key" + (isBlackKey(n) ? " black" : "") + (n >= PAD_LO && n <= PAD_HI ? " pe-pad" : ""); // not ".pad" - collides with the pad-grid rule
         d.style.top = rowTop(n) + "px"; // absolute, same formula as the roll
         d.style.height = ROWH + "px";
         d.textContent = midiLabel(n);
@@ -69,7 +69,7 @@ const noteLabel = (nt) => `${nt.track ? "Keyboard" : "Sample"} ${midiLabel(nt.no
 
 const noteFill = (nt) => `rgba(${nt.track ? "255,233,201" : "var(--amber-rgb)"},${(0.4 + (nt.vel / 127) * 0.6).toFixed(3)})`;
 
-// bar lines + black-key row shading depend ONLY on cur.bars — rebuild this
+// bar lines + black-key row shading depend ONLY on cur.bars - rebuild this
 // static layer just when bars changes (or if it's missing), not on every
 // renderRoll. Sits at the front so notes + playhead paint over it.
 let bgBars = -1;
@@ -87,11 +87,11 @@ const noteTitle = (nt) => `${midiLabel(nt.note)} · vel ${nt.vel}`;
 const isNoteEl = (el) => !!el?.classList?.contains("pe-note");
 
 // full note-layer rebuild (note SET changed: add/remove/reorder/geometry). For
-// selection- or velocity-only changes use paintNotes() — a cheap in-place patch.
+// selection- or velocity-only changes use paintNotes() - a cheap in-place patch.
 function renderRoll() {
     const roll = $("#pe-roll");
     // the rebuild below replaces every note element, which would drop keyboard
-    // focus — remember which note was focused and restore it afterwards
+    // focus - remember which note was focused and restore it afterwards
     const af = /** @type {HTMLElement} */ (document.activeElement);
     const refocus = isNoteEl(af) ? af.dataset.i : null;
     const ph = roll.querySelector("#pe-playhead"); // preserve the moving playhead across the rebuild
@@ -99,11 +99,11 @@ function renderRoll() {
     if (bgBars !== cur.bars || !roll.querySelector(".pe-bar")) buildBackground(roll);
     for (const el of roll.querySelectorAll(".pe-note")) el.remove(); // keep bars/rowbg/playhead
     const tot = total();
-    // notes carry text (aria-label/title) — build them with DOM APIs so the text
+    // notes carry text (aria-label/title) - build them with DOM APIs so the text
     // is set as data, never parsed as HTML (avoids any text-to-HTML injection path)
     cur.notes.forEach((nt, i) => {
         if (nt.start >= tot) return;
-        const w = (nt.dur / tot) * 100; // actual length — independent of the grid setting
+        const w = (nt.dur / tot) * 100; // actual length - independent of the grid setting
         const d = document.createElement("div");
         d.className = `pe-note ${nt.track ? "kbd" : "smp"}${cur.sel.has(i) ? " sel" : ""}`;
         d.dataset.i = i;
@@ -188,7 +188,7 @@ function selectAll() {
     cur.sel = new Set(cur.notes.map((_, i) => i));
     cur.primary = cur.notes.length ? cur.notes.length - 1 : null;
     setVelUI();
-    paintNotes(); // selection-only — note set unchanged
+    paintNotes(); // selection-only - note set unchanged
 }
 function copySel() {
     const idxs = selArr();
@@ -264,7 +264,7 @@ function onPointerDown(e) {
         }
         roll.setPointerCapture(e.pointerId);
         setVelUI();
-        paintNotes(); // selection change only — the note set is unchanged
+        paintNotes(); // selection change only - the note set is unchanged
         focusNote(cur.primary); // so arrow keys work after a click
         return;
     }
@@ -335,7 +335,7 @@ function onPointerMove(e) {
     if (drag.mode === "resize") {
         const nt = cur.notes[drag.idx];
         nt.dur = Math.max(s, Math.round((t - nt.start) / s) * s);
-        syncNoteEls([drag.idx]); // geometry-only — full renderRoll on release
+        syncNoteEls([drag.idx]); // geometry-only - full renderRoll on release
         return;
     }
     const r = roll.getBoundingClientRect();
@@ -359,7 +359,7 @@ function onPointerMove(e) {
         cur.notes[j].start = o.start + dStart;
         cur.notes[j].note = o.note + dNote;
     }
-    syncNoteEls([...drag.orig.keys()]); // geometry-only — full renderRoll on release
+    syncNoteEls([...drag.orig.keys()]); // geometry-only - full renderRoll on release
 }
 
 // During a move/resize drag only the dragged notes' geometry changes: patch
@@ -411,7 +411,7 @@ function finishMarquee() {
     cur.sel = sel;
     cur.primary = sel.size ? Math.max(...sel) : null;
     setVelUI();
-    paintNotes(); // selection-only — marquee doesn't change the note set
+    paintNotes(); // selection-only - marquee doesn't change the note set
 }
 
 function onPointerUp() {
@@ -436,7 +436,7 @@ function onWheel(e) {
     if (!cur.sel.has(i)) cur.sel = new Set([i]);
     cur.primary = i;
     setVelUI();
-    paintNotes(); // velocity + selection change — note set unchanged
+    paintNotes(); // velocity + selection change - note set unchanged
     pushHistory();
 }
 
@@ -456,7 +456,7 @@ function onFocusIn(e) {
 const inField = (el) =>
     el &&
     ((el.tagName === "INPUT" && ["text", "number", "search", "range"].includes(el.type)) || el.tagName === "SELECT" || el.tagName === "TEXTAREA");
-// a real text-entry field — where Space must type a space (so it can't be a shortcut)
+// a real text-entry field - where Space must type a space (so it can't be a shortcut)
 const isText = (el) =>
     el && (el.tagName === "TEXTAREA" || (el.tagName === "INPUT" && ["text", "search", "email", "url", "tel", "password"].includes(el.type)));
 
@@ -606,7 +606,7 @@ function buildSmf() {
     return notesToSmf(notes, { bars: cur.bars, sample: cur.sample, name: cur.name });
 }
 // returns the updated pattern JSON (bridge pattern_write → _pattern_json), which
-// the PATTERNS view uses to refresh just this card — no full 16-pattern re-receive
+// the PATTERNS view uses to refresh just this card - no full 16-pattern re-receive
 const writePattern = (smf) => apiJson(`/api/pattern/${cur.pattern}`, { method: "POST", body: smf });
 const announce = (p) => dispatchEvent(new CustomEvent("msmpl-pattern-changed", { detail: p }));
 
@@ -653,7 +653,7 @@ async function stopPreview() {
 }
 
 // PLAY: the device can only play patterns it holds, so previewing writes the edit
-// to its (RAM) slot first, then plays it. CANCEL restores the slot — so this stays
+// to its (RAM) slot first, then plays it. CANCEL restores the slot - so this stays
 // non-destructive until you SAVE.
 async function preview() {
     if (pePlaying) {
@@ -698,7 +698,7 @@ async function save() {
 }
 
 // discard edits; if a preview wrote to the device, restore the slot to how it
-// was (edits WITHOUT a preview never touched the device — nothing to restore,
+// was (edits WITHOUT a preview never touched the device - nothing to restore,
 // and a needless write here would stop the sequencer for no reason)
 async function cancel() {
     if (cur.deviceDirty) {
@@ -748,7 +748,7 @@ async function cancel() {
         const idxs = selArr();
         if (idxs.length) {
             for (const i of idxs) cur.notes[i].vel = v;
-            paintNotes(); // velocity-only — note set unchanged, no full rebuild per tick
+            paintNotes(); // velocity-only - note set unchanged, no full rebuild per tick
         }
     };
     $("#pe-vel").onchange = () => {

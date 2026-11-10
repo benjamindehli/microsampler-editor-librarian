@@ -1,4 +1,4 @@
-/* microSAMPLER Editor / Librarian — documentation site.
+/* microSAMPLER Editor / Librarian - documentation site.
    Hand-built, no build step. Reuses the app's palette + fonts so the docs
    look like the hardware editor, but tuned for long-form reading.
    Multi-page: a shared top nav links Home / Getting started / Guide /
@@ -81,7 +81,7 @@ a:hover {
 }
 /* WCAG 1.4.1 / Lighthouse "links rely on colour to be distinguishable":
    amber-on-ink is under the 3:1 required against surrounding body text, so a
-   link embedded in a RUN OF TEXT needs a second cue — underline it. Links that
+   link embedded in a RUN OF TEXT needs a second cue - underline it. Links that
    stand alone (nav, TOC, .cta buttons, .card blocks, heading anchors) aren't
    inside text and keep their own affordance. :where() keeps specificity at
    (0,2,1) so the opt-outs below can still win. */
@@ -115,7 +115,7 @@ img {
 }
 .topnav .brand img {
     height: 26px;
-    aspect-ratio: 392 / 232; /* logo.svg viewBox — reserve width so it can't shift the brand on load */
+    aspect-ratio: 392 / 232; /* logo.svg viewBox - reserve width so it can't shift the brand on load */
 }
 .topnav .brand b {
     font:
@@ -333,7 +333,7 @@ a.card:hover {
     border-color: var(--amber-dk);
 }
 /* .content h3 (defined later) would otherwise win and add a 1.8rem top margin,
-   leaving dead space above each card heading — scope this higher to override it */
+   leaving dead space above each card heading - scope this higher to override it */
 .cards .card h3 {
     margin: 0 0 0.35rem;
     font:
@@ -513,7 +513,7 @@ footer {
 }
 footer .logo {
     height: 26px;
-    aspect-ratio: 392 / 232; /* logo.svg viewBox — reserve width to avoid a load-time shift */
+    aspect-ratio: 392 / 232; /* logo.svg viewBox - reserve width to avoid a load-time shift */
     margin-bottom: 0.6rem;
     opacity: 0.85;
 }

@@ -11,7 +11,7 @@ import { tick } from "functions/ticker.js";
 import { $, api, closestEl, jsonBody, lsGet, lsSet } from "functions/util.js";
 
 // ── accent theming (CSS custom props on :root, persisted) ────────────────
-// Only the three RGB triplets are overridden — every accent surface (glows,
+// Only the three RGB triplets are overridden - every accent surface (glows,
 // borders, the phosphor backgrounds, the canvas waveform) derives from them,
 // so switching theme recolours the whole app.
 // ordered around the colour wheel (red → pink); the saved theme is stored by
@@ -137,7 +137,7 @@ $("#panic-btn").onclick = () => {
 
 // ── master volume (device output, Universal SysEx) ───────────────────────
 // Live while dragging but throttled (one SysEx each), with the final value
-// always sent on release. Sets only — the device doesn't report its level, so
+// always sent on release. Sets only - the device doesn't report its level, so
 // the slider starts at max and doesn't transmit until the user moves it.
 {
     const vol = $("#master-vol");
@@ -167,7 +167,7 @@ const typing = () => {
 const dialogOpen = () => !!document.querySelector("dialog[open]");
 
 addEventListener("keydown", (e) => {
-    // an open dialog owns ALL its keys — incl. ⌘Z: the pattern editor has its own
+    // an open dialog owns ALL its keys - incl. ⌘Z: the pattern editor has its own
     // undo stack (⌘Z here would ALSO undo a device param = double-fire), and text
     // fields need native text undo (a device param undo would hijack it)
     if (dialogOpen()) return;

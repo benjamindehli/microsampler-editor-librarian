@@ -10,7 +10,7 @@ import globals from "globals";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 
 export default [
-    // generated data modules — not hand-written, don't lint
+    // generated data modules - not hand-written, don't lint
     { ignores: ["src/web-editor/functions/valueTables.js", "src/web-editor/functions/fxData.js"] },
 
     js.configs.recommended,

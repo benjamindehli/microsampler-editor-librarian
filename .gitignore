@@ -5,7 +5,7 @@ __pycache__/
 
 # C extensions
 *.so
-# …but the vendored libusb runtime libs DO ship in releases — keep them tracked
+# …but the vendored libusb runtime libs DO ship in releases - keep them tracked
 !src/native-tools/vendor/libusb/**
 
 # personal Korg backups dropped here to import/extract (your data, often large)
@@ -232,7 +232,7 @@ __marimo__/
 # macOS
 .DS_Store
 # ── microSAMPLER project ────────────────────────────────────────────────
-# personal device data — bank backups made by the UTILITY page / bank.py
+# personal device data - bank backups made by the UTILITY page / bank.py
 # (folders are recreated automatically on the next backup)
 src/native-tools/backups/
 src/native-tools/bank_current/
@@ -242,14 +242,14 @@ src/native-tools/*.wav
 src/native-tools/*.bin
 src/native-tools/*.mid
 
-# Korg's original installer — needed only for the reverse-engineering tools
+# Korg's original installer - needed only for the reverse-engineering tools
 # (tools/re/); do NOT commit it (copyrighted software, not ours to publish)
 microSAMPLER Editor.pkg/
 
-# Korg's owner's manual — local reference only; do NOT commit (Korg copyright)
+# Korg's owner's manual - local reference only; do NOT commit (Korg copyright)
 *.pdf
 
-# build tooling (esbuild) + output — dev-only, never committed
+# build tooling (esbuild) + output - dev-only, never committed
 node_modules/
 dist/
 release/

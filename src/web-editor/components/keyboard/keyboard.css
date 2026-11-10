@@ -74,7 +74,7 @@
 .keybed.midi-on #midi-cap {
     color: var(--amber);
 } /* MIDI input active */
-/* SMP / KBD channel routing — always shown (with Web MIDI), disabled while MIDI IN is off */
+/* SMP / KBD channel routing - always shown (with Web MIDI), disabled while MIDI IN is off */
 .midi-ch {
     display: inline-flex;
     align-items: center;
@@ -246,7 +246,7 @@
     box-shadow: 0 3px 4px rgba(0, 0, 0, 0.5);
 }
 /* KEYBOARD mode: every key plays the one selected sample pitched, so the
-   per-key sample dots are meaningless here — hide them. */
+   per-key sample dots are meaningless here - hide them. */
 .keybed.mode-kbd .pkey.used::before {
     display: none;
 }

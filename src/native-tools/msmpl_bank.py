@@ -15,7 +15,7 @@ The file is a tree of 8-byte-tagged "6150…" chunks (32-byte header: 4B "6150",
 
 BnkP, the 36 SmpD param blobs and MfxD are byte-identical to the sections of
 the device's own 0x974-byte bank blob (checked against a device backup of the
-same bank), so extract also rebuilds that blob as bank.bin — what RESTORE
+same bank), so extract also rebuilds that blob as bank.bin - what RESTORE
 sends. Its 16 bytes @0x940 aren't in the file: the original editor's
 BankWrite fills each from SequenceData::getSequenceLength() = the pattern's
 bar count (u16 BE @0x0A of the SEQP blob, 0 if under 1308 bytes).
@@ -153,7 +153,7 @@ def bank_blob(bank):
 
 
 def extract(path, outdir):
-    """Extract a .msmpl_bank FILE — see extract_bytes."""
+    """Extract a .msmpl_bank FILE - see extract_bytes."""
     with open(path, 'rb') as f:
         data = f.read()
     return extract_bytes(data, outdir, os.path.basename(path))
@@ -162,7 +162,7 @@ def extract(path, outdir):
 def extract_bytes(data, outdir, source_name=None):
     """Extract a .msmpl_bank (raw bytes) to a backup directory in our own format
     (manifest.json + samples/sNN.wav, and bank.bin + every pattern when the
-    file is complete — then it restores like a device backup), reusable by the
+    file is complete - then it restores like a device backup), reusable by the
     bridge's librarian (backup list / cherry-pick / ZIP export / RESTORE).
     Returns (non_empty_count, bank)."""
     bank = parse_bank(data)
@@ -177,7 +177,7 @@ def extract_bytes(data, outdir, source_name=None):
         manifest['seq_lengths'] = list(blob[0x940:0x950])
     n = 0
     # use the loop index (not the parsed dict value) for the filename, bounded to
-    # the device's 36 pads — keeps the path provably inside outdir (no traversal
+    # the device's 36 pads - keeps the path provably inside outdir (no traversal
     # from a malformed bank) regardless of how many chunks the file declares.
     for i, s in enumerate(bank['samples']):
         if i > 35:

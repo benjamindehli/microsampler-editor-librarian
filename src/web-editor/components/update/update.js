@@ -1,6 +1,6 @@
 // "Update available" check: compare the running bridge version (from
 // /api/status) against the latest GitHub release, and show a dismissible toast
-// when a newer one exists. Polite (caches the API result for a day — the
+// when a newer one exists. Polite (caches the API result for a day - the
 // unauthenticated rate limit is 60/hr) and quiet on any failure (offline,
 // rate-limited, CORS): the editor works fine without it.
 import { $, lsGet, lsSet } from "functions/util.js";
@@ -29,7 +29,7 @@ async function latestRelease() {
         const c = JSON.parse(lsGet(CACHE) || "null");
         if (c && Date.now() - c.t < DAY) return c; // fresh enough
     } catch {
-        /* corrupt cache — refetch */
+        /* corrupt cache - refetch */
     }
     const r = await fetch(API, { headers: { Accept: "application/vnd.github+json" } });
     if (!r.ok) throw new Error("releases " + r.status);

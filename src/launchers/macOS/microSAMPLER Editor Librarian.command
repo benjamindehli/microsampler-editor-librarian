@@ -2,7 +2,7 @@
 # Double-clickable starter for the microSAMPLER editor.
 #
 # Opens a Terminal window, starts the bridge with sudo (type your password
-# here — same as the CLI flow), auto-opens the editor in a Chrome app-mode
+# here - same as the CLI flow), auto-opens the editor in a Chrome app-mode
 # window once the bridge is ready, and shows live bridge output.
 # Stop with Ctrl+C or by closing the window.
 
@@ -40,7 +40,7 @@ echo "python: $PY"
 PORT=8765
 URL="http://localhost:$PORT"
 
-# bash-builtin port probe — macOS nc can hang on localhost/IPv6
+# bash-builtin port probe - macOS nc can hang on localhost/IPv6
 port_open() { (exec 3<>"/dev/tcp/127.0.0.1/$PORT") 2>/dev/null; }
 
 open_ui() {

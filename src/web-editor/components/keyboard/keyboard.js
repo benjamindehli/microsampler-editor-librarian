@@ -1,6 +1,6 @@
 // On-screen keyboard + QWERTY pad-play. A piano under the editor mirrors the 36
 // pads (C3..B5 = exactly three octaves); clicking a key plays it through the
-// device (POST /api/note — real envelope/FX/pitch). Ticking "TYPE TO PLAY"
+// device (POST /api/note - real envelope/FX/pitch). Ticking "TYPE TO PLAY"
 // arms the computer keyboard as a one-octave piano (home row = white keys, top
 // row = black keys; Z / X or the ◀ ▶ buttons shift the octave). The piano always
 // shows which computer key maps to which note, lit brighter while armed. Off by
@@ -44,7 +44,7 @@ function heldOn(slot, padOnly) {
 // ── device note + visual paint ───────────────────────────────────────────────
 // SAMPLE mode plays note 48+slot on the global channel (triggers that pad);
 // KEYBOARD mode sends the same note one channel up, so the device plays its
-// currently selected sample pitched (its keyboard-mode track) — the bridge maps
+// currently selected sample pitched (its keyboard-mode track) - the bridge maps
 // the `keyboard` flag onto the channel. `body` carries slot OR a raw note (the
 // latter for a real MIDI keyboard's full pitch range in keyboard mode).
 function send(body) {
@@ -290,10 +290,10 @@ const midiHeld = new Map(); // controller note physically down → on-screen slo
 const sustainedOff = new Map(); // note whose key is UP but held sounding by the pedal → slot
 let sustainOn = false; // CC#64 damper pedal state
 
-// Optional per-channel routing (SMP CH / KBD CH fields, 0-based, null = "—"):
+// Optional per-channel routing (SMP CH / KBD CH fields, 0-based, null = "-"):
 // a controller message on the KBD channel always plays the selected sample
 // pitched, one on the SMP channel always triggers pads; any other channel (or
-// both fields "—", the default) follows the SAMPLE / KEYBOARD toggle. Lets a
+// both fields "-", the default) follows the SAMPLE / KEYBOARD toggle. Lets a
 // split/zoned controller play pads and the pitched sample at the same time.
 const MIDI_CH_KEYS = { sample: "msmpl.midi.ch.sample", kbd: "msmpl.midi.ch.kbd" };
 const loadCh = (key) => {
@@ -355,7 +355,7 @@ function midiNoteOff(m) {
     }
 }
 function midiSustain(on) {
-    // CC#64 — app-side (the device may not honor the CC itself)
+    // CC#64 - app-side (the device may not honor the CC itself)
     sustainOn = on;
     if (!on) {
         flushOffs(sustainedOff); // pedal up: release everything it was holding
@@ -405,7 +405,7 @@ function midiInputNames() {
     return midiAccess ? [...midiAccess.inputs.values()].map((i) => i.name).filter(Boolean) : [];
 }
 function bindMidiInputs() {
-    // (re)attach to every input — also the hotplug handler
+    // (re)attach to every input - also the hotplug handler
     if (!midiAccess) return;
     for (const input of midiAccess.inputs.values()) input.onmidimessage = onMidiMessage;
     const names = midiInputNames();
@@ -430,7 +430,7 @@ async function setMidi(on) {
     } else {
         if (isMidiLearnActive()) setMidiLearn(false);
         if (midiAccess) {
-            // also drop the hotplug handler — left bound, any device state change
+            // also drop the hotplug handler - left bound, any device state change
             // would re-attach the inputs and silently re-enable MIDI while OFF
             midiAccess.onstatechange = null;
             for (const input of midiAccess.inputs.values()) input.onmidimessage = null;
@@ -443,7 +443,7 @@ async function setMidi(on) {
     lsSet("msmpl.midi", on ? "1" : "0");
 }
 
-// arm MIDI Learn (optionally targeting a param), switching MIDI IN on first —
+// arm MIDI Learn (optionally targeting a param), switching MIDI IN on first -
 // a controller CC can't arrive otherwise. Used by LEARN and right-click on a control.
 export async function armMidiLearn(param = null) {
     if (!MIDI_OK) return false;
@@ -512,7 +512,7 @@ $("#kb-mode-kbd").onclick = () => setMode("kbd");
         $("#midi-ch").hidden = false;
         const mi = $("#midi-in");
         mi.addEventListener("change", () => setMidi(mi.checked));
-        // SMP CH / KBD CH routing fields ("—" = follow the toggle)
+        // SMP CH / KBD CH routing fields ("-" = follow the toggle)
         for (const [which, other] of [
             ["sample", "kbd"],
             ["kbd", "sample"]
@@ -539,7 +539,7 @@ $("#kb-mode-kbd").onclick = () => setMode("kbd");
         const ml = $("#midi-learn");
         ml.hidden = false;
         ml.onclick = () => (isMidiLearnActive() ? setMidiLearn(false) : armMidiLearn());
-        // re-enable only if it was on before — avoids a surprise permission prompt on every load
+        // re-enable only if it was on before - avoids a surprise permission prompt on every load
         if (lsGet("msmpl.midi") === "1") {
             mi.checked = true;
             setMidi(true);

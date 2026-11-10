@@ -1,5 +1,5 @@
 /* ── control strip ────────────────────────────────────────────────────── */
-/* groups wrap as whole units — controls inside a group never line-break */
+/* groups wrap as whole units - controls inside a group never line-break */
 .strip {
     --ctl-badge-gutter: 2.1rem; /* .ctl-cc width (~32px) + breathing room, minus the .ctl side padding */
     margin-top: 1.1rem;
@@ -248,7 +248,7 @@
         #0c0c0f;
 }
 
-/* START/END inputs — sit in the .screen-meta row directly under the waveform */
+/* START/END inputs - sit in the .screen-meta row directly under the waveform */
 .ro-row {
     display: flex;
     gap: 0.45rem;
@@ -264,7 +264,7 @@
     letter-spacing: 0.06em;
     padding: 0.32rem 0;
 }
-/* editable START/END (device frames) — styling from the global field rule.
+/* editable START/END (device frames) - styling from the global field rule.
    Wide enough for a 7-digit frame count plus the number spinner arrows */
 .ro-input {
     width: 8em;

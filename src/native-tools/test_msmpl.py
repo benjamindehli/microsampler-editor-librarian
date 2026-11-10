@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline test for msmpl_bank.py — the original-Korg .msmpl_bank reader.
+"""Offline test for msmpl_bank.py - the original-Korg .msmpl_bank reader.
 Builds a synthetic file (the same 6150-chunk tree the originals use) and checks
 the parser/extractor recover it. No hardware, no real backup files needed."""
 import json

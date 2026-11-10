@@ -70,10 +70,10 @@ export async function loadWave(i) {
 
 // Redraw coalescing: pointermove (drag/pan) and wheel fire faster than the
 // display refresh, so hot paths schedule at most ONE drawWave per animation
-// frame (which just blits the cached waveform — see buildWaveCache).
+// frame (which just blits the cached waveform - see buildWaveCache).
 let redrawReq = 0;
 
-// theme accent colours, read from the CSS custom props once and cached —
+// theme accent colours, read from the CSS custom props once and cached -
 // getComputedStyle forces a synchronous style recalc, too costly to run on
 // every drag frame. Invalidated on the theme-change event (see bottom).
 let _themeColors = null;
@@ -100,7 +100,7 @@ function scheduleRedraw() {
 // change; a marker drag then only blits that bitmap plus a dim overlay and two
 // marker lines (≈6 canvas ops a frame instead of ~W bars + trace segments).
 let waveCache = null;
-// per-column lo/hi/mid PER CHANNEL — returns one {los,his,mids} per channel so
+// per-column lo/hi/mid PER CHANNEL - returns one {los,his,mids} per channel so
 // stereo can be drawn as two lanes (mono = a single-element array).
 function computePeaks(buf, n, v0, vlen, W) {
     const spp = vlen / W;
@@ -135,8 +135,8 @@ function computePeaks(buf, n, v0, vlen, W) {
     });
 }
 
-// render the static waveform (grid + bars + trace, flat — no glow) to an
-// offscreen canvas — done only when geometry/theme changes, so its per-column
+// render the static waveform (grid + bars + trace, flat - no glow) to an
+// offscreen canvas - done only when geometry/theme changes, so its per-column
 // cost is off the drag hot path (a drag just re-blits this bitmap)
 function buildWaveCache(buf, n, v0, vlen, W, H, rgb, hiRgb, dpr) {
     const oc = waveCache && waveCache.canvas.width === W && waveCache.canvas.height === H ? waveCache.canvas : document.createElement("canvas");
@@ -231,12 +231,12 @@ function drawWave(buf, s) {
     const startX = frameToX(s.start),
         endX = frameToX(s.end);
 
-    // (re)build the offscreen waveform only when geometry/theme changed — NOT on
+    // (re)build the offscreen waveform only when geometry/theme changed - NOT on
     // a marker drag (only startX/endX below move), so the drag stays cheap
     const key = `${v0}|${vlen}|${W}|${H}|${n}|${rgb}|${hiRgb}`;
     if (!waveCache || waveCache.key !== key || waveCache.buf !== buf)
         waveCache = { key, buf, canvas: buildWaveCache(buf, n, v0, vlen, W, H, rgb, hiRgb, dpr) };
-    g.drawImage(waveCache.canvas, 0, 0); // one blit — the whole waveform
+    g.drawImage(waveCache.canvas, 0, 0); // one blit - the whole waveform
 
     // dim outside [start,end] with a cheap overlay that moves with the markers
     const l = Math.max(0, Math.min(W, startX)),
@@ -246,7 +246,7 @@ function drawWave(buf, s) {
     if (r < W) g.fillRect(r, 0, W - r, H);
 
     // start/end marker flags (skip when scrolled off-screen). Each label sits
-    // OUTSIDE the selection — S to the left of its line, E to the right — and
+    // OUTSIDE the selection - S to the left of its line, E to the right - and
     // flips to the inside only when it would run off that edge of the canvas
     // (so START-at-0 and END-at-the-end both stay on-screen).
     /** @type {[number, string, number][]} */
@@ -308,7 +308,7 @@ function updateZoomUI() {
 function redrawZoom() {
     const buf = curBuf();
     if (!buf) return;
-    scheduleRedraw(); // coalesced — wheel/pan events outpace the display
+    scheduleRedraw(); // coalesced - wheel/pan events outpace the display
     updateZoomUI();
 }
 
@@ -425,7 +425,7 @@ wave.addEventListener("dblclick", () => {
         const s = slotData(state.sel);
         const buf = curBuf();
         // snap the just-dragged marker to the nearest zero crossing (numeric inputs
-        // stay exact — they commit straight through commitPoints)
+        // stay exact - they commit straight through commitPoints)
         if (buf && zeroSnapOn()) {
             if (mode === "start") s.start = snapZeroFrame(s.start, s, buf);
             else s.end = snapZeroFrame(s.end, s, buf);
@@ -433,7 +433,7 @@ wave.addEventListener("dblclick", () => {
         await commitPoints(s.start, s.end);
     };
     wave.addEventListener("pointerup", endDrag);
-    // pointercancel commits like pointerup — pointermove already mutated
+    // pointercancel commits like pointerup - pointermove already mutated
     // s.start/s.end, so just dropping the drag would leave the readouts and
     // markers diverged from the device until the next commit or focus resync
     wave.addEventListener("pointercancel", endDrag);
@@ -447,7 +447,7 @@ wave.addEventListener("dblclick", () => {
     });
 }
 
-// Commit START/END points to the device — shared by the marker drag and the
+// Commit START/END points to the device - shared by the marker drag and the
 // numeric inputs under the waveform: clamp, redraw, POST, refresh the readout.
 async function commitPoints(start, end) {
     if (state.sel == null) return;
@@ -475,13 +475,13 @@ async function commitPoints(start, end) {
 $("#ro-row").addEventListener("change", (e) => {
     if (!closestEl(e.target, ".ro-input") || state.sel == null) return;
     const s = slotData(state.sel);
-    if (!s.frames) return renderPoints(s); // not ready — restore the shown values
+    if (!s.frames) return renderPoints(s); // not ready - restore the shown values
     const sv = $('#ro-row [data-point="start"]').value;
     const ev = $('#ro-row [data-point="end"]').value;
     const start = sv === "" ? s.start : Number(sv);
     const end = ev === "" ? s.end : Number(ev);
     if (Number.isFinite(start) && Number.isFinite(end)) commitPoints(start, end);
-    else renderPoints(s); // bad input — restore the shown values
+    else renderPoints(s); // bad input - restore the shown values
 });
 
 // Follow the hardware: select the slot the device just triggered (SSE 'note').
@@ -498,7 +498,7 @@ export function followSelect(i) {
 // a click toggles note-on/off. The playhead is approximate: the app can't read
 // the device's true position, so a rAF line sweeps START→END over the region's
 // natural duration ((end−start)/rate), looping if the sample loops, mapped
-// through the zoom window. Needs the slot's WAV loaded (it is — its waveform is
+// through the zoom window. Needs the slot's WAV loaded (it is - its waveform is
 // shown); skipped otherwise.
 let playRAF = null,
     playing = false,
@@ -520,7 +520,7 @@ export function stopAudition(sendNoteOff = true) {
 // playhead sweeps at the right rate. BPM SYNC off → pitched by SEMITONE (±24)
 // + TUNE (±1 semitone, via cents); stretch/pitch-sync → time scales by the
 // bank BPM ÷ the sample's original BPM (orig BPM known only once the WAV has
-// loaded — falls back to 1 until then).
+// loaded - falls back to 1 until then).
 function playbackSpeed(s) {
     if ((s.bpm_sync || 0) === 0) {
         const semis = (s.semitone || 0) + tuneCents(s.tune == null ? 64 : s.tune) / 100;
@@ -538,9 +538,9 @@ function startPlayhead(s) {
     const speed = playbackSpeed(s) || 1; // faster pitch = shorter sweep
     const regionMs = ((s.end - s.start) / s.rate_hz / speed) * 1000;
     const rev = !!s.reverse; // REVERSE → sweep END→START
-    // width read ONCE (not per frame — a per-frame clientWidth read right after
+    // width read ONCE (not per frame - a per-frame clientWidth read right after
     // moving the line forces a reflow every frame); moved via transform so the
-    // sweep stays compositor-only. Approximate anyway — a mid-play resize is fine.
+    // sweep stays compositor-only. Approximate anyway - a mid-play resize is fine.
     const width = wave.clientWidth;
     let t0 = null;
     const frame = (ts) => {
@@ -597,7 +597,7 @@ export const redrawCurrent = () => {
         updateZoomUI();
     }
 };
-// resize streams events while the window is being dragged — coalesce to one
+// resize streams events while the window is being dragged - coalesce to one
 // draw per frame (scheduleRedraw); the zoom chrome only needs a cheap update
 addEventListener("resize", () => {
     if (state.sel != null && state.buffers.has(state.sel)) {

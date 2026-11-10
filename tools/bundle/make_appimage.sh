@@ -37,7 +37,7 @@ exec "$(dirname "$(readlink -f "$0")")/microSAMPLER Library" "$@"
 EOF
 chmod +x "$APPDIR/AppRun"
 
-# pinned release + checksum, NOT the mutable `continuous` tag — this runs in
+# pinned release + checksum, NOT the mutable `continuous` tag - this runs in
 # a workflow with release-upload rights, so the tool must be tamper-evident
 AIT_VERSION=1.9.1
 AIT_SHA256=ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0

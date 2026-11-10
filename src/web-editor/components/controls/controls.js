@@ -27,14 +27,14 @@ export const fmtPan = (v) => (v === 64 ? "CNT" : v < 64 ? `L${64 - v}` : `R${v -
 export const fmtLevel = (v) => AMP_LEVEL[v] || String(v);
 
 // Semitone/Velo Int travel as two's-complement 14-bit (signed model space on
-// the slider; only RECEIVE needs decoding — pack14 handles the send side).
+// the slider; only RECEIVE needs decoding - pack14 handles the send side).
 export const BIPOLAR = new Set([PARAM.SEMITONE, PARAM.VELO_INT]);
 export const dec14 = (v) => (v >= 8192 ? v - 16384 : v);
 
 // TUNE: 0..127 wire → −99..+99 cents, decoded from the hardware (exact at 35
 // measured points). The fine region is two linear halves around a
-// centre detent — negative HW = wire−62, positive HW = wire−66, with wire
-// 62..66 all reading 0 — and the panel's coarse settings step by 5 out to ±99.
+// centre detent - negative HW = wire−62, positive HW = wire−66, with wire
+// 62..66 all reading 0 - and the panel's coarse settings step by 5 out to ±99.
 export function tuneCents(w) {
     if (w <= 2) return -99;
     if (w < 12) return -50 - (12 - w) * 5; // wire 3..11   → −95..−55
@@ -187,7 +187,7 @@ function setSeg(v) {
     $("#semitone-block").classList.toggle("locked", v === 2);
 }
 
-// faders — `fmt` (optional) maps the 0..127 byte to a display string
+// faders - `fmt` (optional) maps the 0..127 byte to a display string
 function wireFader(inSel, valSel, param, fmt) {
     const input = $(inSel);
     input.oninput = () => setFader(inSel, valSel, +input.value, fmt);
@@ -208,7 +208,7 @@ for (const [k, spec] of Object.entries(SPEC)) {
     else if (spec.kind === "seg") wireSeg(spec.ctl, param);
 }
 
-// set a control from a MODEL-space value (no dec14 — that's the wire form)
+// set a control from a MODEL-space value (no dec14 - that's the wire form)
 function setControl(param, value) {
     const spec = SPEC[param];
     if (!spec) return;

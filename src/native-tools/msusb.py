@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-microSAMPLER libusb transport — USB-MIDI over the bulk endpoints.
+microSAMPLER libusb transport - USB-MIDI over the bulk endpoints.
 
 Reverse-engineered from the original editor (DirectUsbAccessBase::sendCommand,
 UsbMidiInterpreter::createPackets):
@@ -28,13 +28,13 @@ EP_OUT, EP_IN = 0x01, 0x82
 PACKET = 64
 
 # ---------------------------------------------------------------------------
-# Vendored dependencies (vendor/) — so the app needs only Python 3, no pip/brew.
+# Vendored dependencies (vendor/) - so the app needs only Python 3, no pip/brew.
 #   * pyusb (pure-Python, BSD) is appended to sys.path as a FALLBACK, so a
 #     system pyusb, if the user has one installed, still takes precedence.
 #   * libusb native libraries are shipped per OS+arch as a FALLBACK too. We
 #     PREFER a system libusb when one is installed (a brew/apt build is usually
 #     newer than the bundled 1.0.26 and survives more open/close cycles before
-#     the device's USB stack wedges — measured on HW), and use the bundled copy
+#     the device's USB stack wedges - measured on HW), and use the bundled copy
 #     only when nothing's installed. MSAMPLER_BUNDLED_LIBUSB=1 forces the bundle.
 # ---------------------------------------------------------------------------
 _VENDOR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vendor")
@@ -105,7 +105,7 @@ def from_usb_midi(raw: bytes) -> bytes:
 
 
 # ---------------------------------------------------------------------------
-# SysEx reassembler — feed it a MIDI byte stream, get complete F0..F7 messages.
+# SysEx reassembler - feed it a MIDI byte stream, get complete F0..F7 messages.
 # Skips System Real-Time bytes (0xF8..0xFF) that interleave inside/around SysEx.
 # ---------------------------------------------------------------------------
 class SysExReassembler:
@@ -116,7 +116,7 @@ class SysExReassembler:
     def feed(self, midi: bytes):
         msgs = []
         for b in midi:
-            if 0xf8 <= b <= 0xff:          # System Real-Time — ignore (F8 clock etc.)
+            if 0xf8 <= b <= 0xff:          # System Real-Time - ignore (F8 clock etc.)
                 continue
             if b == 0xf0:
                 self.buf = bytearray([0xf0]); self.in_sysex = True
@@ -296,7 +296,7 @@ def cmd_play():
 
 
 def cmd_listen(seconds=12):
-    """Dump EVERYTHING received (including clock) for N seconds — confirms the
+    """Dump EVERYTHING received (including clock) for N seconds - confirms the
     device->host path is alive. Start the microSAMPLER sequencer to make it
     stream clock if you want to see traffic."""
     with MicroSampler() as ms:

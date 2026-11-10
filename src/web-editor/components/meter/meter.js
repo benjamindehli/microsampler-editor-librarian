@@ -17,7 +17,7 @@ const MEM_PTRN_TOTAL = 0x60000;
 const MEM_BLK = 0x8000;
 export const memBlk = (b) => Math.ceil(b / MEM_BLK) * MEM_BLK;
 
-// device bytes a slot occupies — exact (frames + channels come from the loaded
+// device bytes a slot occupies - exact (frames + channels come from the loaded
 // WAV); 0 for empty or not-yet-loaded slots (loaded momentarily by preload).
 export function slotDevBytes(s) {
     if (s.empty || !s.frames || s.stereo == null) return 0;
@@ -34,7 +34,7 @@ export function renderMeter() {
     if (!state.bank) return;
     $("#mem-block").hidden = false;
     // empty/unrecorded patterns store 0xFF in the seq-length byte (init fill),
-    // NOT a real 255-block length — treat it as 0 (else 16×255×0x200 ≈ 2 MB,
+    // NOT a real 255-block length - treat it as 0 (else 16×255×0x200 ≈ 2 MB,
     // which can't even fit the 384 KB pool).
     const ptrn = (state.bank.seq_lengths || []).reduce((a, b) => a + (b === 0xff ? 0 : b) * 0x200, 0);
     setMeter("smpl", sampleMemUsage(), MEM_SMPL_TOTAL);

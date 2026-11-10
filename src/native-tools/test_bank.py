@@ -35,7 +35,7 @@ class FakeMS:
                                  # a 0x1F data dump closes the session
 
     def send_short(self, status, d1=0, d2=0, cable=None):
-        pass        # short MIDI msgs (e.g. the Stop sent before a dump) — no-op
+        pass        # short MIDI msgs (e.g. the Stop sent before a dump) - no-op
 
     def _push_sysex(self, msg):
         pkts = to_usb_midi(msg, 1)

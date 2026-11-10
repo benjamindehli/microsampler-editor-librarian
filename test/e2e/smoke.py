@@ -4,7 +4,7 @@ browser, and assert it loads and the core interactions work with NO page or
 console errors. Catches frontend regressions the unit/offline suites can't,
 e.g. a module that throws at import time.
 
-Dev/CI only — needs Playwright:
+Dev/CI only - needs Playwright:
     pip install playwright && playwright install chromium
 
 Run from anywhere:
@@ -27,7 +27,7 @@ BASE = 'http://127.0.0.1:%d' % PORT
 
 def make_msmpl(path):
     """A minimal synthetic original-Korg .msmpl_bank (one mono sample) for the
-    library-mode leg — same 6150-chunk shape the real files use."""
+    library-mode leg - same 6150-chunk shape the real files use."""
     chunk = msmpl_chunk
     pcm = struct.pack('>' + 'h' * 80, *([2000, -2000] * 40))     # mono 16-bit BE
     param = bytearray(b'\xff' * 64)
@@ -48,7 +48,7 @@ def make_msmpl(path):
 
 def stub_github(pg):
     """Stub the update-check (api.github.com) so the smoke is deterministic offline
-    — an unreachable GitHub otherwise logs CORS/network console errors. The tag is
+    - an unreachable GitHub otherwise logs CORS/network console errors. The tag is
     older than any real release, so no update toast appears."""
     pg.route('**api.github.com**', lambda r: r.fulfill(
         status=200, content_type='application/json',

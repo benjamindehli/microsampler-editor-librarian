@@ -71,7 +71,7 @@ def sample_dump_request(channel, sample_no):
 
 
 def sample_data_dump_request(channel):
-    """CmdId 7 / func 0x1f: no parameters — the preceding func 0x16 selected the
+    """CmdId 7 / func 0x1f: no parameters - the preceding func 0x16 selected the
     sample. Device answers with DIRECT_MARKER then `dataSize` raw PCM bytes
     (16-bit signed BIG-endian, interleaved). Error replies: func 0x24 / 0x26."""
     return bytes([SOX, KORG, fmt_byte(channel), MODEL, 0x1f, EOX])
@@ -214,7 +214,7 @@ def sequence_data_request(channel):
 def leave_dump_mode(channel, commit=True):
     """CmdId 20 / func 0x1a, ParameterId 8: 1 = success/commit, 0 = abort.
     Sent after bank-level transfers; device replies func 0x4a when done
-    (the original editor waits up to 30 s — the device may be saving)."""
+    (the original editor waits up to 30 s - the device may be saving)."""
     return bytes([SOX, KORG, fmt_byte(channel), MODEL, 0x1a,
                   1 if commit else 0, EOX])
 
@@ -254,7 +254,7 @@ BANK_SEND_OK, BANK_SEND_ERR = {0x23}, {0x24, 0x29}
 # Layout (all multi-byte fields big-endian):
 #   0x000 "SEQP"; 0x004 u32 size (0x51C); 0x008 u16 specified bars;
 #   0x00A u16 bars; 0x00C u32 = 8; 0x010 100*u32 bar-start offsets;
-#   0x1A0 64*0xFF reserved; 0x1E0 KEYBOARD-mode sample# (0xFF none — the
+#   0x1A0 64*0xFF reserved; 0x1E0 KEYBOARD-mode sample# (0xFF none - the
 #   sample-mode track selects pads by note number instead); 0x1E8 name[8];
 #   0x200.. 4-byte events:
 #     F0 00 tt tt  advance BE16 ticks (96/quarter note -> 384/4-4 bar)
@@ -488,7 +488,7 @@ def smf_to_pattern(smf_bytes, sample_channel=0, kbd_channel=1,
         sel = 0 if ch == (sample_channel & 0x0f) else 1
         tb = t // PATTERN_TICKS_PER_BAR
         # an off at exactly the pattern END must stay INSIDE the last bar
-        # (anything after the terminating marker is unreachable — the device
+        # (anything after the terminating marker is unreachable - the device
         # encodes it this way too)
         final_off = vel == 0 and t >= bars * PATTERN_TICKS_PER_BAR
         if (vel == 0 and t % PATTERN_TICKS_PER_BAR == 0
@@ -615,7 +615,7 @@ def effect_param(i):          # effect parameter index 0..31 -> live id
 
 def sample_header(channel, sample_no, data_size, rate_hz, stereo,
                   tempo_bpm=120.0, mode_bit=0):
-    """Phase 1 of upload — SysEx func 0x42 (CommandId 9).
+    """Phase 1 of upload - SysEx func 0x42 (CommandId 9).
     8-byte packed header: u32 dataSize, u16 tempo (0.1 BPM, 20.0..300.0;
     SampleData+0xd0), flags, 0xFF; 7-bit encoded.
     Sample number carries the 0x40 bit (ParameterId 3, set by sendCommand)."""
@@ -637,7 +637,7 @@ def build_param_blob(name, long_name=None, start_frame=0, end_frame=0,
     """64-byte PackedSampleParameter for upload phase 3.
 
     With `template` (a blob downloaded from the device) only the names and
-    start/end points are patched — everything else is kept verbatim. Without
+    start/end points are patched - everything else is kept verbatim. Without
     one, the parameter bytes get the values observed on a fresh device sample."""
     if template is not None:
         blob = bytearray(template[:64].ljust(64, b'\xff'))
@@ -665,8 +665,8 @@ def build_param_blob(name, long_name=None, start_frame=0, end_frame=0,
 
 
 def sample_param_send(channel, sample_no, blob):
-    """Phase 3 of upload — CmdId 0xe / func 0x44 (verified at 0x3f2d1 in
-    SampleWrite::process): sample# byte (no 0x40 bit — desc[4]=0), then the
+    """Phase 3 of upload - CmdId 0xe / func 0x44 (verified at 0x3f2d1 in
+    SampleWrite::process): sample# byte (no 0x40 bit - desc[4]=0), then the
     64-byte blob 7-bit encoded. Same shape as the download param reply."""
     assert len(blob) == 64
     return bytes([SOX, KORG, fmt_byte(channel), MODEL, 0x44,

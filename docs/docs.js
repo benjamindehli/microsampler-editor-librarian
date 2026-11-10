@@ -27,7 +27,7 @@ if (toTop) {
     const onScroll = () => toTop.classList.toggle("show", window.scrollY > 600);
     addEventListener("scroll", onScroll, { passive: true });
     onScroll();
-    // scroll to the very top in JS — the href="#top" anchor targets the sticky
+    // scroll to the very top in JS - the href="#top" anchor targets the sticky
     // nav, which browsers treat as already in view (so it only nudged per click)
     toTop.addEventListener("click", (e) => {
         e.preventDefault();
