@@ -21,7 +21,8 @@ const {
     ccToParamValue,
     getCcForParam,
     assignParamCC,
-    unassignParamCC
+    unassignParamCC,
+    PITCH_BEND_CC
 } = await import("../../src/web-editor/components/controls/controls.js");
 
 test("tuneCents: 0..127 wire → −99..+99 cents (hardware-measured curve)", () => {
@@ -131,4 +132,14 @@ test("per-slot MIDI CC mapping isolates bindings per sample slot", () => {
     assert.equal(unassignParamCC(PARAM.PAN, 0), 7);
     assert.equal(getCcForParam(PARAM.PAN, 0), null);
     assert.equal(unassignParamCC(PARAM.LEVEL, 0), 14);
+});
+
+test("only real CCs (0..127) and pitch bend (pseudo-CC 128) are bindable", () => {
+    assert.equal(PITCH_BEND_CC, 128);
+    assignParamCC(PARAM.TUNE, PITCH_BEND_CC, 3);
+    assert.equal(getCcForParam(PARAM.TUNE, 3), PITCH_BEND_CC);
+    // the old aftertouch / program-change pseudo-CCs (129..131) are rejected
+    assignParamCC(PARAM.PAN, 129, 3);
+    assert.equal(getCcForParam(PARAM.PAN, 3), null);
+    assert.equal(unassignParamCC(PARAM.TUNE, 3), PITCH_BEND_CC);
 });

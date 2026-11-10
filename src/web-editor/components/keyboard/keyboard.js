@@ -5,7 +5,7 @@
 // row = black keys; Z / X or the ◀ ▶ buttons shift the octave). The piano always
 // shows which computer key maps to which note, lit brighter while armed. Off by
 // default so the letter keys stay free for the normal shortcuts (ux.js).
-import { handleExternalCC, hasCcBinding, isMidiLearnActive, setMidiLearn, syncCcBadges } from "components/controls/controls.js";
+import { handleExternalCC, hasCcBinding, isMidiLearnActive, PITCH_BEND_CC, setMidiLearn, syncCcBadges } from "components/controls/controls.js";
 import { followSelect } from "components/sample-editor/waveform.js";
 import { noteName, QWERTY_KEYMAP, QWERTY_OCTAVES, qwertySlot } from "functions/notes.js";
 import { state } from "functions/state.js";
@@ -399,17 +399,9 @@ function onMidiMessage(e) {
     if (cmd === 0x90 && d2 > 0) midiNoteOn(d1, d2, ch);
     else if (cmd === 0x80 || (cmd === 0x90 && d2 === 0)) midiNoteOff(d1);
     else if (cmd === 0xe0) {
-        if (isMidiLearnActive() || hasCcBinding(128)) handleExternalCC(128, d2);
-        else midiPitchBend(d1, d2, ch); // pitch bend wheel
-    } else if (cmd === 0xd0) {
-        // Channel Aftertouch / Pressure (displayed as CC 128/129 on WORLDE controllers)
-        handleExternalCC(129, d1);
-    } else if (cmd === 0xc0) {
-        // Program Change (displayed as CC 129/130 on some controllers)
-        handleExternalCC(130, d1);
-    } else if (cmd === 0xa0) {
-        // Polyphonic Aftertouch
-        handleExternalCC(131, d2);
+        // pitch bend wheel: learnable/mappable as pseudo-CC 128 (PITCH_BEND_CC)
+        if (isMidiLearnActive() || hasCcBinding(PITCH_BEND_CC)) handleExternalCC(PITCH_BEND_CC, d2);
+        else midiPitchBend(d1, d2, ch);
     } else if (cmd === 0xb0 && d1 === 64 && !isMidiLearnActive() && !hasCcBinding(64)) {
         midiSustain(d2 >= 64); // sustain pedal (CC#64)
     } else if (cmd === 0xb0) {

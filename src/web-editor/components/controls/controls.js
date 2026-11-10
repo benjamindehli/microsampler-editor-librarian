@@ -252,6 +252,8 @@ export function reflect(param, value) {
 
 // ── external MIDI CC mapping + MIDI Learn (per-sample-slot) ──────────────
 const CC_STORAGE_KEY = "msmpl.midi.cc.v2";
+// bindable sources: real CCs 0..127 plus the pitch-bend wheel as pseudo-CC 128
+export const PITCH_BEND_CC = 128;
 /** @typedef {{ slot: number, param: number }} CcBinding */
 /** @type {Record<number, CcBinding>} */
 let ccMap = loadCcMap();
@@ -268,7 +270,7 @@ function loadCcMap() {
         const clean = {};
         for (const [k, v] of Object.entries(parsed)) {
             const cc = +k;
-            if (!Number.isInteger(cc) || cc < 0 || cc > 131 || !v || typeof v !== "object") continue;
+            if (!Number.isInteger(cc) || cc < 0 || cc > PITCH_BEND_CC || !v || typeof v !== "object") continue;
             const slot = +v.slot,
                 param = +v.param;
             if (Number.isInteger(slot) && slot >= 0 && slot <= 35 && SPEC[param]) {
@@ -296,7 +298,7 @@ export function getCcForParam(param, slot = state.sel) {
 export const hasCcBinding = (cc) => !!ccMap[cc];
 
 export function assignParamCC(param, cc, slot = state.sel) {
-    if (!SPEC[param] || cc < 0 || cc > 131 || slot == null || slot < 0 || slot > 35) return;
+    if (!SPEC[param] || cc < 0 || cc > PITCH_BEND_CC || slot == null || slot < 0 || slot > 35) return;
     for (const [k, b] of Object.entries(ccMap)) {
         if ((b.slot === slot && b.param === param) || +k === cc) delete ccMap[+k];
     }
@@ -321,7 +323,7 @@ export function unassignParamCC(param, slot = state.sel) {
     return removed;
 }
 
-const fmtCc = (cc) => `CC${String(cc).padStart(2, "0")}`;
+const fmtCc = (cc) => (cc === PITCH_BEND_CC ? "PB" : `CC${String(cc).padStart(2, "0")}`);
 
 export function syncCcBadges() {
     if (!document.querySelectorAll) return;
