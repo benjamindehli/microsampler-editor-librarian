@@ -49,12 +49,6 @@ jobs:
               with:
                   node-version: "24"
                   cache: npm
-            - name: JS syntax check
-              run: |
-                  find src/web-editor -name '*.js' -print0 | while IFS= read -r -d '' f; do
-                    echo "checking $f"
-                    node --check "$f"
-                  done
             - name: ES module imports resolve
               run: node --input-type=module -e "
                   import('./src/web-editor/functions/valueTables.js').then(m =>

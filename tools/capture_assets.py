@@ -429,7 +429,7 @@ def main():
     print('wrote %d asset(s) to %s:' % (len(written), args.out))
     for p in written:
         fp = os.path.join(args.out, p)
-        size = Image.open(fp).size if fp.endswith(('png', 'jpg', 'gif')) else ''
+        size = Image.open(fp).size if fp.endswith(('png', 'jpg')) else ''
         print('  %-28s %7.1f kB  %s' % (p, os.path.getsize(fp) / 1024, size))
 
 

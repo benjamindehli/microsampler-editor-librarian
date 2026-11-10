@@ -15,7 +15,6 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -243,14 +242,11 @@ src/native-tools/*.wav
 src/native-tools/*.bin
 src/native-tools/*.mid
 
-# launcher app if rebuilt locally
-
 # Korg's original installer — needed only for the reverse-engineering tools
 # (tools/re/); do NOT commit it (copyrighted software, not ours to publish)
 microSAMPLER Editor.pkg/
 
 # Korg's owner's manual — local reference only; do NOT commit (Korg copyright)
-microsampler-owners-manual.pdf
 *.pdf
 
 # build tooling (esbuild) + output — dev-only, never committed

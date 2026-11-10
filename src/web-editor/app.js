@@ -234,14 +234,12 @@ $("#refresh-btn").onclick = () => refreshBank().catch((e) => tick("⚠ " + e.mes
 let autoSync = lsGet("msmpl.autosync") !== "0";
 {
     const ab = $("#auto-sync");
-    if (ab) {
-        ab.checked = autoSync;
-        ab.addEventListener("change", () => {
-            autoSync = ab.checked;
-            lsSet("msmpl.autosync", autoSync ? "1" : "0");
-            tick(`auto-sync: ${autoSync ? "ON" : "OFF"}`);
-        });
-    }
+    ab.checked = autoSync;
+    ab.addEventListener("change", () => {
+        autoSync = ab.checked;
+        lsSet("msmpl.autosync", autoSync ? "1" : "0");
+        tick(`auto-sync: ${autoSync ? "ON" : "OFF"}`);
+    });
 }
 let lastSync = Date.now();
 function maybeResync() {

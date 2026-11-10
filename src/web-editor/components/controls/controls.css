@@ -56,7 +56,7 @@
     color: var(--ink-dim);
     /* symmetric gutters as wide as the corner badge: the label stays centred and
        the box always has room right of it for LEARN / CCnn without resizing */
-    padding-inline: var(--ctl-badge-gutter);
+    padding-inline: var(--ctl-badge-gutter, 0); /* defined on .strip; FX params get 0 */
     white-space: nowrap;
 }
 /* MIDI badge (LEARN / CC21 / PB): pinned in the control's top-right corner, out
@@ -77,7 +77,7 @@
     border: solid var(--amber-dk);
     border-width: 0 0 1px 1px;
     border-radius: 0 5px 0 4px;
-    padding: 0.15rem 0.3rem 0.15rem 0.3rem;
+    padding: 0.15rem 0.3rem;
     pointer-events: none;
 }
 .strip.midi-learn .ctl {

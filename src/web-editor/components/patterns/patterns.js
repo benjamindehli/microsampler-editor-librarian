@@ -43,7 +43,7 @@ async function loadPatterns() {
     try {
         const { patterns } = await apiJson("/api/patterns");
         renderPatterns(patterns);
-        tick("✓ received 16 patterns");
+        tick(`✓ received ${patterns.length} patterns`);
     } catch (e) {
         $("#pattern-grid").innerHTML = `<p class="backup-empty">PATTERN READ FAILED — ${esc(e.message.toUpperCase())}</p>`;
         tick("⚠ patterns: " + e.message);

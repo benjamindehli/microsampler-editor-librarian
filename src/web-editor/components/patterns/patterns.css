@@ -52,7 +52,6 @@
     opacity: 1;
 }
 .pattern-card.is-empty .pattern-roll {
-    box-shadow: none;
     opacity: 0.45;
 }
 .pattern-card .p-head {

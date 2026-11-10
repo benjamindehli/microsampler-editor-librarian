@@ -45,7 +45,7 @@
                 <p class="dim" id="device-help-hint">
                     Power-cycle the microSAMPLER (turn it off, then on), check the USB cable, then retry — no need to restart the bridge.
                 </p>
-                <button class="hw-btn accent" id="device-help-retry"><span class="hw-btn-cap">RETRY</span></button>
+                <button class="hw-btn" id="device-help-retry"><span class="hw-btn-cap">RETRY</span></button>
             </div>
         </div>
 
@@ -237,7 +237,7 @@
                             Pulls the CURRENT bank (bank settings, all samples, all 16 patterns) into <code>native-tools/backups/</code>. Takes a
                             minute or two for a full bank.
                         </p>
-                        <button class="hw-btn accent" id="backup-btn">
+                        <button class="hw-btn" id="backup-btn">
                             <span class="hw-btn-cap">⛁ BACKUP CURRENT BANK</span>
                         </button>
                     </div>
@@ -271,7 +271,7 @@
                         <button type="button" data-resample="0" class="on" aria-pressed="true">AUDIO IN</button>
                         <button type="button" data-resample="1" aria-pressed="false">RE-SAMPLE</button>
                     </div>
-                    <button class="hw-btn accent" id="smp-button"><span class="hw-btn-cap">● SAMPLE</span></button>
+                    <button class="hw-btn" id="smp-button"><span class="hw-btn-cap">● SAMPLE</span></button>
                 </div>
 
                 <div class="panel-title" style="margin-top: 1.2rem">TRANSFER LOG</div>
@@ -283,7 +283,7 @@
             <section class="lib">
                 <div class="panel-title">LIBRARY <span class="dim">— open Korg microSAMPLER backups, no hardware needed</span></div>
                 <div class="lib-bar">
-                    <button class="hw-btn accent" id="lib-import"><span class="hw-btn-cap">OPEN BANK FILE…</span></button>
+                    <button class="hw-btn" id="lib-import"><span class="hw-btn-cap">OPEN BANK FILE…</span></button>
                     <input type="file" id="lib-file" accept=".msmpl_bank,.zip" hidden />
                     <span class="lib-hint">a Korg <code>.msmpl_bank</code> backup, or a <code>.zip</code> made by this app</span>
                 </div>
@@ -315,7 +315,7 @@
                 >
                 <div class="dlg-actions">
                     <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
-                    <button value="ok" id="rd-ok" class="hw-btn accent"><span class="hw-btn-cap">RESTORE</span></button>
+                    <button value="ok" id="rd-ok" class="hw-btn"><span class="hw-btn-cap">RESTORE</span></button>
                 </div>
             </form>
         </dialog>
@@ -395,7 +395,7 @@
                                 <a class="hw-btn" id="download-btn" download
                                     ><span class="hw-btn-cap"><span class="ico ico-dn"></span>WAV</span></a
                                 >
-                                <button class="hw-btn accent" id="upload-btn">
+                                <button class="hw-btn" id="upload-btn">
                                     <span class="hw-btn-cap"><span class="ico ico-up"></span>LOAD…</span>
                                 </button>
                             </div>
@@ -623,7 +623,7 @@
                 <label>BPM <input type="number" id="bd-bpm" min="20" max="300" step="0.1" /></label>
                 <div class="dlg-actions">
                     <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
-                    <button value="ok" id="bd-ok" class="hw-btn accent"><span class="hw-btn-cap">APPLY</span></button>
+                    <button value="ok" id="bd-ok" class="hw-btn"><span class="hw-btn-cap">APPLY</span></button>
                 </div>
             </form>
         </dialog>
@@ -638,7 +638,7 @@
                 <label>BPM <input type="number" id="td-bpm" min="20" max="300" step="0.1" /></label>
                 <div class="dlg-actions">
                     <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
-                    <button value="ok" id="td-ok" class="hw-btn accent"><span class="hw-btn-cap">APPLY</span></button>
+                    <button value="ok" id="td-ok" class="hw-btn"><span class="hw-btn-cap">APPLY</span></button>
                 </div>
             </form>
         </dialog>
@@ -716,7 +716,7 @@
                     </p>
                 </div>
                 <div class="dlg-actions">
-                    <button value="ok" class="hw-btn accent"><span class="hw-btn-cap">GOT IT</span></button>
+                    <button value="ok" class="hw-btn"><span class="hw-btn-cap">GOT IT</span></button>
                 </div>
             </form>
         </dialog>
@@ -728,7 +728,7 @@
                 <div class="dlg-actions">
                     <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
                     <button value="copy" id="so-copy" class="hw-btn"><span class="hw-btn-cap">COPY →</span></button>
-                    <button value="swap" id="so-swap" class="hw-btn accent"><span class="hw-btn-cap">⇄ SWAP</span></button>
+                    <button value="swap" id="so-swap" class="hw-btn"><span class="hw-btn-cap">⇄ SWAP</span></button>
                 </div>
             </form>
         </dialog>
@@ -740,7 +740,7 @@
                 <label>LONG NAME <input type="text" id="rn-long" maxlength="32" spellcheck="false" /></label>
                 <div class="dlg-actions">
                     <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
-                    <button value="ok" id="rn-ok" class="hw-btn accent"><span class="hw-btn-cap">RENAME</span></button>
+                    <button value="ok" id="rn-ok" class="hw-btn"><span class="hw-btn-cap">RENAME</span></button>
                 </div>
             </form>
         </dialog>
@@ -779,7 +779,7 @@
                     <button type="button" id="ud-slice" class="hw-btn" disabled title="Chop this sample across several pads">
                         <span class="hw-btn-cap">SLICE…</span>
                     </button>
-                    <button value="ok" id="ud-ok" class="hw-btn accent"><span class="hw-btn-cap">TRANSMIT</span></button>
+                    <button value="ok" id="ud-ok" class="hw-btn"><span class="hw-btn-cap">TRANSMIT</span></button>
                 </div>
             </form>
         </dialog>
@@ -799,7 +799,7 @@
                 <div class="ud-progress" id="sl-progress" hidden><div></div></div>
                 <div class="dlg-actions">
                     <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
-                    <button type="button" id="sl-go" class="hw-btn accent"><span class="hw-btn-cap">SLICE</span></button>
+                    <button type="button" id="sl-go" class="hw-btn"><span class="hw-btn-cap">SLICE</span></button>
                 </div>
             </form>
         </dialog>
@@ -819,7 +819,7 @@
                 <div class="ud-mem" id="cp-info"></div>
                 <div class="dlg-actions">
                     <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CLOSE</span></button>
-                    <button type="button" id="cp-copy" class="hw-btn accent"><span class="hw-btn-cap">COPY →</span></button>
+                    <button type="button" id="cp-copy" class="hw-btn"><span class="hw-btn-cap">COPY →</span></button>
                 </div>
             </form>
         </dialog>
@@ -830,7 +830,7 @@
                 <p class="confirm-body" id="confirm-body"></p>
                 <div class="dlg-actions">
                     <button value="cancel" class="hw-btn"><span class="hw-btn-cap">CANCEL</span></button>
-                    <button value="ok" id="confirm-ok" class="hw-btn accent"><span class="hw-btn-cap">OK</span></button>
+                    <button value="ok" id="confirm-ok" class="hw-btn"><span class="hw-btn-cap">OK</span></button>
                 </div>
             </form>
         </dialog>
@@ -866,7 +866,7 @@
                     >
                         <span class="hw-btn-cap" id="pe-play-cap">▶ PLAY</span>
                     </button>
-                    <button class="hw-btn accent" id="pe-save" type="button">
+                    <button class="hw-btn" id="pe-save" type="button">
                         <span class="hw-btn-cap"><span class="ico ico-up"></span>SAVE TO DEVICE</span>
                     </button>
                 </div>

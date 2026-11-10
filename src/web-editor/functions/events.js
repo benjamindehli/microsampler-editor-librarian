@@ -35,13 +35,7 @@ export function subscribeEvents() {
                 $("#bank-name").textContent = n.join("");
             }
         }
-        const shown = isFx
-            ? fmtSigned(dec14(evt.value))
-            : BIPOLAR.has(evt.param)
-              ? fmtSigned(dec14(evt.value))
-              : evt.param === PARAM.TUNE
-                ? tuneDisplay(evt.value)
-                : evt.value;
+        const shown = isFx || BIPOLAR.has(evt.param) ? fmtSigned(dec14(evt.value)) : evt.param === PARAM.TUNE ? tuneDisplay(evt.value) : evt.value;
         tick(`← ${who} #${evt.param} = ${shown}`);
         if (evt.sample != null)
             // panel edits update the cache

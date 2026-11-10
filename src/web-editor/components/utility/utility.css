@@ -181,7 +181,6 @@
     cursor: pointer;
 }
 .lib-pad.sounding {
-    border-color: var(--amber);
     box-shadow: 0 0 0 1px var(--amber-dk);
 }
 .lib-pad.sounding .pad-name {

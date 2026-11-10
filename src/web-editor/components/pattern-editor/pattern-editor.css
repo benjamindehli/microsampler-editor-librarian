@@ -92,7 +92,6 @@
     font-size: 0.62rem;
     color: var(--ink-dim);
     border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-    box-sizing: border-box;
 }
 .pe-key.black {
     background: rgba(0, 0, 0, 0.35);
@@ -102,13 +101,11 @@
     color: var(--ink);
 } /* notes in this range trigger pads */
 
+/* cursor reflects the active tool (pencil / eraser custom SVGs, crosshair for marquee) */
 .pe-roll {
     position: relative;
     flex: 1;
     min-width: 0;
-}
-/* cursor reflects the active tool (pencil / eraser custom SVGs, crosshair for marquee) */
-.pe-roll {
     cursor:
         url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24'%3E%3Cpath d='M4 20l4-1L18 8l-3-3L5 16z' fill='%23ffd79a' stroke='%23000' stroke-width='1.4'/%3E%3Cpath d='M15 5l3 3 2-2-3-3z' fill='%23ff8a1e' stroke='%23000' stroke-width='1.4'/%3E%3C/svg%3E")
             2 18,
@@ -168,7 +165,6 @@
 .pe-note {
     position: absolute;
     border-radius: 2px;
-    box-sizing: border-box;
     min-width: 3px;
     border: 1px solid rgba(0, 0, 0, 0.5);
     cursor: grab;

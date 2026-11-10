@@ -152,7 +152,6 @@
     width: 15px;
     height: 15px;
     padding: 0;
-    box-shadow: none;
     accent-color: var(--amber);
 }
 .ud-fades {

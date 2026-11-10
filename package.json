@@ -12,7 +12,7 @@
     "scripts": {
         "build": "node tools/build.mjs",
         "pack": "node tools/build.mjs && node tools/pack.mjs",
-        "lint:js": "eslint src/web-editor",
+        "lint:js": "eslint src/web-editor docs",
         "lint:types": "tsc -p tsconfig.json",
         "format": "prettier --write .",
         "format:check": "prettier --check .",

@@ -334,30 +334,29 @@ function onPointerMove(e) {
         nt.dur = Math.max(s, Math.round((t - nt.start) / s) * s);
         syncNoteEls([drag.idx]); // geometry-only — full renderRoll on release
         return;
-    } else {
-        const r = roll.getBoundingClientRect();
-        let dStart = t - drag.grabTick;
-        let dNote = clampNote(noteAtY(e.clientY - r.top), cur.notes[drag.idx].track) - drag.origNote;
-        const tot = total();
-        let loS = -1e9,
-            hiS = 1e9,
-            loN = -1e9,
-            hiN = 1e9;
-        for (const [j, o] of drag.orig) {
-            loS = Math.max(loS, -o.start);
-            hiS = Math.min(hiS, tot - s - o.start);
-            const [a, b] = trackRange(cur.notes[j].track);
-            loN = Math.max(loN, a - o.note);
-            hiN = Math.min(hiN, b - o.note);
-        }
-        dStart = Math.max(loS, Math.min(hiS, dStart));
-        dNote = Math.max(loN, Math.min(hiN, dNote));
-        for (const [j, o] of drag.orig) {
-            cur.notes[j].start = o.start + dStart;
-            cur.notes[j].note = o.note + dNote;
-        }
-        syncNoteEls([...drag.orig.keys()]); // geometry-only — full renderRoll on release
     }
+    const r = roll.getBoundingClientRect();
+    let dStart = t - drag.grabTick;
+    let dNote = clampNote(noteAtY(e.clientY - r.top), cur.notes[drag.idx].track) - drag.origNote;
+    const tot = total();
+    let loS = -1e9,
+        hiS = 1e9,
+        loN = -1e9,
+        hiN = 1e9;
+    for (const [j, o] of drag.orig) {
+        loS = Math.max(loS, -o.start);
+        hiS = Math.min(hiS, tot - s - o.start);
+        const [a, b] = trackRange(cur.notes[j].track);
+        loN = Math.max(loN, a - o.note);
+        hiN = Math.min(hiN, b - o.note);
+    }
+    dStart = Math.max(loS, Math.min(hiS, dStart));
+    dNote = Math.max(loN, Math.min(hiN, dNote));
+    for (const [j, o] of drag.orig) {
+        cur.notes[j].start = o.start + dStart;
+        cur.notes[j].note = o.note + dNote;
+    }
+    syncNoteEls([...drag.orig.keys()]); // geometry-only — full renderRoll on release
 }
 
 // During a move/resize drag only the DRAGGED notes' geometry changes — patch

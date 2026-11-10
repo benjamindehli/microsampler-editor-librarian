@@ -23,10 +23,7 @@ const curBuf = () => (state.sel != null ? state.buffers.get(state.sel) : null);
 // Cutting a sample mid-cycle clicks; snapping the trim points to the nearest
 // zero crossing avoids it. Points are in DEVICE frames but the decoded buffer may
 // be resampled (decodeAudioData → context rate), so map frame⇄buffer-sample.
-const zeroSnapOn = () => {
-    const t = $("#zero-snap");
-    return !t || t.checked;
-};
+const zeroSnapOn = () => $("#zero-snap").checked;
 
 // snap a device-frame point to the nearest zero crossing in the (maybe-resampled)
 // buffer: map frame→buffer-sample, find the crossing, map back to a device frame

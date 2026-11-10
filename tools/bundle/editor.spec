@@ -12,13 +12,10 @@
 # real USB, so the vendored pyusb (pure python, loaded via a runtime sys.path
 # append in msusb) and the per-arch libusb dylibs ride along as data files.
 # console=True: it's a launchd daemon; stdout/err go where the plist points.
-import json
 import os
 
 ROOT = os.path.normpath(os.path.join(SPECPATH, '..', '..'))      # repo root
 NATIVE = os.path.join(ROOT, 'src', 'native-tools')
-with open(os.path.join(ROOT, 'package.json')) as f:
-    VERSION = json.load(f)['version']
 
 a = Analysis(
     [os.path.join(SPECPATH, 'editor_daemon.py')],

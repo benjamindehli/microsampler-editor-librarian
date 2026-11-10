@@ -310,10 +310,7 @@ export function encodeWav(channels, rate) {
         for (let c = 0; c < nch; c++) {
             let v = channels[c][i];
             v = v < -1 ? -1 : v > 1 ? 1 : v;
-            let s = Math.round(v * 32767);
-            if (s > 32767) s = 32767;
-            else if (s < -32768) s = -32768;
-            dv.setInt16(p, s, true);
+            dv.setInt16(p, Math.round(v * 32767), true); // v is clamped to ±1 above
             p += 2;
         }
     }

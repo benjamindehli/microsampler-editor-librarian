@@ -52,6 +52,7 @@ import protocol as P
 from msusb import MicroSampler, from_usb_midi
 import download as DL
 import upload as UL
+import bank as BK
 
 
 class DeviceGone(RuntimeError):
@@ -454,7 +455,6 @@ class Device:
         original's standalone SequenceReceive flow) and parse. Each fetch's
         data dump closes its own select session; patterns are a fixed 1308
         bytes on this hardware so the data phase always runs."""
-        from bank import fetch_sequence
         # the device answers dump requests with err 0x29 while its sequencer is
         # playing — stop it (no-op if idle) and let it settle before the dump
         self.stop_pattern()
@@ -468,7 +468,7 @@ class Device:
                     # but the event stream (separate thread) delivers these live
                     self._emit({'type': 'progress', 'op': 'patterns',
                                 'done': q, 'total': 16})
-                    blob = fetch_sequence(self.ms, self.channel, q, progress=False)
+                    blob = BK.fetch_sequence(self.ms, self.channel, q, progress=False)
                     self.pattern_cache[q] = blob
                     out.append(_pattern_json(q, blob))
             except Exception:
@@ -481,11 +481,10 @@ class Device:
     def pattern_mid(self, q):
         blob = self.pattern_cache.get(q)
         if blob is None:
-            from bank import fetch_sequence
             with self.lock:
                 self._inquire()
                 try:
-                    blob = fetch_sequence(self.ms, self.channel, q, progress=False)
+                    blob = BK.fetch_sequence(self.ms, self.channel, q, progress=False)
                 except Exception:
                     self._abort_dump()   # a failed 0x13 select may be left open
                     raise
@@ -496,7 +495,6 @@ class Device:
 
     def pattern_write(self, q, blob):
         """Write a pattern blob (standalone SequenceWrite flow), update cache."""
-        from bank import send_sequence
         # the device errs 0x29 on a write while its sequencer is playing (same as
         # the dumps) — stop it (no-op if idle) and let it settle first
         self.stop_pattern()
@@ -504,7 +502,7 @@ class Device:
         with self.lock:
             self._inquire()
             try:
-                send_sequence(self.ms, self.channel, q, blob)
+                BK.send_sequence(self.ms, self.channel, q, blob)
             except Exception:
                 self._abort_dump()   # a failed write session may be left open
                 raise
@@ -512,7 +510,6 @@ class Device:
         return _pattern_json(q, blob)
 
     def start_backup(self):
-        import bank as BK
         os.makedirs(BACKUP_ROOT, exist_ok=True)
         _own_backups_to_invoker()    # if sudo: keep backups/ user-owned so a
         #                              non-root library bridge can write here too
@@ -524,7 +521,6 @@ class Device:
         return {'dir': label}
 
     def start_restore(self, dirname, bank):
-        import bank as BK
         src = restorable_dir(dirname)
         self.start_op('restore',
                       lambda log: BK.restore(self.ms, self.channel, bank, src,
@@ -881,12 +877,10 @@ class Device:
         return out
 
     def _fetch_bank_blob(self):
-        from bank import fetch_bank_blob
-        return fetch_bank_blob(self.ms, self.channel)
+        return BK.fetch_bank_blob(self.ms, self.channel)
 
     def _leave_dump(self, commit=True):
-        from bank import leave_dump_mode
-        leave_dump_mode(self.ms, self.channel, commit=commit)
+        BK.leave_dump_mode(self.ms, self.channel, commit=commit)
 
     def _abort_dump(self):
         """Best-effort leave-dump (abort, no commit) after a mid-dump failure —
@@ -1054,11 +1048,9 @@ class MockDevice(Device):
         self._last_bend = (int(value), bool(keyboard))
 
     def play_pattern(self, q, bpm=120):
-        self._transport = ('play', int(q), float(bpm))
         return {'pattern': int(q), 'playing': True}
 
     def stop_pattern(self):
-        self._transport = ('stop', None)
         return {'playing': False}
 
     def set_master_volume(self, value):
@@ -1481,7 +1473,6 @@ def backup_pattern_smf(dirname, q):
     path = os.path.join(backup_dir(dirname), 'sequences', 'q%02d.bin' % q)
     if not os.path.isfile(path):
         raise RuntimeError('pattern %d not in this backup' % q)
-    import protocol as P
     with open(path, 'rb') as f:
         mid = P.pattern_to_smf(f.read())
     if not mid:
@@ -1493,7 +1484,6 @@ def backup_patterns_zip(dirname):
     """All non-empty patterns of a backup, zipped as .mid files."""
     import zipfile
 
-    import protocol as P
     src = backup_dir(dirname)
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as z:
@@ -1833,8 +1823,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({'patterns': backup_pattern_list(m.group(1))})
             m = re.match(r'^/api/backup/(.+)/sample/(\d+)\.wav$', path)
             if m:
-                wav, name, _tempo = backup_sample_wav(m.group(1), int(m.group(2)))
-                return self._bytes(wav, 'audio/wav', {'X-Sample-Name': name})
+                wav, _name, _tempo = backup_sample_wav(m.group(1), int(m.group(2)))
+                return self._bytes(wav, 'audio/wav')
             m = re.match(r'^/api/backup/(.+)/pattern/(\d+)\.mid$', path)
             if m:
                 return self._bytes(backup_pattern_smf(m.group(1), int(m.group(2))),
@@ -2176,9 +2166,8 @@ def main():
         print('LIBRARY mode — no device; browse/import/export bank backups.')
     if not args.mock and not args.library and not DAEMON \
             and DEVICE.open_error is None:
-        print('microSAMPLER claimed (cable %d, channel %d) — Web MIDI mode is '
-              'unavailable until the bridge exits.'
-              % (DEVICE.cable, DEVICE.channel + 1))
+        print("microSAMPLER claimed (cable %d, channel %d); other MIDI apps can't "
+              'use it until the bridge exits.' % (DEVICE.cable, DEVICE.channel + 1))
 
     # Closing the Terminal window sends SIGHUP (service managers send SIGTERM);
     # treat them like Ctrl+C so DEVICE.close() runs and the USB interface is

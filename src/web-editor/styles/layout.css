@@ -54,6 +54,7 @@
 }
 .bank-lcd {
     margin-inline: auto;
+    cursor: pointer;
 }
 .rail-right {
     display: flex;
@@ -287,9 +288,6 @@
 }
 
 /* bank LCD is clickable (bank name/BPM dialog) */
-.bank-lcd {
-    cursor: pointer;
-}
 .lcd-edit {
     font-size: 0.7rem;
     color: var(--amber-dk);

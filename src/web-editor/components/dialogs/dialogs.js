@@ -154,7 +154,7 @@ async function uploadPreflight() {
     let frames, channels, rate;
     const opts = readToolOpts();
     if (udDecoded) {
-        const r = udDecoded && toolsActive(opts) ? processBuffer(udDecoded, opts) : udDecoded;
+        const r = toolsActive(opts) ? processBuffer(udDecoded, opts) : udDecoded;
         channels = r.channels.length;
         frames = r.channels[0].length;
         rate = r.rate;

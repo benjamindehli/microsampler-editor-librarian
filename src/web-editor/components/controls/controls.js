@@ -143,7 +143,7 @@ async function step(stack, other, key, label) {
 export const undo = () => step(undoStack, redoStack, "before", "↶ undo");
 export const redo = () => step(redoStack, undoStack, "after", "↷ redo");
 
-export function flash(param) {
+function flash(param) {
     const el = /** @type {HTMLElement} */ (document.querySelector(`[data-flash="${param}"]`));
     if (!el) return;
     el.classList.remove("flash");
@@ -161,7 +161,7 @@ function wireSwitch(btnSel, valSel, param) {
         sendParam(param, on ? 1 : 0);
     };
 }
-export function setSwitch(btnSel, valSel, on) {
+function setSwitch(btnSel, valSel, on) {
     $(btnSel).setAttribute("aria-checked", String(on));
     $(valSel).textContent = on ? "ON" : "OFF";
 }
@@ -176,7 +176,7 @@ function wireSeg(sel, param) {
             };
         });
 }
-export function setSeg(v) {
+function setSeg(v) {
     $("#ctl-sync")
         .querySelectorAll("button")
         .forEach((b) => {
@@ -194,7 +194,7 @@ function wireFader(inSel, valSel, param, fmt) {
     input.oninput = () => setFader(inSel, valSel, +input.value, fmt);
     input.onchange = () => sendParam(param, +input.value);
 }
-export function setFader(inSel, valSel, v, fmt) {
+function setFader(inSel, valSel, v, fmt) {
     const text = fmt ? fmt(v) : String(v);
     $(inSel).value = v;
     $(inSel).setAttribute("aria-valuetext", text); // screen readers speak "+0.0dB", not "101"
@@ -396,7 +396,7 @@ function sendParamCoalesced(slot, param, value) {
 const CC_SWEEP_GAP_MS = 1500;
 
 export function handleExternalCC(cc, ccVal) {
-    if (learnMode && learnParam != null && state.sel != null) {
+    if (learnMode && state.sel != null) {
         const param = learnParam;
         const slot = state.sel;
         assignParamCC(param, cc, slot);

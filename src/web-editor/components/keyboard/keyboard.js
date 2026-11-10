@@ -126,7 +126,6 @@ function releaseKeys() {
 // ── the on-screen piano ──────────────────────────────────────────────────────
 function buildPiano() {
     const piano = $("#piano");
-    if (!piano) return;
     piano.innerHTML = "";
     const whites = [];
     for (let o = 0; o < 3; o++) for (let w = 0; w < 7; w++) whites.push(o * 12 + WHITE[w]);
@@ -161,7 +160,7 @@ function buildPiano() {
 // reflect octave, the per-key QWERTY labels, and used/loaded/selected state
 export function syncKeybed() {
     const piano = $("#piano");
-    if (!piano || !piano.children.length) return;
+    if (!piano.children.length) return;
     $("#kb-oct-val").textContent = QWERTY_OCTAVES[octave];
     $("#keybed").classList.toggle("armed", enabled);
     $("#keybed").classList.toggle("loop-hold", loopHold);
@@ -301,7 +300,7 @@ document.addEventListener("visibilitychange", () => {
 // Forward a connected MIDI controller's notes to the device, honoring the current
 // SAMPLE / KEYBOARD mode. The browser only READS the controller; the bridge still
 // solely owns the device's USB, so this never contends for the port.
-const MIDI_OK = typeof navigator !== "undefined" && !!navigator.requestMIDIAccess;
+const MIDI_OK = !!navigator.requestMIDIAccess;
 let midiAccess = null;
 const midiHeld = new Map(); // controller note physically down → on-screen slot (null = out of range)
 const sustainedOff = new Map(); // note whose key is UP but held sounding by the pedal → slot
@@ -522,11 +521,9 @@ $("#kb-mode-kbd").onclick = () => setMode("kbd");
         [$("#kb-mode-kbd"), mode === "kbd"]
     ]);
     const lh = $("#kb-loop-hold");
-    if (lh) {
-        lh.checked = lsGet("msmpl.loophold") === "1";
-        loopHold = lh.checked;
-        lh.addEventListener("change", () => setLoopHold(lh.checked));
-    }
+    lh.checked = lsGet("msmpl.loophold") === "1";
+    loopHold = lh.checked;
+    lh.addEventListener("change", () => setLoopHold(lh.checked));
     const t = $("#qwerty-play");
     t.checked = lsGet("msmpl.qwerty") === "1";
     enabled = t.checked;
@@ -544,7 +541,6 @@ $("#kb-mode-kbd").onclick = () => setMode("kbd");
             ["kbd", "sample"]
         ]) {
             const sel = $(`#midi-ch-${which}`);
-            if (!sel) continue;
             sel.innerHTML =
                 '<option value="">—</option>' + Array.from({ length: 16 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join("");
             sel.value = midiCh[which] == null ? "" : String(midiCh[which] + 1);
@@ -564,10 +560,8 @@ $("#kb-mode-kbd").onclick = () => setMode("kbd");
             });
         }
         const ml = $("#midi-learn");
-        if (ml) {
-            ml.hidden = false;
-            ml.onclick = () => (isMidiLearnActive() ? setMidiLearn(false) : armMidiLearn());
-        }
+        ml.hidden = false;
+        ml.onclick = () => (isMidiLearnActive() ? setMidiLearn(false) : armMidiLearn());
         // re-enable only if it was on before — avoids a surprise permission prompt on every load
         if (lsGet("msmpl.midi") === "1") {
             mi.checked = true;

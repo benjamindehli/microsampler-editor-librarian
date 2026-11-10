@@ -443,7 +443,7 @@ srv.shutdown()
 # --- real Device paths against the fake transport (regression: the device
 # requires a fresh inquiry per session; the bank summary must be blob-only —
 # bare func 0x16 selects would strand the device's sample-select state)
-from test_bank import FakeMS, blob, samples, seqs
+from test_bank import FakeMS, FakeWriteDev, FakeWriteMS, blob, samples, seqs
 
 real = B.Device()
 real.ms = FakeMS(bytes(blob), samples, seqs)
@@ -481,11 +481,10 @@ real.ms.send_sysex = lambda m, cable=None: real.ms.sysexes.append(bytes(m))
 real.set_bank_settings('AB', 90.5)
 real.ms.send_sysex = _orig_send
 assert len(real.ms.sysexes) == 9
-import protocol as PP
-assert real.ms.sysexes[0] == PP.parameter_change(0, 0, 0, ord('A'))
-assert real.ms.sysexes[1] == PP.parameter_change(0, 0, 1, ord('B'))
-assert real.ms.sysexes[2] == PP.parameter_change(0, 0, 2, ord(' '))
-assert real.ms.sysexes[8] == PP.parameter_change(0, 0, 16, 905)
+assert real.ms.sysexes[0] == B.P.parameter_change(0, 0, 0, ord('A'))
+assert real.ms.sysexes[1] == B.P.parameter_change(0, 0, 1, ord('B'))
+assert real.ms.sysexes[2] == B.P.parameter_change(0, 0, 2, ord(' '))
+assert real.ms.sysexes[8] == B.P.parameter_change(0, 0, 16, 905)
 
 # --- play note over the real Device path (USB-MIDI short message) --------------
 real.ms.shorts = []
@@ -509,7 +508,7 @@ assert wp[:0x0c] == orig_par[:0x0c]                # name/flags untouched
 assert wp[0x14:] == orig_par[0x14:]                # all other params untouched
 assert real.ms.selected is None                    # no select session opened
 # read-back reflects the write (FakeMS serves w_params on 0x14)
-par2 = real.set_points(0, 9, 60)
+real.set_points(0, 9, 60)
 wp2 = bytes(real.ms.w_params[0])
 assert int.from_bytes(wp2[0x0c:0x10], 'little') == 9
 
@@ -542,8 +541,7 @@ except Exception as e:
     assert '0x29' in str(e), e
 
 # --- patterns over the real Device path (fake transport, SEQP blobs) ----------
-import protocol as P2
-seqs2 = {q: P2.build_init_pattern() for q in range(16)}
+seqs2 = {q: B.P.build_init_pattern() for q in range(16)}
 realp = B.Device()
 realp.ms = FakeMS(bytes(blob), samples, seqs2)
 realp.channel = 0
@@ -556,19 +554,18 @@ assert mid[:4] == b'MThd'
 
 # --- pattern write over the real Device path (fake write transport) -----------
 wpat = B.Device()
-wpat.ms = FakeWriteMS2 = __import__('test_bank').FakeWriteMS()
-wpat.ms.dev = __import__('test_bank').FakeWriteDev(wpat.ms)
+wpat.ms = FakeWriteMS()
+wpat.ms.dev = FakeWriteDev(wpat.ms)
 wpat.channel = 0
 wpat.cable = 1
-blob5 = P2.smf_to_pattern(P2.pattern_to_smf(P2.build_init_pattern()))
+blob5 = B.P.smf_to_pattern(B.P.pattern_to_smf(B.P.build_init_pattern()))
 res5 = wpat.pattern_write(5, blob5)
 assert res5['valid'] and res5['name'] == 'INITPTRN'
 assert bytes(wpat.ms.w_seqs[5][1]) == blob5        # exact bytes on the wire
 assert wpat.pattern_cache[5] == blob5
 
 # --- backup/restore ops over the op runner -----------------------------------
-import tempfile, time as _t
-from test_bank import FakeWriteMS, FakeWriteDev
+import tempfile
 
 B.BACKUP_ROOT = tempfile.mkdtemp()
 
@@ -580,7 +577,7 @@ res = bk.start_backup()
 for _ in range(100):
     if bk.op['done']:
         break
-    _t.sleep(0.05)
+    time.sleep(0.05)
 assert bk.op['done'] and bk.op['ok'], bk.op['lines']
 assert any('backup complete' in l for l in bk.op['lines'])
 lst = B.list_backups()
@@ -611,7 +608,7 @@ rs.start_restore(res['dir'], 4)
 for _ in range(100):
     if rs.op['done']:
         break
-    _t.sleep(0.05)
+    time.sleep(0.05)
 assert rs.op['done'] and rs.op['ok'], rs.op['lines']
 assert rs.ms.w_bank == 4 and rs.ms.left_dump == 1
 assert bytes(rs.ms.w_samples[0][1]) == samples[0][1]      # PCM round-trips
@@ -632,7 +629,7 @@ rk.start_restore(_full, None)                 # Korg bank → device, end to end
 for _ in range(100):
     if rk.op['done']:
         break
-    _t.sleep(0.05)
+    time.sleep(0.05)
 assert rk.op['done'] and rk.op['ok'], rk.op['lines']
 import msmpl_bank as _MB
 _fdata, _fpats = build_full_bank()[0], build_full_bank()[4]
