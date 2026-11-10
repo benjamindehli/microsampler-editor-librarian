@@ -667,7 +667,8 @@
                     </p>
                     <p>
                         <b>RECEIVE</b> re-reads the bank from the device — use it after editing on the hardware (panel edits only reach the app while
-                        the device is on its sample-edit page). The app also auto-receives when you refocus the window.
+                        the device is on its sample-edit page). With <b>AUTO-SYNC</b> ticked (top bar, default on), the app also auto-receives when
+                        you refocus the window — untick it if that's getting in the way, e.g. a bank read stops a playing pattern.
                     </p>
                     <p>
                         <b>Pattern editor</b> — on the PATTERNS view, <b>✎ EDIT</b> opens a piano roll: click to add a note, drag to move it, drag its
@@ -693,6 +694,22 @@
                         <kbd>W E · T Y U</kbd> = black keys (the piano shows which key is which), and <kbd>Z</kbd> / <kbd>X</kbd> — or the
                         <kbd>◀ ▶</kbd> buttons — shift the octave (C3/C4/C5). While it's off, those keys stay free for the shortcuts below. Tick
                         <b>MIDI IN</b> to play from a connected MIDI keyboard (velocity, pitch bend + sustain pedal; honors the SAMPLE/KEYBOARD mode).
+                        <b>SMP CH</b> / <b>KBD CH</b> route by channel: notes on the SMP channel always trigger pads, notes on the KBD channel always
+                        play the selected sample pitched, so a split controller can do both at once. Other channels — and <b>—</b>, the default —
+                        follow the SAMPLE/KEYBOARD toggle.
+                    </p>
+                    <p>
+                        <b>Loop hold</b> — tick <b>LOOP HOLD</b> (keyboard bar) to latch notes: a pad <b>▶</b>, piano key, typed key or MIDI note
+                        starts sounding and <i>keeps</i> sounding until you trigger it again — handy for looped samples. Unticking it, switching
+                        SAMPLE/KEYBOARD or <b>Panic</b> releases everything held.
+                    </p>
+                    <p>
+                        <b>MIDI learn</b> — pin a knob or slider on your MIDI controller to a sample control. Click <b>LEARN</b> (next to MIDI IN) or
+                        <b>right-click</b> a control: the target shows a <b>LEARN</b> badge (click another control to change it), then move the knob —
+                        the badge turns into its CC number (<b>PB</b> = pitch-bend wheel). A binding belongs to the pad that was selected when you
+                        learned it and keeps controlling that pad while you edit others; each CC drives one control. While learning, right-click a
+                        control to clear its binding; <kbd>Esc</kbd> stops learning. A bound CC#64 or pitch-bend wheel controls its parameter instead
+                        of sustaining/bending.
                     </p>
                     <p>
                         <b>Shortcuts</b> — <kbd>← → ↑ ↓</kbd> move pad · <kbd>Space</kbd> audition · <kbd>+ − 0</kbd> waveform zoom ·
