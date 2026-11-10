@@ -5,7 +5,7 @@
 // row = black keys; Z / X or the ◀ ▶ buttons shift the octave). The piano always
 // shows which computer key maps to which note, lit brighter while armed. Off by
 // default so the letter keys stay free for the normal shortcuts (ux.js).
-import { handleExternalCC, isMidiLearnActive, setMidiLearn, syncCcBadges } from "components/controls/controls.js";
+import { handleExternalCC, hasCcBinding, isMidiLearnActive, setMidiLearn, syncCcBadges } from "components/controls/controls.js";
 import { followSelect } from "components/sample-editor/waveform.js";
 import { noteName, QWERTY_KEYMAP, QWERTY_OCTAVES, qwertySlot } from "functions/notes.js";
 import { state } from "functions/state.js";
@@ -36,10 +36,16 @@ const WHITE = [0, 2, 4, 5, 7, 9, 11]; // white-key semitones within an octave
 const BLACK_AFTER = { 0: 1, 1: 3, 3: 6, 4: 8, 5: 10 }; // white-index → black-key semitone
 
 let enabled = false;
+let loopHold = false;
 let octave = 1; // index into QWERTY_OCTAVES (default C4, the middle)
 let mode = "sample"; // 'sample' = one sample per key; 'kbd' = selected sample, pitched
 const held = new Map(); // e.code → slot currently sounding (keyboard)
+const latched = new Map(); // "s:<slot>" or "k:<note>" → { slot, note, kbd } held by LOOP HOLD
 let clickSlot = null; // slot currently held by the mouse on the piano
+
+export const isLoopHold = () => loopHold;
+export const isSlotLatched = (slot) => latched.has("s:" + slot);
+const isPianoSlotLatched = (slot) => latched.has("s:" + slot) || latched.has("k:" + (48 + slot));
 
 // ── device note + visual paint ───────────────────────────────────────────────
 // SAMPLE mode plays note 48+slot on the global channel (triggers that pad);
@@ -58,12 +64,56 @@ function note(slot, on) {
 function paint(slot, sounding) {
     // always light the piano key; in KEYBOARD mode the pad isn't what's triggered
     // (the selected sample plays pitched), so don't light the pad grid there
-    const sels = [`#piano .pkey[data-slot="${slot}"]`];
-    if (mode !== "kbd") sels.push(`#pad-grid .pad[data-slot="${slot}"]`);
-    for (const sel of sels) {
-        const el = document.querySelector(sel);
-        if (el) el.classList.toggle("sounding", sounding);
+    const pkey = document.querySelector(`#piano .pkey[data-slot="${slot}"]`);
+    if (pkey) pkey.classList.toggle("sounding", sounding || isPianoSlotLatched(slot));
+    if (mode !== "kbd") {
+        const pad = document.querySelector(`#pad-grid .pad[data-slot="${slot}"]`);
+        if (pad) pad.classList.toggle("sounding", sounding || isSlotLatched(slot));
     }
+}
+function toggleLatch(target, velocity = 100) {
+    const id = target.kbd ? "k:" + target.note : "s:" + target.slot;
+    if (latched.has(id)) {
+        const entry = latched.get(id);
+        latched.delete(id);
+        send(entry.kbd ? { note: entry.note, on: false, keyboard: true } : { slot: entry.slot, on: false, keyboard: false });
+        if (entry.slot != null) {
+            const pkey = document.querySelector(`#piano .pkey[data-slot="${entry.slot}"]`);
+            if (pkey) pkey.classList.toggle("sounding", isPianoSlotLatched(entry.slot));
+            const pad = document.querySelector(`#pad-grid .pad[data-slot="${entry.slot}"]`);
+            if (pad) pad.classList.toggle("sounding", isSlotLatched(entry.slot));
+        }
+        return false;
+    }
+    const entry = { slot: target.slot, note: target.note ?? 48 + target.slot, kbd: !!target.kbd };
+    latched.set(id, entry);
+    send(entry.kbd ? { note: entry.note, on: true, velocity, keyboard: true } : { slot: entry.slot, on: true, velocity, keyboard: false });
+    if (entry.slot != null) {
+        const pkey = document.querySelector(`#piano .pkey[data-slot="${entry.slot}"]`);
+        if (pkey) pkey.classList.add("sounding");
+        if (!entry.kbd) {
+            const pad = document.querySelector(`#pad-grid .pad[data-slot="${entry.slot}"]`);
+            if (pad) pad.classList.add("sounding");
+        }
+    }
+    return true;
+}
+export function togglePadHold(slot, velocity = 100) {
+    return toggleLatch({ slot, note: 48 + slot, kbd: false }, velocity);
+}
+export function releaseLatched(sendOffNotes = true) {
+    for (const entry of latched.values()) {
+        if (sendOffNotes) {
+            send(entry.kbd ? { note: entry.note, on: false, keyboard: true } : { slot: entry.slot, on: false, keyboard: false });
+        }
+        if (entry.slot != null) {
+            const pkey = document.querySelector(`#piano .pkey[data-slot="${entry.slot}"]`);
+            if (pkey) pkey.classList.remove("sounding");
+            const pad = document.querySelector(`#pad-grid .pad[data-slot="${entry.slot}"]`);
+            if (pad) pad.classList.remove("sounding");
+        }
+    }
+    latched.clear();
 }
 function releaseKeys() {
     for (const slot of held.values()) {
@@ -114,6 +164,7 @@ export function syncKeybed() {
     if (!piano || !piano.children.length) return;
     $("#kb-oct-val").textContent = QWERTY_OCTAVES[octave];
     $("#keybed").classList.toggle("armed", enabled);
+    $("#keybed").classList.toggle("loop-hold", loopHold);
     // SAMPLE mode dims keys with no sample; KEYBOARD mode plays the selected
     // sample across all keys (so the per-key sample state is irrelevant)
     $("#keybed").classList.toggle("mode-sample", mode === "sample");
@@ -134,6 +185,7 @@ export function syncKeybed() {
         key.classList.toggle("used", !!(s && !s.empty));
         key.classList.toggle("loaded", state.buffers.has(slot));
         key.classList.toggle("sel", state.sel === slot);
+        key.classList.toggle("sounding", isPianoSlotLatched(slot));
     }
 }
 
@@ -148,6 +200,7 @@ function setOctave(next) {
 
 function setMode(next) {
     if (next === mode) return;
+    releaseLatched();
     releaseKeys();
     clickRelease();
     releaseMidi(); // release held notes on the OLD channel first
@@ -159,6 +212,14 @@ function setMode(next) {
     lsSet("msmpl.qwerty.mode", mode);
     syncKeybed();
     tick(mode === "kbd" ? "keyboard: KEYBOARD mode (selected sample, pitched)" : "keyboard: SAMPLE mode (one sample per key)");
+}
+
+function setLoopHold(on) {
+    loopHold = on;
+    if (!on) releaseLatched();
+    syncKeybed();
+    lsSet("msmpl.loophold", on ? "1" : "0");
+    tick(`loop hold: ${on ? "ON (click or press keys/pads to latch loops)" : "OFF"}`);
 }
 
 function setEnabled(on) {
@@ -198,6 +259,10 @@ addEventListener(
         if (e.repeat || held.has(e.code)) return;
         const slot = qwertySlot(e.code, octave);
         if (slot == null) return; // mapped but above B5 → consumed, silent
+        if (loopHold) {
+            toggleLatch({ slot, note: 48 + slot, kbd: mode === "kbd" });
+            return;
+        }
         held.set(e.code, slot);
         paint(slot, true);
         note(slot, true);
@@ -258,6 +323,11 @@ function sendOff(m, entry) {
 function midiNoteOn(m, vel, ch = 0) {
     const t = midiTarget(m, ch);
     if (!t) return;
+    if (loopHold) {
+        const nowOn = toggleLatch({ slot: t.slot, note: m, kbd: t.kbd }, vel);
+        if (nowOn && !t.kbd && state.follow && t.slot != null) followSelect(t.slot);
+        return;
+    }
     if (sustainedOff.has(m)) {
         sendOff(m, sustainedOff.get(m));
         sustainedOff.delete(m);
@@ -323,16 +393,35 @@ function releaseMidi() {
     resetBend();
 }
 function onMidiMessage(e) {
-    const [status, d1, d2] = e.data;
+    const [status, d1 = 0, d2 = 0] = e.data;
     const cmd = status & 0xf0;
     const ch = status & 0x0f;
+    if (status < 0xf8) {
+        const hex = [...e.data].map((b) => b.toString(16).padStart(2, "0").toUpperCase()).join(" ");
+        console.log(`[MIDI IN ch=${ch + 1}] ${hex} (status=${status} d1=${d1} d2=${d2})`);
+    }
     if (cmd === 0x90 && d2 > 0) midiNoteOn(d1, d2, ch);
     else if (cmd === 0x80 || (cmd === 0x90 && d2 === 0)) midiNoteOff(d1);
-    else if (cmd === 0xe0)
-        midiPitchBend(d1, d2, ch); // pitch bend wheel
-    else if (cmd === 0xb0 && d1 === 64)
+    else if (cmd === 0xe0) {
+        if (isMidiLearnActive() || hasCcBinding(128)) handleExternalCC(128, d2);
+        else midiPitchBend(d1, d2, ch); // pitch bend wheel
+    } else if (cmd === 0xd0) {
+        // Channel Aftertouch / Pressure (displayed as CC 128/129 on WORLDE controllers)
+        handleExternalCC(129, d1);
+    } else if (cmd === 0xc0) {
+        // Program Change (displayed as CC 129/130 on some controllers)
+        handleExternalCC(130, d1);
+    } else if (cmd === 0xa0) {
+        // Polyphonic Aftertouch
+        handleExternalCC(131, d2);
+    } else if (cmd === 0xb0 && d1 === 64 && !isMidiLearnActive() && !hasCcBinding(64)) {
         midiSustain(d2 >= 64); // sustain pedal (CC#64)
-    else if (cmd === 0xb0 && d1 < 120) handleExternalCC(d1, d2); // assignable CC sliders/knobs
+    } else if (cmd === 0xb0) {
+        handleExternalCC(d1, d2); // assignable CC sliders/knobs (0..127)
+    } else if (status < 0xf8) {
+        const hex = [...e.data].map((b) => b.toString(16).padStart(2, "0").toUpperCase()).join(" ");
+        tick(`MIDI raw: ${hex}`);
+    }
 }
 function midiInputNames() {
     return midiAccess ? [...midiAccess.inputs.values()].map((i) => i.name).filter(Boolean) : [];
@@ -389,7 +478,12 @@ function clickRelease() {
         const key = closestEl(e.target, ".pkey");
         if (!key) return;
         e.preventDefault();
-        clickSlot = +key.dataset.slot;
+        const slot = +key.dataset.slot;
+        if (loopHold) {
+            toggleLatch({ slot, note: 48 + slot, kbd: mode === "kbd" });
+            return;
+        }
+        clickSlot = slot;
         paint(clickSlot, true);
         note(clickSlot, true);
     });
@@ -410,6 +504,12 @@ $("#kb-mode-kbd").onclick = () => setMode("kbd");
         [$("#kb-mode-sample"), mode === "sample"],
         [$("#kb-mode-kbd"), mode === "kbd"]
     ]);
+    const lh = $("#kb-loop-hold");
+    if (lh) {
+        lh.checked = lsGet("msmpl.loophold") === "1";
+        loopHold = lh.checked;
+        lh.addEventListener("change", () => setLoopHold(lh.checked));
+    }
     const t = $("#qwerty-play");
     t.checked = lsGet("msmpl.qwerty") === "1";
     enabled = t.checked;

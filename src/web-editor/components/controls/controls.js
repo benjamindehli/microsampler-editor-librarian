@@ -268,7 +268,7 @@ function loadCcMap() {
         const clean = {};
         for (const [k, v] of Object.entries(parsed)) {
             const cc = +k;
-            if (!Number.isInteger(cc) || cc < 0 || cc > 127 || !v || typeof v !== "object") continue;
+            if (!Number.isInteger(cc) || cc < 0 || cc > 131 || !v || typeof v !== "object") continue;
             const slot = +v.slot,
                 param = +v.param;
             if (Number.isInteger(slot) && slot >= 0 && slot <= 35 && SPEC[param]) {
@@ -293,8 +293,10 @@ export function getCcForParam(param, slot = state.sel) {
     return null;
 }
 
+export const hasCcBinding = (cc) => !!ccMap[cc];
+
 export function assignParamCC(param, cc, slot = state.sel) {
-    if (!SPEC[param] || cc < 0 || cc > 127 || slot == null || slot < 0 || slot > 35) return;
+    if (!SPEC[param] || cc < 0 || cc > 131 || slot == null || slot < 0 || slot > 35) return;
     for (const [k, b] of Object.entries(ccMap)) {
         if ((b.slot === slot && b.param === param) || +k === cc) delete ccMap[+k];
     }

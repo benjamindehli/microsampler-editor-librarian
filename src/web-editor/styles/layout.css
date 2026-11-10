@@ -103,6 +103,10 @@
     letter-spacing: 0.22em;
     color: var(--ink-dim);
 }
+.rail-toggle {
+    font-size: 0.58rem;
+    letter-spacing: 0.16em;
+}
 
 /* ── deck layout ─────────────────────────────────────────────────────── */
 .deck {
@@ -575,6 +579,7 @@
 /* LIBRARY mode (no device) — hide device-only chrome */
 body.library-mode .view-btn:not(.lib-tab),
 body.library-mode #refresh-btn,
+body.library-mode #autosync-toggle,
 body.library-mode .rail-vol,
 body.library-mode #bank-lcd,
 body.library-mode #panic-btn {

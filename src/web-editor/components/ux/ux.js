@@ -2,6 +2,7 @@
 // master-volume slider.
 import { refreshBank } from "app.js";
 import { redo, undo } from "components/controls/controls.js";
+import { releaseLatched } from "components/keyboard/keyboard.js";
 import { selectSlot } from "components/pads/pads.js";
 import { stopTransport } from "components/patterns/patterns.js";
 import { stopAudition } from "components/sample-editor/waveform.js";
@@ -128,6 +129,7 @@ $("#help-btn").onclick = () => $("#help-dialog").showModal();
 $("#panic-btn").onclick = () => {
     stopAudition(false); // bridge silences it; just reset UI
     stopTransport();
+    releaseLatched(false);
     api("/api/panic", { method: "POST" })
         .then(() => tick("⏻ panic — all sound off"))
         .catch(() => {});

@@ -121,6 +121,13 @@
                     <span class="led" id="conn-led"></span>
                     <span class="led-caption" id="conn-caption">SCANNING</span>
                 </div>
+                <label
+                    class="follow-toggle rail-toggle"
+                    id="autosync-toggle"
+                    title="Auto-Sync: re-read the bank on tab focus to pick up hardware button edits (uncheck so focusing the tab never stops playing samples)"
+                >
+                    <input type="checkbox" id="auto-sync" checked /> AUTO-SYNC
+                </label>
                 <button class="hw-btn" id="refresh-btn" title="Re-read bank from device (R)">
                     <span class="hw-btn-cap">RECEIVE</span>
                 </button>
@@ -518,6 +525,12 @@
                             <button class="kb-mode on" id="kb-mode-sample" aria-pressed="true">SAMPLE</button>
                             <button class="kb-mode" id="kb-mode-kbd" aria-pressed="false">KEYBOARD</button>
                         </div>
+                        <label
+                            class="follow-toggle loop-hold-toggle"
+                            title="Loop Hold: latch triggered pads and keys so loops keep playing hands-free until triggered again (uncheck to release all held loops)"
+                        >
+                            <input type="checkbox" id="kb-loop-hold" /> <span id="loop-hold-cap">LOOP HOLD</span>
+                        </label>
                         <div class="keybed-oct" role="group" aria-label="Octave">
                             <button class="kb-oct" id="kb-oct-down" title="Octave down (Z)" aria-label="Octave down">◀</button>
                             <span class="kb-oct-val" id="kb-oct-val">C4</span>

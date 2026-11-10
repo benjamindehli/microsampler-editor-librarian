@@ -1,6 +1,6 @@
 // 36-slot pad grid: rendering, selection, device note-play, WAV drop.
 import { openUpload, uploadBatch } from "components/dialogs/dialogs.js";
-import { syncKeybed } from "components/keyboard/keyboard.js";
+import { isLoopHold, isSlotLatched, syncKeybed, togglePadHold } from "components/keyboard/keyboard.js";
 import { showSlot } from "components/sample-editor/slot.js";
 import { openSlotOp } from "components/sample-editor/slotops.js";
 import { isBlackKey, noteName } from "functions/notes.js";
@@ -33,6 +33,7 @@ export function syncPads() {
         if (!s.empty) used++;
         b.classList.toggle("sel", state.sel === s.slot);
         b.classList.toggle("loaded", !s.empty && state.buffers.has(s.slot));
+        b.classList.toggle("sounding", isSlotLatched(s.slot));
         const nameEl = b.querySelector(".pad-name");
         const name = s.empty ? "· · · ·" : s.name;
         if (nameEl.textContent !== name) nameEl.textContent = name;
@@ -55,7 +56,12 @@ export function renderPads() {
         // sharps (C#/D#/F#/G#/A#) are a keyboard's black keys — tint them darker
         const black = isBlackKey(48 + s.slot);
         b.className =
-            "pad " + (s.empty ? "empty" : "used") + (black ? " black" : "") + (state.sel === s.slot ? " sel" : "") + (loaded ? " loaded" : "");
+            "pad " +
+            (s.empty ? "empty" : "used") +
+            (black ? " black" : "") +
+            (state.sel === s.slot ? " sel" : "") +
+            (loaded ? " loaded" : "") +
+            (isSlotLatched(s.slot) ? " sounding" : "");
         b.innerHTML =
             `<span class="pad-num">${String(s.slot + 1).padStart(2, "0")} · ${noteName(s.slot)}</span>
                    <span class="pad-name">${s.empty ? "· · · ·" : esc(s.name)}</span>
@@ -114,13 +120,19 @@ $("#pad-search").addEventListener("input", applyPadFilter);
         e.stopPropagation(); // don't select the pad
         const pad = closestEl(play, ".pad");
         const slot = +pad.dataset.slot;
+        if (isLoopHold()) {
+            togglePadHold(slot, 100);
+            return;
+        }
         down = slot;
         pad.classList.add("sounding");
         api("/api/note", jsonBody({ slot, on: true, velocity: 100 })).catch((err) => tick(`⚠ note failed: ${err.message}`));
     });
     for (const ev of ["pointerup", "pointercancel"]) {
         window.addEventListener(ev, () => {
-            grid.querySelectorAll(".pad.sounding").forEach((p) => p.classList.remove("sounding"));
+            if (down == null) return;
+            const pad = grid.querySelector(`.pad[data-slot="${down}"]`);
+            if (pad && !isSlotLatched(down)) pad.classList.remove("sounding");
             noteOff();
         });
     }

@@ -70,6 +70,9 @@
 .keybed.armed #qwerty-cap {
     color: var(--amber);
 }
+.keybed.loop-hold #loop-hold-cap {
+    color: var(--amber);
+}
 .keybed.midi-on #midi-cap {
     color: var(--amber);
 } /* MIDI input active */

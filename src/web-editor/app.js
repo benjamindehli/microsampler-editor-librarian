@@ -224,11 +224,23 @@ $("#refresh-btn").onclick = () => refreshBank().catch((e) => tick("⚠ " + e.mes
 // only transmits panel param-edits while on its SAMPLE-EDIT page, so toggles
 // made elsewhere on the hardware leave the GUI snapshot stale; re-reading the
 // authoritative bank blob on focus-return fixes that transparently. Guarded:
-// online only, skip while any device op holds the lock (#refresh-btn busy),
-// debounced to 2 s so a quick click-in doesn't double-read.
+// AUTO-SYNC toggle, online only, skip while any device op holds the lock
+// (#refresh-btn busy), debounced to 2 s so a quick click-in doesn't double-read.
+let autoSync = lsGet("msmpl.autosync") !== "0";
+{
+    const ab = $("#auto-sync");
+    if (ab) {
+        ab.checked = autoSync;
+        ab.addEventListener("change", () => {
+            autoSync = ab.checked;
+            lsSet("msmpl.autosync", autoSync ? "1" : "0");
+            tick(`auto-sync: ${autoSync ? "ON" : "OFF"}`);
+        });
+    }
+}
 let lastSync = Date.now();
 function maybeResync() {
-    if (document.visibilityState !== "visible" || !state.online) return;
+    if (!autoSync || document.visibilityState !== "visible" || !state.online) return;
     if (!$("#device-help").hidden) return; // disconnected: RETRY reconnects
     if ($("#refresh-btn").hasAttribute("aria-busy")) return; // device busy
     if (Date.now() - lastSync < 2000) return;
