@@ -307,12 +307,29 @@ const midiHeld = new Map(); // controller note physically down → on-screen slo
 const sustainedOff = new Map(); // note whose key is UP but held sounding by the pedal → slot
 let sustainOn = false; // CC#64 damper pedal state
 
-// resolve a controller note for the current mode: KEYBOARD (or MIDI Ch 2) = raw
-// pitch (full range), SAMPLE = a pad (note−48, ignoring notes outside C3..B5).
+// Optional per-channel routing (SMP CH / KBD CH fields, 0-based, null = "—"):
+// a controller message on the KBD channel always plays the selected sample
+// pitched, one on the SMP channel always triggers pads; any other channel (or
+// both fields "—", the default) follows the SAMPLE / KEYBOARD toggle. Lets a
+// split/zoned controller play pads and the pitched sample at the same time.
+const MIDI_CH_KEYS = { sample: "msmpl.midi.ch.sample", kbd: "msmpl.midi.ch.kbd" };
+const loadCh = (key) => {
+    const v = lsGet(key);
+    return v != null && /^([1-9]|1[0-6])$/.test(v) ? +v - 1 : null;
+};
+const midiCh = { sample: loadCh(MIDI_CH_KEYS.sample), kbd: loadCh(MIDI_CH_KEYS.kbd) };
+function midiKbd(ch) {
+    if (midiCh.kbd != null && ch === midiCh.kbd) return true;
+    if (midiCh.sample != null && ch === midiCh.sample) return false;
+    return mode === "kbd";
+}
+
+// resolve a controller note: KEYBOARD routing = raw pitch (full range), SAMPLE
+// routing = a pad (note−48, ignoring notes outside C3..B5). null = not playable.
 function midiTarget(m, ch = 0) {
     const slot = m - 48,
         inRange = slot >= 0 && slot <= 35,
-        kbd = mode === "kbd" || ch === 1;
+        kbd = midiKbd(ch);
     if (kbd) return { body: { note: m, keyboard: true }, slot: inRange ? slot : null, kbd: true };
     return inRange ? { body: { slot, keyboard: false }, slot, kbd: false } : null;
 }
@@ -363,7 +380,7 @@ function midiSustain(on) {
 }
 let bentKbd = false; // a non-centre bend is currently applied (keyboard channel)
 function midiPitchBend(lsb, msb, ch = 0) {
-    if (mode !== "kbd" && ch !== 1) return; // the device pitch-bends only the keyboard-mode voice
+    if (!midiKbd(ch)) return; // the device pitch-bends only the keyboard-mode voice
     const value = (msb << 7) | lsb; // 14-bit, centre 8192
     bentKbd = value !== 8192;
     api("/api/pitch-bend", jsonBody({ value, keyboard: true })).catch(() => {
@@ -505,6 +522,30 @@ $("#kb-mode-kbd").onclick = () => setMode("kbd");
         $("#midi-toggle").hidden = false;
         const mi = $("#midi-in");
         mi.addEventListener("change", () => setMidi(mi.checked));
+        // SMP CH / KBD CH routing fields ("—" = follow the toggle)
+        for (const [which, other] of [
+            ["sample", "kbd"],
+            ["kbd", "sample"]
+        ]) {
+            const sel = $(`#midi-ch-${which}`);
+            if (!sel) continue;
+            sel.innerHTML =
+                '<option value="">—</option>' + Array.from({ length: 16 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join("");
+            sel.value = midiCh[which] == null ? "" : String(midiCh[which] + 1);
+            sel.addEventListener("change", () => {
+                releaseMidi(); // held notes were routed under the old mapping
+                midiCh[which] = sel.value ? +sel.value - 1 : null;
+                lsSet(MIDI_CH_KEYS[which], sel.value);
+                // one channel can't route both ways: clear the other field on a clash
+                if (midiCh[which] != null && midiCh[other] === midiCh[which]) {
+                    midiCh[other] = null;
+                    lsSet(MIDI_CH_KEYS[other], "");
+                    $(`#midi-ch-${other}`).value = "";
+                }
+                const desc = (c) => (c == null ? "—" : `ch ${c + 1}`);
+                tick(`MIDI IN routing: SAMPLE ${desc(midiCh.sample)} · KEYBOARD ${desc(midiCh.kbd)} (— = follow the toggle)`);
+            });
+        }
         const ml = $("#midi-learn");
         if (ml) {
             ml.hidden = false;

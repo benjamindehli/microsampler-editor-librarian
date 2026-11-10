@@ -556,6 +556,21 @@
                                     MIDI IN</span
                                 >
                             </label>
+                            <div
+                                class="midi-ch"
+                                role="group"
+                                aria-label="MIDI IN channel routing"
+                                title="Channel routing for your MIDI controller: notes on the SMP channel always trigger pads, notes on the KBD channel always play the selected sample pitched. Other channels (and — ) follow the SAMPLE / KEYBOARD toggle."
+                            >
+                                <label
+                                    >SMP
+                                    <select id="midi-ch-sample" aria-label="MIDI channel that triggers pads"></select
+                                ></label>
+                                <label
+                                    >KBD
+                                    <select id="midi-ch-kbd" aria-label="MIDI channel that plays the selected sample pitched"></select
+                                ></label>
+                            </div>
                             <button
                                 type="button"
                                 class="kb-oct midi-learn-btn"
