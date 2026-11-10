@@ -11,7 +11,7 @@ Pure-Python USB access library. **BSD-3-Clause** (see `pyusb/LICENSE`).
 Source: <https://github.com/pyusb/pyusb> · PyPI `pyusb==1.2.1`.
 
 > Pinned to **1.2.1** on purpose: it's the last release supporting **Python
-> 3.8** (the interpreter on the target Mac). 1.3.x requires Python ≥ 3.9.
+> 3.8** (the oldest Python the launchers support). 1.3.x requires Python ≥ 3.9.
 
 ## libusb/ — libusb 1.0.26 (native binaries)
 

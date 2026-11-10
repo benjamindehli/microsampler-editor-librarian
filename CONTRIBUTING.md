@@ -1,8 +1,9 @@
 # Contributing
 
 Thanks for your interest in the **microSAMPLER Editor / Librarian**, an
-independent, unofficial editor for the Korg microSAMPLER, reverse-engineered for
-modern macOS. Contributions are welcome: bug reports, fixes, features, docs.
+independent, unofficial editor for the Korg microSAMPLER that replaces Korg's
+32-bit editor on current computers. Contributions are welcome: bug reports,
+fixes, features, docs.
 
 This is a small, single-maintainer hobby project, so please be patient with
 review times.
@@ -52,17 +53,17 @@ Please run the same checks CI runs. All are offline (no hardware, no network):
 
 ```bash
 # Python: offline protocol/flow suite (3.8-compatible, dependency-free)
-cd src/native-tools && python3 protocol.py && python3 test_download.py \
-  && python3 test_upload.py && python3 test_bank.py && python3 test_bridge.py && cd ..
+(cd src/native-tools && python3 protocol.py && for t in test_*.py; do python3 "$t" || exit 1; done)
 
 # JavaScript unit tests (Node's built-in runner, no deps)
 npm test
 
 # Linters (bug-focused — see below)
-npm install        # one-time, for ESLint + TypeScript
+npm install          # one-time: ESLint, Prettier, TypeScript, esbuild
 npm run lint:js
-npm run lint:types # JSDoc type check (tsc --checkJs, no emit, no TS in the app)
-ruff check         # pip install ruff
+npm run lint:types   # JSDoc type check (tsc --checkJs, no emit, no TS in the app)
+npm run format:check # Prettier; `npx prettier --write <file>` fixes a file
+ruff check           # pip install ruff
 
 # End-to-end browser smoke (boots the mock bridge, drives it headless)
 pip install playwright && playwright install chromium
@@ -167,4 +168,4 @@ its license) before adding it.
   gitignored).
 - `node_modules/` or `dist/` (gitignored).
 
-Thanks for helping keep an obsolete-by-the-vendor instrument usable! 🎛️
+Thanks for contributing.

@@ -9,14 +9,14 @@ The microSAMPLER only speaks **USB**, and on macOS its USB-MIDI interface is cla
 The solution is a small **local bridge** that owns the device and exposes a plain HTTP/SSE API the browser app talks to.
 
 ```text
-   ┌───────────────────-──────┐        HTTP + SSE (localhost:8765)        ┌──────────────────────┐
-   │   Browser app            │ ────────────────────────────-───────────▶ │  Bridge (Python)     │
+   ┌──────────────────────────┐        HTTP + SSE (localhost:8765)        ┌──────────────────────┐
+   │   Browser app            │ ────────────────────────────────────────▶ │  Bridge (Python)     │
    │   web-editor/  (ES mods) │   GET /api/bank, POST /api/param,         │  native-tools/       │
    │                          │ ◀──────  /api/sample/N.wav, …             │  bridge.py           │
    │   • views: SAMPLES /     │     SSE /api/events (panel edits,         │                      │
    │     EFFECT / PATTERNS /  │            op progress)                   │  single USB owner    │
-   │     UTILITY              │                                           │  (RLock-serialised)  │
-   └──────────────────-───────┘                                           └──────────┬───────────┘
+   │     UTILITY (+ LIBRARY)  │                                           │  (RLock-serialised)  │
+   └──────────────────────────┘                                           └──────────┬───────────┘
                                                                                      │ libusb (msusb.py)
                                                                     USB-MIDI cable 1 │ bulk EP 0x01/0x82
                                                                                      ▼
@@ -89,12 +89,12 @@ import map in `app.html` (dev), esbuild aliases (dist), and a Node hook
 (tests), so moving a file never touches its importers. Circular imports exist
 but are runtime-only (used inside functions), so they're safe.
 
-- `app.js` is the entry point: boot, view switching, `refreshBank()`, focus re-sync.
+- `app.js` is the entry point: boot, view switching, `refreshBank()`, the AUTO-SYNC focus re-sync.
 - `functions/` holds the pure leaves: `state` (the single shared mutable state),
   `util` (DOM/`api()` helpers), `events` (routes SSE messages onto the right
   module), `ticker`, `notes`, `audioTools` (upload DSP), `smfWrite`, and the
   **generated** `valueTables` + `fxData` (from `tools/re/`, don't hand-edit).
-- `components/<name>/` is one folder per feature (`<name>.js` + `<name>.css`):
+- `components/<name>/` is one folder per feature (`<name>.js`, plus `<name>.css` if styled):
   `pads`, `sample-editor` (slot/waveform/sampleLoad/slotops/slice),
   `controls`, `meter`, `effect`, `patterns`, `pattern-editor`, `keyboard`,
   `dialogs`, `utility`, `library`, `update`, `ux`.
@@ -134,8 +134,8 @@ control change → `controls.js` → `POST /api/param {obj,param,value}` → bri
 
 turn a knob on the device → it transmits SysEx → bridge reader thread parses it
 → SSE event → `events.js` → updates the cached value + reflects it in the UI.
-(The device only transmits edits while on its SAMPLE-EDIT page. The app also
-auto-re-reads the bank on window focus to resync.)
+(The device only transmits edits while on its SAMPLE-EDIT page. With AUTO-SYNC
+on, the app also re-reads the bank when the window regains focus.)
 
 ### Sample download / upload
 
@@ -153,7 +153,11 @@ Standard MIDI Files.
 
 ### Playback (everything is on the hardware)
 
-- Audition / pad-play: `POST /api/note` → MIDI note on/off (`note = 48 + slot`).
+- Audition / pad-play: `POST /api/note` → MIDI note on/off (`note = 48 + slot`;
+  keyboard mode sends on the global channel + 1, and MIDI IN can pass a raw
+  `note`). Pitch bend goes through `POST /api/pitch-bend`.
+- MIDI Learn maps controller CCs to sample params in the browser; they reach the
+  device as ordinary `POST /api/param` edits.
 - Pattern transport: `POST /api/pattern/N/play` selects the pattern (NRPN) and
   starts the sequencer, with the bridge streaming MIDI clock. `POST
 /api/transport/stop` stops it.

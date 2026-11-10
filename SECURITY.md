@@ -2,13 +2,15 @@
 
 **microSAMPLER Editor / Librarian** is a locally-run, open-source desktop tool:
 a Python bridge (`src/native-tools/bridge.py`) that serves a browser UI on
-`http://localhost:8765` and talks to a Korg microSAMPLER over USB. It is not a
-hosted service, and it runs entirely on the user's own machine.
-But it does open a
-local HTTP server, claim the USB interface with elevated rights (typed `sudo`
-for the classic launchers, while the macOS app uses a one-time-approved
-background helper instead), and process some untrusted input (imported backup
-`.zip` archives, uploaded `.wav` files).
+`http://localhost:8765` (8766 in library mode) and talks to a Korg microSAMPLER
+over USB. It is not a hosted service, and it runs entirely on the user's own
+machine.
+It does, however, open a local HTTP server,
+claim the USB interface with elevated rights (typed `sudo` for the classic
+launchers; the macOS app uses a one-time-approved background helper instead),
+and process untrusted input:
+imported backups (`.zip` and Korg `.msmpl_bank` files), uploaded `.wav` files,
+imported `.mid` patterns and effect-preset JSON.
 Security reports are welcome.
 
 ## Supported Versions

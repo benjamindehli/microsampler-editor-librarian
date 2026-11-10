@@ -124,7 +124,7 @@
                 <label
                     class="follow-toggle stack"
                     id="autosync-toggle"
-                    title="Auto-Sync: re-read the bank when you return to this window, to pick up edits made on the hardware. A bank read stops a playing pattern and cuts notes held by LOOP HOLD — untick to keep them playing (then press RECEIVE yourself after hardware edits)"
+                    title="Auto-Sync: re-read the bank when you return to this window, to pick up edits made on the hardware. A bank read stops a playing pattern and releases LOOP HOLD notes; untick to keep them playing, and press RECEIVE yourself after hardware edits."
                 >
                     <input type="checkbox" id="auto-sync" checked /> <span class="stack-cap">AUTO-SYNC</span>
                 </label>
@@ -203,8 +203,8 @@
                         <div class="panel-title">PATTERNS <em>01–16</em></div>
                         <p class="util-note">
                             Patterns from the device's current bank. Reading all 16 takes a few seconds. Export any pattern as a Standard MIDI File
-                            (96 ticks/quarter, program&nbsp;change = assigned sample). <b>● REC</b> presses the device's record button — arm → start →
-                            end — into its current pattern; watch the device screen.
+                            (96 ticks/quarter, program&nbsp;change = assigned sample). <b>● REC</b> presses the device's record button for its current
+                            pattern: once to arm, again to start, again to stop. Watch the device screen.
                         </p>
                     </div>
                     <div class="pat-head-btns">
@@ -234,7 +234,7 @@
                     <div class="util-col">
                         <div class="panel-title">BACKUP <em>DEVICE → COMPUTER</em></div>
                         <p class="util-note">
-                            Pulls the CURRENT bank (bank settings, all samples, all 16 patterns) into <code>native-tools/backups/</code>. Takes a
+                            Saves the device's current bank (bank settings, all samples, all 16 patterns) as a new backup on this computer. Takes a
                             minute or two for a full bank.
                         </p>
                         <button class="hw-btn" id="backup-btn">
@@ -261,9 +261,8 @@
 
                 <div class="panel-title" style="margin-top: 1.2rem">SAMPLING</div>
                 <p class="util-note">
-                    Drive the device's sampling remotely (via its documented MIDI buttons). There's no state readback, so <b>SAMPLE</b> mirrors a
-                    press of the panel <b>[SAMPLING]</b> button — press to arm, again to start, again to end — so watch the device screen. The new
-                    sample lands on the device.
+                    Drives the device's sampling over MIDI. There's no state readback: <b>SAMPLE</b> works like the panel's <b>[SAMPLING]</b>
+                    button (press once to arm, again to start, again to stop), so watch the device screen. The new sample is stored on the device.
                 </p>
                 <div class="sampling-row">
                     <span class="ctl-label">INPUT</span>
@@ -367,7 +366,7 @@
                         <div class="editor-empty-inner">
                             <div class="ghost-wave"></div>
                             <p>SELECT A SAMPLE PAD</p>
-                            <p class="dim">or drop a WAV on an empty pad panel to upload</p>
+                            <p class="dim">or drop a WAV onto a pad to load it</p>
                         </div>
                     </div>
 
@@ -534,7 +533,7 @@
                         </div>
                         <label
                             class="follow-toggle stack loop-hold-toggle"
-                            title="Loop Hold: latch triggered pads and keys so loops keep playing hands-free until triggered again (uncheck to release all held loops)"
+                            title="Loop Hold: latch pads and keys so loops keep playing until you trigger them again (untick to release everything held)"
                         >
                             <input type="checkbox" id="kb-loop-hold" /> <span class="stack-cap" id="loop-hold-cap">LOOP HOLD</span>
                         </label>
@@ -548,7 +547,7 @@
                                 class="follow-toggle stack"
                                 id="midi-toggle"
                                 hidden
-                                title="Play and control the device from a connected MIDI controller (uses your browser's Web MIDI). Honors the SAMPLE / KEYBOARD mode above and mapped MIDI CCs."
+                                title="Play and control the device from a connected MIDI controller (uses your browser's Web MIDI). Notes follow the SAMPLE / KEYBOARD toggle or the SMP / KBD channel fields; mapped MIDI CCs control their sample controls."
                             >
                                 <input type="checkbox" id="midi-in" />
                                 <span class="stack-cap" id="midi-cap">MIDI IN</span>
@@ -559,7 +558,7 @@
                                 hidden
                                 role="group"
                                 aria-label="MIDI IN channel routing"
-                                title="Channel routing for your MIDI controller: notes on the SMP channel always trigger pads, notes on the KBD channel always play the selected sample pitched. Other channels (and — ) follow the SAMPLE / KEYBOARD toggle."
+                                title="Channel routing for your MIDI controller: notes on the SMP channel always trigger pads, notes on the KBD channel always play the selected sample pitched. Other channels, and the default “—”, follow the SAMPLE / KEYBOARD toggle."
                             >
                                 <label class="stack">
                                     <select id="midi-ch-sample" aria-label="MIDI channel that triggers pads"></select>
@@ -576,7 +575,7 @@
                                 id="midi-learn"
                                 hidden
                                 aria-pressed="false"
-                                title="MIDI Learn: click to arm, click any sample control above, and move a slider/knob on your MIDI controller to assign its CC (right-click a control to clear)"
+                                title="MIDI Learn: click to arm, click a sample control above, then move a knob or slider on your MIDI controller to assign it. Right-click a control to learn it directly; while learning, right-click clears its binding."
                             >
                                 LEARN
                             </button>
@@ -648,71 +647,74 @@
                 <h3>microSAMPLER EDITOR — HELP</h3>
                 <div class="help-body">
                     <p>
-                        <b>Where's the sound?</b> — everything plays <i>on the microSAMPLER</i> (pads, audition, keyboard, patterns), so listen to the
+                        <b>Where's the sound?</b> Everything plays <i>on the microSAMPLER</i> (pads, audition, keyboard, patterns), so listen to the
                         device's own outputs, not your computer's speakers. No sound? Check the device's volume knob and the editor's master volume.
                         (The Library plays samples on the computer, since it works without the device.)
                     </p>
                     <p>
-                        <b>Pads</b> — click to edit. Bright LED = sample loaded (instant audition); dim LED = used but not loaded yet. Hold
-                        <b>▶</b> (lower-right) to play the sample <i>on the device</i>. Drag a pad onto another to <b>copy / swap</b>; drop a
-                        <b>.wav</b> onto a pad to load it.
+                        <b>Pads</b>: click to edit. Bright LED = audio downloaded (waveform ready); dim LED = used, not downloaded yet. Hold
+                        <b>▶</b> (lower-right) to play the sample on the device. Drag a pad onto another to <b>copy / swap</b>; drop a <b>.wav</b>
+                        onto a pad to load it.
                     </p>
                     <p>
-                        <b>Waveform</b> — drag the <b>S</b>/<b>E</b> edges to set start/end (with <b>ZERO-SNAP</b> on, a dragged point snaps to the
-                        nearest zero crossing so the cut doesn't click; type a value for an exact frame). <b>Scroll</b> to zoom, <b>drag</b> the body
+                        <b>Waveform</b>: drag the <b>S</b>/<b>E</b> edges to set start/end. With <b>ZERO-SNAP</b> on, a dragged point snaps to the
+                        nearest zero crossing so the cut doesn't click; type a value for an exact frame. <b>Scroll</b> to zoom, <b>drag</b> the body
                         to pan, and <b>double-click</b> (or <b>FIT</b>) to see the whole sample.
                     </p>
                     <p>
-                        <b>RECEIVE</b> re-reads the bank from the device — use it after editing on the hardware (panel edits only reach the app while
-                        the device is on its sample-edit page). With <b>AUTO-SYNC</b> ticked (top bar, default on), the app also auto-receives when
-                        you refocus the window — untick it if that's getting in the way, a bank read stops a playing pattern and cuts notes held by
-                        <b>LOOP HOLD</b>.
+                        <b>RECEIVE</b> re-reads the bank from the device. Use it after editing on the hardware: panel edits only reach the app while
+                        the device is on its sample-edit page. With <b>AUTO-SYNC</b> ticked (top bar, on by default) the app also re-reads the bank
+                        when you return to the window. A bank read stops a playing pattern and releases <b>LOOP HOLD</b> notes, so untick AUTO-SYNC to
+                        keep them going.
                     </p>
                     <p>
-                        <b>Pattern editor</b> — on the PATTERNS view, <b>✎ EDIT</b> opens a piano roll: click to add a note, drag to move it, drag its
-                        right edge to resize, scroll over it for velocity, <kbd>Del</kbd> to remove. Switch the <b>SMP</b> (pad) /
-                        <b>KBD</b> (pitched) track, set bars and the keyboard track's sample, then <b>SAVE TO DEVICE</b>. Works on an empty pattern to
-                        build one from scratch.
+                        <b>Pattern editor</b>: on the PATTERNS view, <b>✎ EDIT</b> opens a piano roll. Click to add a note, drag to move it, drag its
+                        right edge to resize, scroll over it for velocity, <kbd>Del</kbd> to remove. Switch between the <b>SMP</b> (pad) and
+                        <b>KBD</b> (pitched) track, set the bars and the keyboard track's sample, then <b>SAVE TO DEVICE</b>. An empty pattern works
+                        too, to build one from scratch.
                     </p>
                     <p>
-                        <b>RAM vs flash</b> — all edits/transfers target the device's CURRENT bank (RAM); they're lost on power-off. Save on the
-                        device, or restore a backup to a USER bank (UTILITY) to persist.
+                        <b>RAM vs flash</b>: all edits and transfers go to the device's current bank (RAM) and are lost on power-off. Save on the
+                        device, or restore a backup to a user bank (UTILITY), to keep them.
                     </p>
                     <p>
-                        <b>Memory meter</b> — exact: every sample is downloaded on connect (you'll see a progress bar), so the readout is real and
-                        waveforms are instant.
+                        <b>Memory meter</b>: every sample is downloaded on connect (with a progress bar), so the readout is exact and waveforms open
+                        instantly.
                     </p>
-                    <p><b>Panic</b> (<b>⏻</b>, top-right) — all-sound-off + stop, if a note ever sticks.</p>
+                    <p><b>Panic</b> (<b>⏻</b>, top-right): all sound off and stop, if a note ever sticks.</p>
                     <p>
-                        <b>Keyboard</b> (below the editor) — an on-screen piano mirrors the 36 pads; click any key to play it through the device (real
-                        envelope/FX). The <b>SAMPLE / KEYBOARD</b> toggle picks how the keys play: <b>SAMPLE</b> triggers a different pad per key
-                        (keys with no sample are dimmed), while <b>KEYBOARD</b>
-                        plays the currently selected sample across the keyboard, pitched. Tick
-                        <b>TYPE TO PLAY</b> to play from your computer keyboard too: home row <kbd>A S D F G H J K</kbd> = white keys, top row
-                        <kbd>W E · T Y U</kbd> = black keys (the piano shows which key is which), and <kbd>Z</kbd> / <kbd>X</kbd> — or the
-                        <kbd>◀ ▶</kbd> buttons — shift the octave (C3/C4/C5). While it's off, those keys stay free for the shortcuts below. Tick
-                        <b>MIDI IN</b> to play from a connected MIDI keyboard (velocity, pitch bend + sustain pedal; honors the SAMPLE/KEYBOARD mode).
-                        <b>SMP CH</b> / <b>KBD CH</b> route by channel: notes on the SMP channel always trigger pads, notes on the KBD channel always
-                        play the selected sample pitched, so a split controller can do both at once. Other channels — and <b>—</b>, the default —
-                        follow the SAMPLE/KEYBOARD toggle.
+                        <b>Keyboard</b> (below the editor): an on-screen piano that mirrors the 36 pads. Click a key to play it on the device. The
+                        <b>SAMPLE / KEYBOARD</b> toggle picks how the keys play: <b>SAMPLE</b> triggers a different pad per key (keys with no sample
+                        are dimmed); <b>KEYBOARD</b> plays the selected sample across the keyboard, pitched.
                     </p>
                     <p>
-                        <b>Loop hold</b> — tick <b>LOOP HOLD</b> (keyboard bar) to latch notes: a pad <b>▶</b>, piano key, typed key or MIDI note
-                        starts sounding and <i>keeps</i> sounding until you trigger it again — handy for looped samples. Unticking it, switching
-                        SAMPLE/KEYBOARD or <b>Panic</b> releases everything held. So does a bank read (RECEIVE, or AUTO-SYNC when you return to the
-                        window) — untick AUTO-SYNC to keep loops going while you work in another app.
+                        <b>Type to play</b>: tick <b>TYPE TO PLAY</b> to play from your computer keyboard. Home row <kbd>A S D F G H J K</kbd> = white
+                        keys, top row <kbd>W E · T Y U</kbd> = black keys (the piano shows the letters), and <kbd>Z</kbd> / <kbd>X</kbd> or the
+                        <kbd>◀ ▶</kbd> buttons shift the octave (C3/C4/C5). While it's off, those keys stay free for the shortcuts below.
                     </p>
                     <p>
-                        <b>MIDI learn</b> — pin a knob or slider on your MIDI controller to a sample control. Click <b>LEARN</b> (next to MIDI IN) or
-                        <b>right-click</b> a control: the target shows a <b>LEARN</b> badge (click another control to change it), then move the knob —
-                        the badge turns into its CC number (<b>PB</b> = pitch-bend wheel). A binding belongs to the pad that was selected when you
-                        learned it and keeps controlling that pad while you edit others; each CC drives one control. While learning, right-click a
-                        control to clear its binding; <kbd>Esc</kbd> stops learning. A bound CC#64 or pitch-bend wheel controls its parameter instead
-                        of sustaining/bending.
+                        <b>MIDI IN</b>: tick it to play from a connected MIDI controller, with velocity, pitch bend and sustain pedal. Notes follow
+                        the SAMPLE / KEYBOARD toggle, or route them by channel with <b>SMP CH</b> / <b>KBD CH</b>: notes on the SMP channel always
+                        trigger pads, notes on the KBD channel always play the selected sample pitched, so a split controller can do both at once.
+                        Other channels, and the default <b>—</b>, follow the toggle.
                     </p>
                     <p>
-                        <b>Shortcuts</b> — <kbd>← → ↑ ↓</kbd> move pad · <kbd>Space</kbd> audition · <kbd>+ − 0</kbd> waveform zoom ·
-                        <kbd>R</kbd> receive · <kbd>⌘/Ctrl+Z</kbd> undo · <kbd>⌘/Ctrl+⇧Z</kbd> redo · <kbd>?</kbd> this help.
+                        <b>Loop hold</b>: tick <b>LOOP HOLD</b> to latch notes. A pad <b>▶</b>, piano key, typed key or MIDI note keeps sounding until
+                        you trigger it again, which suits looped samples. Unticking it, switching SAMPLE / KEYBOARD, <b>Panic</b> or a bank read
+                        (RECEIVE, or AUTO-SYNC when you return to the window) releases everything held.
+                    </p>
+                    <p>
+                        <b>MIDI learn</b>: pin a knob or slider on your MIDI controller to a sample control. Click <b>LEARN</b> (next to MIDI IN) or
+                        <b>right-click</b> a control. The target shows a <b>LEARN</b> badge (click another control to change it); move the knob and
+                        the badge shows its CC number (<b>PB</b> = pitch-bend wheel). A binding belongs to the pad that was selected when you learned
+                        it and keeps controlling that pad while you edit others; each CC drives one control. While learning, right-click a control to
+                        clear its binding, and <kbd>Esc</kbd> stops learning. A bound CC#64 or pitch-bend wheel controls its parameter instead of
+                        sustain or bend.
+                    </p>
+                    <p>
+                        <b>Shortcuts</b>: <kbd>← → ↑ ↓</kbd> move pad · <kbd>Space</kbd> audition · <kbd>+ − 0</kbd> waveform zoom ·
+                        <kbd>R</kbd> receive · <kbd>⌘/Ctrl+Z</kbd> undo · <kbd>⌘/Ctrl+⇧Z</kbd> redo · <kbd>Esc</kbd> stop MIDI learn ·
+                        <kbd>?</kbd> this help.
                     </p>
                 </div>
                 <div class="dlg-actions">
@@ -750,7 +752,7 @@
         <dialog id="upload-dialog" class="hw-dialog" aria-label="Load sample">
             <form method="dialog">
                 <h3>LOAD SAMPLE → <span id="ud-slot">PAD 1</span></h3>
-                <p class="warn">⚠ OVERWRITES this slot in the device’s current bank (RAM).</p>
+                <p class="warn">⚠ Overwrites this slot in the device’s current bank (RAM).</p>
                 <label>FILE <input type="file" id="ud-file" accept=".wav,audio/wav" /></label>
                 <label>NAME <input type="text" id="ud-name" maxlength="8" spellcheck="false" /></label>
                 <label>TEMPO <input type="number" id="ud-tempo" min="20" max="300" step="0.1" value="120.0" /></label>
@@ -788,7 +790,7 @@
         <dialog id="slice-dialog" class="hw-dialog" aria-label="Slice sample across pads">
             <form method="dialog">
                 <h3>SLICE → PADS FROM <span id="sl-from">PAD 1</span></h3>
-                <p class="warn">⚠ OVERWRITES the consecutive slots it fills in the device’s current bank (RAM).</p>
+                <p class="warn">⚠ Overwrites the consecutive slots it fills in the device’s current bank (RAM).</p>
                 <p class="sl-src" id="sl-src"></p>
                 <div class="sl-mode">
                     <label class="ud-check"><input type="radio" name="sl-mode" value="equal" checked /> EQUAL slices</label>
@@ -808,7 +810,7 @@
         <dialog id="cherry-dialog" class="hw-dialog" aria-label="Restore a sample from a backup">
             <form method="dialog">
                 <h3>RESTORE SAMPLE ← <span id="cp-bk">backup</span></h3>
-                <p class="warn">⚠ OVERWRITES the destination pad in the device’s current bank (RAM).</p>
+                <p class="warn">⚠ Overwrites the destination pad in the device’s current bank (RAM).</p>
                 <label
                     >SAMPLE
                     <select id="cp-src"></select
@@ -863,7 +865,7 @@
                         class="hw-btn"
                         id="pe-play"
                         type="button"
-                        title="Write this edit to the device (RAM) and play it — Spacebar; Esc discards"
+                        title="Write this edit to the device (RAM) and play it (Space). Esc discards changes."
                     >
                         <span class="hw-btn-cap" id="pe-play-cap">▶ PLAY</span>
                     </button>
