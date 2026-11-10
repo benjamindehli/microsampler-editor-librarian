@@ -21,10 +21,6 @@
     letter-spacing: 0.18em;
     color: var(--ink-dim);
 }
-.keybed-title {
-    color: var(--ink);
-    font-weight: 600;
-}
 
 /* SAMPLE / KEYBOARD play-mode toggle (segmented, like the pattern editor's) */
 /* .keybed-mode / .kb-mode are styled by the shared segmented control (controls.css) */
@@ -54,6 +50,16 @@
     border-color: var(--amber);
     color: var(--amber);
 }
+/* octave ◀ ▶: same font + vertical padding as LEARN / SAMPLE / KEYBOARD, so the
+   whole header row shares one button height */
+.keybed-oct .kb-oct {
+    width: auto;
+    height: auto;
+    padding: 0.6rem 0.7rem;
+    font:
+        600 var(--btn-font)/1 "Chakra Petch",
+        sans-serif;
+}
 .kb-oct-val {
     min-width: 2.4em;
     text-align: center;
@@ -76,33 +82,42 @@
 .keybed.midi-on #midi-cap {
     color: var(--amber);
 } /* MIDI input active */
-.midi-ico {
-    width: 11px;
-    height: 11px;
-    fill: currentColor;
-    vertical-align: -2px;
-    margin-right: 0.1em;
-}
 /* SMP / KBD channel routing — always shown (with Web MIDI), disabled while MIDI IN is off */
 .midi-ch {
     display: inline-flex;
     align-items: center;
     gap: 0.6rem;
 }
+/* stacked keybed controls share ONE explicit height (checkbox size differs per
+   OS), so the checkboxes and channel selects match and every caption lines up */
+.keybed {
+    --kb-ctl-h: 16px;
+}
+.keybed .stack input[type="checkbox"] {
+    width: var(--kb-ctl-h);
+    height: var(--kb-ctl-h);
+}
+.keybed .stack-cap {
+    font-size: 0.6rem; /* a touch larger than the rail's LED captions, for readability */
+}
 .midi-ch select {
-    font-size: 0.6rem;
-    padding: 0.05rem 1.4rem 0.05rem 0.35rem;
+    height: var(--kb-ctl-h);
+    font-size: 0.62rem;
+    line-height: 1;
+    padding: 0 1.4rem 0 0.4rem;
 }
 .midi-ch label:has(select:disabled) .stack-cap {
     opacity: 0.4;
 }
+/* LEARN matches the SAMPLE / KEYBOARD segmented buttons (same font + padding) */
 .midi-learn-btn {
     width: auto;
-    padding: 0 0.5rem;
-    font-family: inherit;
-    font-size: 0.54rem;
-    font-weight: 600;
-    letter-spacing: 0.14em;
+    height: auto;
+    padding: 0.6rem 0.85rem;
+    font:
+        600 var(--btn-font)/1 "Chakra Petch",
+        sans-serif;
+    letter-spacing: 0.1em;
     color: var(--ink-dim);
 }
 .midi-learn-btn.on {

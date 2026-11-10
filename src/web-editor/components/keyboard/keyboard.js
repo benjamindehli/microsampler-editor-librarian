@@ -1,6 +1,6 @@
 // On-screen keyboard + QWERTY pad-play. A piano under the editor mirrors the 36
 // pads (C3..B5 = exactly three octaves); clicking a key plays it through the
-// device (POST /api/note — real envelope/FX/pitch). Ticking "⌨ TYPE TO PLAY"
+// device (POST /api/note — real envelope/FX/pitch). Ticking "TYPE TO PLAY"
 // arms the computer keyboard as a one-octave piano (home row = white keys, top
 // row = black keys; Z / X or the ◀ ▶ buttons shift the octave). The piano always
 // shows which computer key maps to which note, lit brighter while armed. Off by
