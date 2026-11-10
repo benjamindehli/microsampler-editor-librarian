@@ -335,10 +335,9 @@ export function syncCcBadges() {
             if (!badge) {
                 badge = document.createElement("span");
                 badge.className = "ctl-cc";
-                const lbl = el.querySelector(".ctl-label");
-                if (lbl) lbl.append(badge);
+                el.append(badge); // corner-pinned (absolute), so it never resizes the control
             }
-            badge.textContent = isTarget && cc == null ? "LEARN..." : fmtCc(cc);
+            badge.textContent = isTarget && cc == null ? "LEARN" : fmtCc(cc);
         } else if (badge) {
             badge.remove();
         }
