@@ -107,6 +107,22 @@
     font-size: 0.58rem;
     letter-spacing: 0.16em;
 }
+/* STACKED control: the checkbox/select on top, a small caption underneath —
+   same shape as the CONNECTED LED block, and narrower than a side-by-side label
+   (.follow-toggle.stack beats .follow-toggle's row gap, which loads later) */
+.stack,
+.follow-toggle.stack {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+.stack-cap {
+    font-size: 0.52rem;
+    letter-spacing: 0.22em;
+    line-height: 1;
+    white-space: nowrap;
+}
 
 /* ── deck layout ─────────────────────────────────────────────────────── */
 .deck {

@@ -526,10 +526,10 @@
                             <button class="kb-mode" id="kb-mode-kbd" aria-pressed="false">KEYBOARD</button>
                         </div>
                         <label
-                            class="follow-toggle loop-hold-toggle"
+                            class="follow-toggle stack loop-hold-toggle"
                             title="Loop Hold: latch triggered pads and keys so loops keep playing hands-free until triggered again (uncheck to release all held loops)"
                         >
-                            <input type="checkbox" id="kb-loop-hold" /> <span id="loop-hold-cap">LOOP HOLD</span>
+                            <input type="checkbox" id="kb-loop-hold" /> <span class="stack-cap" id="loop-hold-cap">LOOP HOLD</span>
                         </label>
                         <div class="keybed-oct" role="group" aria-label="Octave">
                             <button class="kb-oct" id="kb-oct-down" title="Octave down (Z)" aria-label="Octave down">◀</button>
@@ -538,13 +538,13 @@
                         </div>
                         <div class="keybed-toggles">
                             <label
-                                class="follow-toggle"
+                                class="follow-toggle stack"
                                 id="midi-toggle"
                                 hidden
                                 title="Play and control the device from a connected MIDI controller (uses your browser's Web MIDI). Honors the SAMPLE / KEYBOARD mode above and mapped MIDI CCs."
                             >
                                 <input type="checkbox" id="midi-in" />
-                                <span id="midi-cap"
+                                <span class="stack-cap" id="midi-cap"
                                     ><svg class="midi-ico" viewBox="0 0 24 24" aria-hidden="true">
                                         <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7" />
                                         <circle cx="12" cy="6.6" r="1.4" />
@@ -558,18 +558,20 @@
                             </label>
                             <div
                                 class="midi-ch"
+                                id="midi-ch"
+                                hidden
                                 role="group"
                                 aria-label="MIDI IN channel routing"
                                 title="Channel routing for your MIDI controller: notes on the SMP channel always trigger pads, notes on the KBD channel always play the selected sample pitched. Other channels (and — ) follow the SAMPLE / KEYBOARD toggle."
                             >
-                                <label
-                                    >SMP
-                                    <select id="midi-ch-sample" aria-label="MIDI channel that triggers pads"></select
-                                ></label>
-                                <label
-                                    >KBD
-                                    <select id="midi-ch-kbd" aria-label="MIDI channel that plays the selected sample pitched"></select
-                                ></label>
+                                <label class="stack">
+                                    <select id="midi-ch-sample" aria-label="MIDI channel that triggers pads"></select>
+                                    <span class="stack-cap">SMP CH</span>
+                                </label>
+                                <label class="stack">
+                                    <select id="midi-ch-kbd" aria-label="MIDI channel that plays the selected sample pitched"></select>
+                                    <span class="stack-cap">KBD CH</span>
+                                </label>
                             </div>
                             <button
                                 type="button"
@@ -582,10 +584,10 @@
                                 LEARN
                             </button>
                             <label
-                                class="follow-toggle"
+                                class="follow-toggle stack"
                                 title="Type to play: your computer keyboard plays the highlighted keys through the device — home row = white keys, top row = black keys, Z / X (or ◀ ▶) shift the octave"
                             >
-                                <input type="checkbox" id="qwerty-play" /> <span id="qwerty-cap">⌨ TYPE TO PLAY</span>
+                                <input type="checkbox" id="qwerty-play" /> <span class="stack-cap" id="qwerty-cap">⌨ TYPE TO PLAY</span>
                             </label>
                         </div>
                     </div>

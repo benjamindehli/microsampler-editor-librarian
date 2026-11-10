@@ -83,23 +83,18 @@
     vertical-align: -2px;
     margin-right: 0.1em;
 }
-/* SMP / KBD channel routing — only meaningful (and shown) while MIDI IN is on */
+/* SMP / KBD channel routing — always shown (with Web MIDI), disabled while MIDI IN is off */
 .midi-ch {
-    display: none;
-    align-items: center;
-    gap: 0.5rem;
-}
-.keybed.midi-on .midi-ch {
-    display: inline-flex;
-}
-.midi-ch label {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
+    gap: 0.6rem;
 }
 .midi-ch select {
     font-size: 0.6rem;
-    padding: 0.1rem 1.4rem 0.1rem 0.35rem;
+    padding: 0.05rem 1.4rem 0.05rem 0.35rem;
+}
+.midi-ch label:has(select:disabled) .stack-cap {
+    opacity: 0.4;
 }
 .midi-learn-btn {
     width: auto;

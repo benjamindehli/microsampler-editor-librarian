@@ -10,7 +10,7 @@ import { followSelect } from "components/sample-editor/waveform.js";
 import { noteName, QWERTY_KEYMAP, QWERTY_OCTAVES, qwertySlot } from "functions/notes.js";
 import { state } from "functions/state.js";
 import { tick } from "functions/ticker.js";
-import { $, api, closestEl, jsonBody, lsGet, lsSet, setSegActive } from "functions/util.js";
+import { $, $$, api, closestEl, jsonBody, lsGet, lsSet, setSegActive } from "functions/util.js";
 
 // the on-screen caption letter for each mapped computer key (see QWERTY_KEYMAP)
 const KEYLABEL = {
@@ -463,6 +463,7 @@ async function setMidi(on) {
         tick("MIDI input: OFF");
     }
     $("#keybed").classList.toggle("midi-on", on);
+    for (const sel of $$("#midi-ch select")) sel.disabled = !on; // routing only applies while MIDI IN is on
     lsSet("msmpl.midi", on ? "1" : "0");
 }
 
@@ -520,6 +521,7 @@ $("#kb-mode-kbd").onclick = () => setMode("kbd");
     // MIDI input: only offer it where Web MIDI exists (Chrome/Edge/Firefox; not Safari)
     if (MIDI_OK) {
         $("#midi-toggle").hidden = false;
+        $("#midi-ch").hidden = false;
         const mi = $("#midi-in");
         mi.addEventListener("change", () => setMidi(mi.checked));
         // SMP CH / KBD CH routing fields ("—" = follow the toggle)
@@ -532,6 +534,7 @@ $("#kb-mode-kbd").onclick = () => setMode("kbd");
             sel.innerHTML =
                 '<option value="">—</option>' + Array.from({ length: 16 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join("");
             sel.value = midiCh[which] == null ? "" : String(midiCh[which] + 1);
+            sel.disabled = true;
             sel.addEventListener("change", () => {
                 releaseMidi(); // held notes were routed under the old mapping
                 midiCh[which] = sel.value ? +sel.value - 1 : null;
