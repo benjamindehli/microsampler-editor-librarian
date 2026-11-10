@@ -396,10 +396,6 @@ function onMidiMessage(e) {
     const [status, d1 = 0, d2 = 0] = e.data;
     const cmd = status & 0xf0;
     const ch = status & 0x0f;
-    if (status < 0xf8) {
-        const hex = [...e.data].map((b) => b.toString(16).padStart(2, "0").toUpperCase()).join(" ");
-        console.log(`[MIDI IN ch=${ch + 1}] ${hex} (status=${status} d1=${d1} d2=${d2})`);
-    }
     if (cmd === 0x90 && d2 > 0) midiNoteOn(d1, d2, ch);
     else if (cmd === 0x80 || (cmd === 0x90 && d2 === 0)) midiNoteOff(d1);
     else if (cmd === 0xe0) {
@@ -418,10 +414,7 @@ function onMidiMessage(e) {
         midiSustain(d2 >= 64); // sustain pedal (CC#64)
     } else if (cmd === 0xb0) {
         handleExternalCC(d1, d2); // assignable CC sliders/knobs (0..127)
-    } else if (status < 0xf8) {
-        const hex = [...e.data].map((b) => b.toString(16).padStart(2, "0").toUpperCase()).join(" ");
-        tick(`MIDI raw: ${hex}`);
-    }
+    } // clock / SysEx / other messages ignored
 }
 function midiInputNames() {
     return midiAccess ? [...midiAccess.inputs.values()].map((i) => i.name).filter(Boolean) : [];
