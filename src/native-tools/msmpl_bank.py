@@ -64,7 +64,15 @@ def _name(b):
 
 def parse_bank(data):
     """Parse a .msmpl_bank → {name, bpm, samples: [ {slot, name, long_name,
-    empty, [rate_hz, stereo, data_size, tempo_bpm, pcm]} … 36 ]}."""
+    empty, [rate_hz, stereo, data_size, tempo_bpm, pcm]} … 36 ]}.
+    A truncated or malformed file raises ValueError."""
+    try:
+        return _parse_bank(data)
+    except (IndexError, struct.error):
+        raise ValueError('truncated or malformed .msmpl_bank file') from None
+
+
+def _parse_bank(data):
     top = _walk(data, 0, len(data))
     if not top or top[0][0] != 'BnkD':
         raise ValueError('not a .msmpl_bank file (missing 6150BnkD chunk)')

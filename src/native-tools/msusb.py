@@ -260,8 +260,8 @@ def cmd_inquiry():
             return 1
         print(f"Reply (cable {cable}):", _hex(reply))
         if reply[5] == 0x42 and reply[6] == 0x7f:
-            print(f"✓ microSAMPLER confirmed — Korg, family 0x{reply[6]:02x}, "
-                  f"member 0x{reply[8]:02x}{reply[7]:02x}")
+            print(f"microSAMPLER found: Korg, family 0x{reply[7]:02x}{reply[6]:02x}, "
+                  f"member 0x{reply[9]:02x}{reply[8]:02x}")
             print(f"  (device speaks on USB-MIDI cable {cable})")
         else:
             print("Replied, but not recognised as microSAMPLER.")
@@ -522,9 +522,8 @@ def cmd_params(slot):
         for off in range(0, 64, 16):
             print('  %02x: %s' % (off, raw[off:off + 16].hex(' ')))
         f = raw[8]
-        print('  flags8=0x%02x  bits[7..0]=%s   (b3=FXSW b7=EMPTY; '
-              'b4/b5/b6 = loop/reverse/bpmsync candidates)'
-              % (f, format(f, '08b')))
+        print('  flags8=0x%02x  bits[7..0]=%s  loop=%d reverse=%d bpm_sync=%d fx_sw=%d'
+              % (f, format(f, '08b'), par['loop'], par['reverse'], par['bpm_sync'], par['fx_sw']))
         print('  b09=%02x b0a=%02x b0b=%02x b16=%02x b1c..1f=%s'
               % (raw[9], raw[0xa], raw[0xb], raw[0x16], raw[0x1c:0x20].hex(' ')))
     finally:

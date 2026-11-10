@@ -224,10 +224,10 @@ def main():
         with open(f'{out}.param.bin', 'wb') as f:
             f.write(par['raw'])
         print(f"params: name '{par['name']}'  long '{par['long_name']}'")
-        print(f"  semitone {par['semitone']:+d}  tune {par['tune']:+d}  "
-              f"flags8 0x{par['flags8']:02x}  u32@0c {par['u32_0c']}  u32@10 {par['u32_10']}")
-        print(f"  b14 {par['b14']}  b15 {par['b15']}  b17 {par['b17']}  "
-              f"b18 {par['b18']}  b1a {par['b1a']}")
+        print(f"  start {par['u32_0c']}  end {par['u32_10']}  flags8 0x{par['flags8']:02x}")
+        print(f"  level {par['level']}  pan {par['pan']}  semitone {par['semitone']:+d}  "
+              f"tune {par['tune']}  velo int {par['velo_int']:+d}  "
+              f"decay {par['decay']}  release {par['release']}")
         print(f"  -> {out}.param.bin")
     return 0
 

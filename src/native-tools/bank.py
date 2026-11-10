@@ -61,7 +61,7 @@ def fetch_bank_blob(ms, channel, bank=None):
     return bp
 
 
-def fetch_sequence(ms, channel, seq_no):
+def fetch_sequence(ms, channel, seq_no, progress=True):
     """-> raw sequence bytes (b'' if the pattern is empty)."""
     _drain(ms)
     ms.send_sysex(P.sequence_dump_request(channel, seq_no))
@@ -73,7 +73,7 @@ def fetch_sequence(ms, channel, seq_no):
     if sh['data_size'] == 0:
         return b''
     return fetch_direct(ms, P.sequence_data_request(channel), sh['data_size'],
-                        label=f'seq {seq_no:02d}')
+                        progress=progress, label=f'seq {seq_no:02d}')
 
 
 def leave_dump_mode(ms, channel, commit=True):
@@ -83,7 +83,7 @@ def leave_dump_mode(ms, channel, commit=True):
                      timeout_ms=35000, what='leave-dump-mode ACK (func 0x4a)')
 
 
-def backup(ms, channel, bank, out, log=print):
+def backup(ms, channel, bank, out, log=print, progress=True):
     os.makedirs(os.path.join(out, 'samples'), exist_ok=True)
     os.makedirs(os.path.join(out, 'sequences'), exist_ok=True)
     manifest = {'bank': 'current' if bank is None else bank + 1,
@@ -118,7 +118,7 @@ def backup(ms, channel, bank, out, log=print):
             else:
                 log(f"  s{i:02d}: '{par['name']}' {hdr['data_size']} bytes "
                       f"{hdr['rate_hz']} Hz {'stereo' if hdr['stereo'] else 'mono'}")
-                pcm = fetch_pcm(ms, channel, hdr['data_size'])
+                pcm = fetch_pcm(ms, channel, hdr['data_size'], progress=progress)
                 write_wav(os.path.join(out, 'samples', f's{i:02d}.wav'),
                           pcm, hdr['rate_hz'], hdr['stereo'])
                 with open(os.path.join(out, 'samples', f's{i:02d}.param.bin'), 'wb') as f:
@@ -130,7 +130,7 @@ def backup(ms, channel, bank, out, log=print):
 
         # ---- 3. sequences (patterns) ----------------------------------------
         for q in range(16):
-            data = fetch_sequence(ms, channel, q)
+            data = fetch_sequence(ms, channel, q, progress=progress)
             entry = {'pattern': q, 'empty': not data, 'size': len(data)}
             if data:
                 log(f"  q{q:02d}: {len(data)} bytes")
@@ -182,7 +182,7 @@ def _read_wav_as_wire_pcm(path):
     return samples.tobytes(), rate, nch == 2
 
 
-def restore(ms, channel, bank, src, log=print):
+def restore(ms, channel, bank, src, log=print, progress=True):
     with open(os.path.join(src, 'manifest.json')) as f:
         manifest = json.load(f)
     with open(os.path.join(src, 'bank.bin'), 'rb') as f:
@@ -230,9 +230,11 @@ def restore(ms, channel, bank, src, log=print):
             for off in range(0, len(pcm), 0x4000):
                 ms.dev.write(0x01, pcm[off:off + 0x4000], timeout=5000)
                 sent += min(0x4000, len(pcm) - off)
-                print(f"\r  s{i:02d}: '{entry['name']}' {sent}/{len(pcm)} bytes "
-                      f"({sent * 100 // len(pcm)}%)", end='', flush=True)
-            print()
+                if progress:
+                    print(f"\r  s{i:02d}: '{entry['name']}' {sent}/{len(pcm)} bytes "
+                          f"({sent * 100 // len(pcm)}%)", end='', flush=True)
+            if progress:
+                print()
             _wait_korg_reply(ms, P.UPLOAD_DATA_OK, P.UPLOAD_DATA_ERR,
                              timeout_ms=30000, what=f's{i:02d} PCM ACK')
             log(f"  s{i:02d}: '{entry['name']}' {len(pcm)} bytes ok")

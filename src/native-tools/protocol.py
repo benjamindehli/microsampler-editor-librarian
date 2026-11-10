@@ -128,10 +128,12 @@ def parse_param_blob(blob: bytes):
         'fx_sw': bool(f & 0x08),
         'u32_0c': int.from_bytes(blob[0x0c:0x10], 'little'),   # start frame
         'u32_10': int.from_bytes(blob[0x10:0x14], 'little'),   # end frame
-        'b14': blob[0x14], 'b15': blob[0x15], 'b17': blob[0x17], 'b18': blob[0x18],
+        'decay': blob[0x14], 'release': blob[0x15],
+        'level': blob[0x17],                   # AmpLevel table index (101 = 0 dB)
+        'pan': blob[0x18],                     # 64 = centre
         'semitone': blob[0x19] - 0x40,         # stored +0x40
-        'b1a': blob[0x1a],
-        'tune': blob[0x1b] - 0x40,             # stored +0x40
+        'tune': blob[0x1a],                    # wire value 0..127 (see tuneCents in the app)
+        'velo_int': blob[0x1b] - 0x40,         # stored +0x40
         'raw': blob,
     }
 
@@ -336,8 +338,15 @@ def build_init_pattern():
 def parse_smf(data):
     """Minimal SMF reader (format 0/1): merged, time-ordered note events with
     ticks rescaled to 96/quarter. -> {'notes': [(tick, ch, note, vel)...where
-    vel 0 = off], 'programs': {midi_ch: program}, 'end_tick': n}"""
-    data = bytes(data)
+    vel 0 = off], 'programs': {midi_ch: program}, 'end_tick': n}.
+    A truncated or malformed file raises ValueError."""
+    try:
+        return _parse_smf(bytes(data))
+    except IndexError:
+        raise ValueError('truncated or malformed MIDI file') from None
+
+
+def _parse_smf(data):
     if data[0:4] != b'MThd' or int.from_bytes(data[4:8], 'big') != 6:
         raise ValueError('not a standard MIDI file')
     fmt = int.from_bytes(data[8:10], 'big')
@@ -857,7 +866,13 @@ def _selftest():
     reply = bytes([SOX, KORG, 0x30, MODEL, 0x44, 5, *korg_encode(bytes(blob)), EOX])
     q = parse_sample_param(reply)
     assert q['name'] == 'KICK 01' and q['long_name'] == 'Kick 01'
-    assert q['semitone'] == 3 and q['tune'] == -2
+    assert q['semitone'] == 3 and q['velo_int'] == -2
+    # a truncated SMF is a ValueError (the bridge answers 400), not an IndexError
+    try:
+        parse_smf(b'MThd\x00\x00\x00\x06\x00\x00\x00\x01\x00\x60MTrk\x00\x00\x00\x10\x00\x90')
+        raise AssertionError('truncated SMF accepted')
+    except ValueError:
+        pass
     print("protocol self-test: OK")
 
 

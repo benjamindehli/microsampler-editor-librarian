@@ -468,7 +468,7 @@ class Device:
                     # but the event stream (separate thread) delivers these live
                     self._emit({'type': 'progress', 'op': 'patterns',
                                 'done': q, 'total': 16})
-                    blob = fetch_sequence(self.ms, self.channel, q)
+                    blob = fetch_sequence(self.ms, self.channel, q, progress=False)
                     self.pattern_cache[q] = blob
                     out.append(_pattern_json(q, blob))
             except Exception:
@@ -485,7 +485,7 @@ class Device:
             with self.lock:
                 self._inquire()
                 try:
-                    blob = fetch_sequence(self.ms, self.channel, q)
+                    blob = fetch_sequence(self.ms, self.channel, q, progress=False)
                 except Exception:
                     self._abort_dump()   # a failed 0x13 select may be left open
                     raise
@@ -520,7 +520,7 @@ class Device:
         out = os.path.join(BACKUP_ROOT, label)
         self.start_op('backup',
                       lambda log: BK.backup(self.ms, self.channel, None, out,
-                                            log=log))
+                                            log=log, progress=False))
         return {'dir': label}
 
     def start_restore(self, dirname, bank):
@@ -528,7 +528,7 @@ class Device:
         src = restorable_dir(dirname)
         self.start_op('restore',
                       lambda log: BK.restore(self.ms, self.channel, bank, src,
-                                             log=log))
+                                             log=log, progress=False))
         return {'dir': dirname,
                 'target': 'current' if bank is None else bank + 1}
 
@@ -614,7 +614,7 @@ class Device:
             else:
                 UL.upload(self.ms, self.channel, slot, d['pcm'], d['rate'],
                           d['stereo'], d['blob'], d['tempo'],
-                          mode_bit=d.get('mode_bit', 0))
+                          mode_bit=d.get('mode_bit', 0), progress=False)
         return {'slot': slot, 'empty': bool(d.get('empty'))}
 
     def copy_sample(self, frm, to):
@@ -872,21 +872,12 @@ class Device:
         out = {'slot': i,
                'empty': par['u32_10'] in (0, 0xFFFFFFFF)}
         if not out['empty']:
-            raw = par['raw']
-            # bipolar params are stored byte-centred at 0x40 in the blob (the
-            # live message uses signed 14-bit; the app slider works in signed
-            # model space, so send signed models here). Confirmed offsets:
-            # 0x17 level, 0x18 pan, 0x19 semitone, 0x1a tune, 0x1b velo int.
-            out.update(
-                name=par['name'], long_name=par['long_name'],
-                start=par['u32_0c'], end=par['u32_10'],
-                level=raw[0x17], pan=raw[0x18],
-                semitone=raw[0x19] - 0x40, tune=raw[0x1a],  # tune = wire 0..127
-                velo_int=raw[0x1b] - 0x40,
-                decay=raw[0x14], release=raw[0x15],
-                loop=par['loop'], reverse=par['reverse'],
-                bpm_sync=par['bpm_sync'], fx_sw=par['fx_sw'],
-            )
+            # the app's controls use the same model values parse_param_blob
+            # decodes (signed semitone / velo int, tune as the wire value)
+            out.update({k: par[k] for k in (
+                'name', 'long_name', 'level', 'pan', 'semitone', 'tune', 'velo_int',
+                'decay', 'release', 'loop', 'reverse', 'bpm_sync', 'fx_sw')})
+            out.update(start=par['u32_0c'], end=par['u32_10'])
         return out
 
     def _fetch_bank_blob(self):
@@ -929,7 +920,7 @@ class Device:
         with self.lock:
             self._inquire()
             UL.upload(self.ms, self.channel, slot, pcm, target,
-                      len(chans) == 2, blob, tempo)
+                      len(chans) == 2, blob, tempo, progress=False)
         return {'slot': slot, 'frames': frames, 'rate_hz': target,
                 'stereo': len(chans) == 2}
 
@@ -1716,6 +1707,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header('Content-Type', 'application/json')
         self.send_header('Content-Length', str(len(body)))
+        if self.close_connection:             # tell the client to reconnect
+            self.send_header('Connection', 'close')
         self.end_headers()
         self.wfile.write(body)
 
@@ -1729,6 +1722,10 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def _err(self, msg, code=500):
+        # an error before the request body was read leaves it on the socket,
+        # where it would be parsed as the next keep-alive request: close instead
+        if not getattr(self, '_body_read', True) and self.headers.get('Content-Length', '0') != '0':
+            self.close_connection = True
         self._json({'error': str(msg)}, code)
 
     def _fail(self, e):
@@ -1745,6 +1742,7 @@ class Handler(BaseHTTPRequestHandler):
         if not 0 <= n <= MAX_BODY:
             raise TooLarge('request body too large (max %d MB)'
                            % (MAX_BODY >> 20))
+        self._body_read = True
         return self.rfile.read(n)
 
     @staticmethod
@@ -1877,6 +1875,7 @@ class Handler(BaseHTTPRequestHandler):
             self._fail(e)
 
     def do_POST(self):
+        self._body_read = False
         if self._bad_host() or self._cross_site():
             return
         path, _, query = self.path.partition('?')

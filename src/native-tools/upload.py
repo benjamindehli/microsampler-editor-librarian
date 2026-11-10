@@ -106,32 +106,33 @@ def to_device_pcm(chans, rate, target_rate):
 
 
 # --- upload phases ------------------------------------------------------------
-def upload(ms, channel, slot, pcm, rate, stereo, blob, tempo, mode_bit=0):
+def upload(ms, channel, slot, pcm, rate, stereo, blob, tempo, mode_bit=0, progress=True):
+    say = print if progress else (lambda *a, **k: None)   # CLI progress; the bridge passes False
     # phase 1: header
     _drain(ms)
     ms.send_sysex(P.sample_header(channel, slot, len(pcm), rate, stereo,
                                   tempo_bpm=tempo, mode_bit=mode_bit))
     _wait_korg_reply(ms, P.UPLOAD_HDR_OK, P.UPLOAD_HDR_ERR,
                      timeout_ms=8000, what='header ACK')
-    print("  header ACKed")
+    say("  header ACKed")
 
     # phase 2: raw PCM, 0x4000-byte blocks
     sent = 0
     for off in range(0, len(pcm), 0x4000):
         ms.dev.write(0x01, pcm[off:off + 0x4000], timeout=5000)
         sent += len(pcm[off:off + 0x4000])
-        print(f"\r  PCM {sent}/{len(pcm)} bytes ({sent * 100 // len(pcm)}%)",
-              end='', flush=True)
-    print()
+        say(f"\r  PCM {sent}/{len(pcm)} bytes ({sent * 100 // len(pcm)}%)",
+            end='', flush=True)
+    say()
     _wait_korg_reply(ms, P.UPLOAD_DATA_OK, P.UPLOAD_DATA_ERR,
                      timeout_ms=30000, what='PCM ACK')
-    print("  PCM ACKed")
+    say("  PCM ACKed")
 
     # phase 3: parameter blob
     ms.send_sysex(P.sample_param_send(channel, slot, blob))
     _wait_korg_reply(ms, P.UPLOAD_DATA_OK, P.UPLOAD_DATA_ERR,
                      timeout_ms=8000, what='param ACK')
-    print("  params ACKed")
+    say("  params ACKed")
 
 
 def main():
