@@ -82,7 +82,7 @@ export function renderFx() {
             // popup select
             const t = VALUE_TABLES[p.table] || FX_TABLES_EXTRA[p.table] || [];
             div.innerHTML = `<span class="ctl-label">${esc(p.name)}</span>
-        <select class="fx-select">${Array.from(
+        <select class="fx-select" aria-label="${esc(p.name)}">${Array.from(
             { length: p.max - p.min + 1 },
             (_, i) => `<option value="${p.min + i}"${p.min + i === v ? " selected" : ""}>${esc(t[i] ?? String(p.min + i))}</option>`
         ).join("")}</select>`;
@@ -90,7 +90,7 @@ export function renderFx() {
         } else if (p.type === 4) {
             // on/off switch
             div.innerHTML = `<span class="ctl-label">${esc(p.name)}</span>
-        <button class="switch" role="switch" aria-checked="${v ? "true" : "false"}">
+        <button class="switch" role="switch" aria-checked="${v ? "true" : "false"}" aria-label="${esc(p.name)}">
           <span class="switch-track"><span class="switch-knob"></span></span>
           <span class="switch-val">${v ? "ON" : "OFF"}</span>
         </button>`;
@@ -99,11 +99,14 @@ export function renderFx() {
             // knob/slider
             const center = p.min < 0 ? " center" : "";
             div.innerHTML = `<span class="ctl-label">${esc(p.name)}</span>
-        <input type="range" class="fader${center}" min="${p.min}" max="${p.max}" value="${v}">
+        <input type="range" class="fader${center}" min="${p.min}" max="${p.max}" value="${v}"
+          aria-label="${esc(p.name)}" aria-valuetext="${esc(fxValStr(p, v))}">
         <span class="ctl-val">${esc(fxValStr(p, v))}</span>`;
             const inp = div.querySelector("input");
             inp.oninput = () => {
-                div.querySelector(".ctl-val").textContent = fxValStr(p, +inp.value);
+                const text = fxValStr(p, +inp.value);
+                div.querySelector(".ctl-val").textContent = text;
+                inp.setAttribute("aria-valuetext", text);
             };
             inp.onchange = () => fxSet(p, +inp.value);
         }
@@ -130,8 +133,10 @@ function fxUpdateControl(idx) {
     const btn = div.querySelector("button");
     if (sel) sel.value = String(v);
     if (inp) {
+        const text = fxValStr(p, v);
         inp.value = v;
-        div.querySelector(".ctl-val").textContent = fxValStr(p, v);
+        inp.setAttribute("aria-valuetext", text);
+        div.querySelector(".ctl-val").textContent = text;
     }
     if (btn) {
         btn.setAttribute("aria-checked", v ? "true" : "false");

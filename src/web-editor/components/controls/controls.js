@@ -195,8 +195,10 @@ function wireFader(inSel, valSel, param, fmt) {
     input.onchange = () => sendParam(param, +input.value);
 }
 export function setFader(inSel, valSel, v, fmt) {
+    const text = fmt ? fmt(v) : String(v);
     $(inSel).value = v;
-    $(valSel).textContent = fmt ? fmt(v) : String(v);
+    $(inSel).setAttribute("aria-valuetext", text); // screen readers speak "+0.0dB", not "101"
+    $(valSel).textContent = text;
 }
 
 // wire every control from the descriptor table (each param exactly once)

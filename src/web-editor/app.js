@@ -20,7 +20,7 @@ import { loadBackups } from "components/utility/utility.js";
 import { subscribeEvents } from "functions/events.js";
 import { state } from "functions/state.js";
 import { tick } from "functions/ticker.js";
-import { $, $$, apiJson, confirmDialog, lsGet, lsSet } from "functions/util.js";
+import { $, $$, apiJson, confirmDialog, lsGet, lsSet, setSegActive } from "functions/util.js";
 
 let subscribed = false;
 let reloadAll = false; // set when the device vanished: its RAM may have reset
@@ -202,7 +202,7 @@ export async function refreshBank() {
 
 // ── view nav ─────────────────────────────────────────────────────────────
 function showView(name) {
-    $$(".view-btn").forEach((b) => b.classList.toggle("on", b.dataset.view === name));
+    setSegActive([...$$(".view-btn")].map((b) => [b, b.dataset.view === name]));
     $("#view-samples").hidden = name !== "samples";
     $("#view-effect").hidden = name !== "effect";
     $("#view-patterns").hidden = name !== "patterns";
