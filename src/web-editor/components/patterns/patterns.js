@@ -7,9 +7,16 @@ import { $, apiJson, clampBpm, confirmDialog, esc, jsonBody, sweepPlayhead } fro
 let loadingPatterns = false;
 let lastPatterns = null; // for recolouring the rolls on theme change
 
-// repaint the piano-roll cards when the accent theme changes
+// recolour the piano rolls in place when the accent theme changes (a full
+// re-render would rebuild the cards and stop a playing pattern)
 addEventListener("msmpl-theme", () => {
-    if (lastPatterns) renderPatterns(lastPatterns);
+    if (!lastPatterns) return;
+    const rgb = accentRgb(),
+        cards = $("#pattern-grid").children;
+    lastPatterns.forEach((p, i) => {
+        const roll = cards[i]?.querySelector(".pattern-roll");
+        if (p.valid && roll) drawRoll(roll, p, rgb);
+    });
 });
 // the pattern editor reports the one changed pattern after a save (detail = the
 // updated pattern JSON) — update just that card, no full re-receive
