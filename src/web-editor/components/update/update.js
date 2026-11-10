@@ -50,7 +50,7 @@ export async function checkForUpdate(current) {
     if (!rel.tag || !isNewer(rel.tag, current)) return;
     if (lsGet(SEEN) === rel.tag) return; // dismissed
     const el = $("#update-toast");
-    $("#update-text").textContent = `v${rel.tag.replace(/^v/, "")} available — you have v${current}`;
+    $("#update-text").textContent = `v${rel.tag.replace(/^v/, "")} available (you have v${current})`;
     $("#update-link").href = rel.url || `https://github.com/${REPO}/releases`;
     $("#update-dismiss").onclick = () => {
         el.hidden = true;

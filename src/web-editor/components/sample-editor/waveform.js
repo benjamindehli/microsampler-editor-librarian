@@ -64,7 +64,7 @@ export async function loadWave(i) {
         drawWave(buf, s);
         updateZoomUI();
     } catch (e) {
-        status.textContent = "READ ERROR — " + e.message.toUpperCase();
+        status.textContent = "READ ERROR: " + e.message.toUpperCase();
     }
 }
 

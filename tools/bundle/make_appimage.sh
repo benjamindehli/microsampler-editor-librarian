@@ -13,7 +13,7 @@ cd "$(dirname "$0")/../.."
 ONEDIR="dist/bundle/microSAMPLER Library"
 APPDIR="build/bundle/AppDir"
 TOOL="build/bundle/appimagetool"
-[ -d "$ONEDIR" ] || { echo "ERROR: $ONEDIR not found — run pyinstaller first"; exit 1; }
+[ -d "$ONEDIR" ] || { echo "ERROR: $ONEDIR not found. Run pyinstaller first"; exit 1; }
 
 rm -rf "$APPDIR"
 mkdir -p "$APPDIR"

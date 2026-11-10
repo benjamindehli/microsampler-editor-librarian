@@ -146,7 +146,7 @@ def main():
                     help='64-byte .param.bin template from download.py '
                          '(names/points patched, rest kept)')
     ap.add_argument('--dry-run', action='store_true',
-                    help='convert + print everything; do not touch the device')
+                    help='convert + print everything, without touching the device')
     ap.add_argument('--header-only', action='store_true',
                     help='send only phase 1 (the device then waits for PCM: '
                          'power-cycle it afterwards)')
@@ -187,7 +187,7 @@ def main():
         print("header:", _hex(P.korg_decode(
             P.sample_header(0, args.slot, len(pcm), rate, stereo, args.tempo)[6:-1])))
         print("blob:  ", _hex(blob))
-        print("dry run — nothing sent.")
+        print("dry run, nothing sent.")
         return 0
 
     if not args.yes:
@@ -198,7 +198,7 @@ def main():
     with MicroSampler() as ms:
         reply, cable = ms.device_inquiry()
         if not reply:
-            print("No inquiry reply — is the device on? (power-cycle if wedged)")
+            print("No inquiry reply. Is the device on? (power-cycle it if wedged)")
             return 1
         channel = reply[2] & 0x0f
         ms.cable = cable
@@ -210,11 +210,11 @@ def main():
                                           stereo, tempo_bpm=args.tempo))
             _wait_korg_reply(ms, P.UPLOAD_HDR_OK, P.UPLOAD_HDR_ERR,
                              timeout_ms=8000, what='header ACK')
-            print("header ACKed; stopping here (power-cycle the device now).")
+            print("header ACKed, stopping here (power-cycle the device now).")
             return 0
 
         upload(ms, channel, args.slot, pcm, rate, stereo, blob, args.tempo)
-        print(f"done — slot {args.slot} written to the device's CURRENT BANK (RAM).")
+        print(f"done: slot {args.slot} written to the device's CURRENT BANK (RAM).")
 
         if args.verify:
             print("verifying (same session)...")
@@ -233,11 +233,11 @@ def main():
             print(f"  params: name '{par['name']}' "
                   f"{'IDENTICAL' if ok_par else 'DIFFERS'}")
             if not (ok_hdr and ok_pcm and ok_par):
-                print("VERIFY FAILED — round-trip is not byte-exact.")
+                print("VERIFY FAILED: round-trip is not byte-exact.")
                 return 1
-            print("VERIFY OK — byte-exact round-trip.")
+            print("VERIFY OK: byte-exact round-trip.")
 
-        print("NOTE: the current bank is volatile — save it to a user bank on "
+        print("NOTE: the current bank is volatile. Save it to a user bank on "
               "the device (see its Owner's Manual) to keep the sample after "
               "power-off or bank switch.")
     return 0

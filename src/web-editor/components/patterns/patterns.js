@@ -45,7 +45,7 @@ async function loadPatterns() {
         renderPatterns(patterns);
         tick(`✓ received ${patterns.length} patterns`);
     } catch (e) {
-        $("#pattern-grid").innerHTML = `<p class="backup-empty">PATTERN READ FAILED — ${esc(e.message.toUpperCase())}</p>`;
+        $("#pattern-grid").innerHTML = `<p class="backup-empty">PATTERN READ FAILED: ${esc(e.message.toUpperCase())}</p>`;
         tick("⚠ patterns: " + e.message);
     } finally {
         loadingPatterns = false;
@@ -161,7 +161,7 @@ function applyPattern(p) {
 }
 
 function sampleLabel(idx) {
-    if (idx == null) return "—";
+    if (idx == null) return "-";
     const s = state.bank && state.bank.slots[idx];
     return s && !s.empty ? s.name : `#${idx + 1}`;
 }
@@ -308,7 +308,7 @@ async function initPattern(q, recorded) {
     if (
         !(await confirmDialog(
             `INIT PATTERN ${q + 1}`,
-            `Reset to the factory INIT pattern` + (recorded ? " — its recorded notes will be LOST (RAM)?" : "?"),
+            `Reset to the factory INIT pattern` + (recorded ? "? Its recorded notes will be LOST (RAM)." : "?"),
             "INIT"
         ))
     )
@@ -328,5 +328,5 @@ $("#patterns-refresh").onclick = () => loadPatterns();
 // so the user watches the device screen (arm → start → end). Mirrors SAMPLING.
 $("#pattern-rec").onclick = () =>
     apiJson("/api/pattern/rec", { method: "POST" })
-        .then(() => tick("● REC pressed — arm → start → end on the device"))
+        .then(() => tick("● REC pressed: arm → start → end on the device"))
         .catch((e) => tick(`⚠ rec failed: ${e.message}`));

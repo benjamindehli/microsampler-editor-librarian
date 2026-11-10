@@ -21,7 +21,7 @@ async function refresh(selectDir) {
 function renderBanks() {
     const list = $("#lib-banks");
     if (!banks.length) {
-        list.innerHTML = '<p class="backup-empty">NO BANKS YET — OPEN A FILE ↑</p>';
+        list.innerHTML = '<p class="backup-empty">NO BANKS YET: OPEN A FILE ↑</p>';
         return;
     }
     list.innerHTML = "";
@@ -60,7 +60,7 @@ async function renderDetail() {
     for (const s of samples) bySlot[s.slot] = s;
     const zip = `/api/backup/${encodeURIComponent(selDir)}.zip`;
     el.innerHTML = `<div class="lib-detail-head">
-       <span>${samples.length} sample${samples.length !== 1 ? "s" : ""} — click a pad to play</span>
+       <span>${samples.length} sample${samples.length !== 1 ? "s" : ""} · click a pad to play</span>
        <a class="hw-btn" href="${zip}" download="${encodeURIComponent(selDir)}.zip"><span class="hw-btn-cap"><span class="ico ico-dn"></span>ALL (ZIP)</span></a>
      </div>
      <div class="lib-grid" id="lib-grid"></div>
@@ -104,7 +104,7 @@ async function renderPatterns() {
     const zip = `/api/backup/${encodeURIComponent(dir)}/patterns.zip`;
     box.innerHTML =
         `<div class="lib-detail-head" style="margin-top:1.1rem">
-       <span>${pats.length} pattern${pats.length !== 1 ? "s" : ""} — download as MIDI</span>
+       <span>${pats.length} pattern${pats.length !== 1 ? "s" : ""} · download as MIDI</span>
        <a class="hw-btn" href="${zip}" download="${encodeURIComponent(dir)}-patterns.zip"><span class="hw-btn-cap"><span class="ico ico-dn"></span>ALL (.mid ZIP)</span></a>
      </div>
      <div class="lib-pats">` +
@@ -112,7 +112,7 @@ async function renderPatterns() {
             .map((p) => {
                 const f = `${String(p.pattern + 1).padStart(2, "0")}_${(p.name || "pattern").replace(/[^\w.-]/g, "_")}.mid`;
                 return `<a class="lib-pat" download="${f}" href="/api/backup/${encodeURIComponent(dir)}/pattern/${p.pattern}.mid">
-                <span class="lib-pat-name">P${String(p.pattern + 1).padStart(2, "0")} · ${esc(p.name || "—")}</span>
+                <span class="lib-pat-name">P${String(p.pattern + 1).padStart(2, "0")} · ${esc(p.name || "-")}</span>
                 <span class="lib-pat-meta">${p.note_count} notes <span class="ico ico-dn"></span></span>
               </a>`;
             })

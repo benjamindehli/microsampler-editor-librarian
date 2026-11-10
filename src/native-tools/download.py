@@ -184,7 +184,7 @@ def main():
     with MicroSampler() as ms:
         reply, cable = ms.device_inquiry()
         if not reply:
-            print("No inquiry reply — is the device on? (power-cycle if wedged)")
+            print("No inquiry reply. Is the device on? (power-cycle it if wedged)")
             return 1
         channel = reply[2] & 0x0f
         ms.cable = cable
@@ -200,7 +200,7 @@ def main():
             f.write(hdr['raw'])
         print(f"  -> {out}.header.bin")
         if hdr['data_size'] == 0:
-            print("slot is empty (dataSize 0) — nothing more to fetch.")
+            print("slot is empty (dataSize 0), nothing more to fetch.")
             return 0
         if args.header_only:
             print("Warning: func 0x16 selected this sample. The device now waits "

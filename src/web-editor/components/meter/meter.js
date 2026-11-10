@@ -87,7 +87,7 @@ export async function loadAllSamples() {
     }
     tick(
         failed
-            ? `⚠ loaded ${done - failed}/${todo.length} samples (${failed} failed — RECEIVE retries)`
+            ? `⚠ loaded ${done - failed}/${todo.length} samples (${failed} failed, RECEIVE retries)`
             : `▦ loaded ${done} sample${done === 1 ? "" : "s"}`
     );
     bar.hidden = true;

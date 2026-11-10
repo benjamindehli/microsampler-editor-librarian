@@ -71,7 +71,7 @@ export function renderFx() {
         ""
     );
     const grid = $("#fx-params");
-    grid.innerHTML = fx.params.length ? "" : '<p class="backup-empty">EFFECT OFF — NO PARAMETERS</p>';
+    grid.innerHTML = fx.params.length ? "" : '<p class="backup-empty">EFFECT OFF: NO PARAMETERS</p>';
     $("#fx-legend").hidden = !fx.params.length; // the legend only makes sense with params
     for (const p of fx.params) {
         const v = state.fx.vals[p.idx];

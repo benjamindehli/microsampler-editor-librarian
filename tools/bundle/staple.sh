@@ -10,7 +10,7 @@ set -euo pipefail
 for TARGET in "$@"; do
   for attempt in 1 2 3 4 5; do
     xcrun stapler staple "$TARGET" && continue 2
-    echo "staple attempt $attempt failed for $TARGET — retrying in 30 s"
+    echo "staple attempt $attempt failed for $TARGET, retrying in 30 s"
     sleep 30
   done
   echo "ERROR: could not staple $TARGET"

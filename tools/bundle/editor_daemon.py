@@ -83,7 +83,7 @@ def main():
             # tampered with (or hand-edited): don't follow it as root. Backups
             # made before stay where they are; the log says why they're hidden.
             sys.stderr.write('WARNING: %s is a symlink, not owned by root, or '
-                             'writable by others — using %s instead\n'
+                             'writable by others. Using %s instead\n'
                              % (data, FALLBACK))
             data = FALLBACK
             os.makedirs(os.path.join(data, 'backups'), mode=0o755, exist_ok=True)

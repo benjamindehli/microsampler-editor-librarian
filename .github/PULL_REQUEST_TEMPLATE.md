@@ -23,19 +23,18 @@ Closes #
 - [ ] Bridge / device protocol (`src/native-tools/`)
 - [ ] Other
 
-## Checks (CI runs these — please run them locally too)
+## Checks (CI runs these, so please run them locally too)
 
 - [ ] Python offline suite passes (`protocol.py` + `test_*.py` in `src/native-tools/`)
 - [ ] JS unit tests pass (`npm test`)
-- [ ] Linters clean (`npm run lint:js` and `ruff check`)
-- [ ] E2E smoke passes (`python3 e2e/smoke.py`)
+- [ ] Linters clean (`npm run lint:js`, `npm run lint:types`, `npm run format:check` and `ruff check`)
+- [ ] E2E smoke passes (`python3 test/e2e/smoke.py`)
 - [ ] Tried it in mock mode (`python3 src/native-tools/bridge.py --mock`)
 
 ## Hardware testing
 
 <!-- The device protocol is reverse-engineered and largely unverifiable in CI.
-     If this touches the bridge/protocol/transfers, say what you tested on a real
-     microSAMPLER — and what you couldn't. -->
+     If this touches the bridge/protocol/transfers, say what you tested on a real microSAMPLER, and what you couldn't. -->
 
 - [ ] Tested on a real microSAMPLER
 - [ ] Not applicable (UI/docs/tooling only)

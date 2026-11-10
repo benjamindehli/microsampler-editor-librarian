@@ -16,7 +16,7 @@ SRC="tools/bundle/editor-app"
 BRIDGE="dist/bundle/msmpl-bridge"
 VERSION=$(node -p "require('./package.json').version" 2>/dev/null \
           || python3 -c "import json; print(json.load(open('package.json'))['version'])")
-[ -d "$BRIDGE" ] || { echo "ERROR: $BRIDGE missing — run pyinstaller editor.spec first"; exit 1; }
+[ -d "$BRIDGE" ] || { echo "ERROR: $BRIDGE missing. Run pyinstaller editor.spec first"; exit 1; }
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" \
@@ -37,4 +37,4 @@ ditto "$BRIDGE" "$APP/Contents/Resources/bridge"
 [ -n "${MSMPL_ICNS:-}" ] && cp "$MSMPL_ICNS" "$APP/Contents/Resources/AppIcon.icns"
 
 echo "assembled: $APP  (v$VERSION, $ARCH, macOS 13+)"
-echo "next: codesign everything (incl. Resources/bridge) + notarize — see package.yml"
+echo "next: codesign everything (incl. Resources/bridge) + notarize (see package.yml)"

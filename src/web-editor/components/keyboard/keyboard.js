@@ -411,7 +411,7 @@ function bindMidiInputs() {
     const names = midiInputNames();
     $("#midi-toggle").title = names.length
         ? "MIDI input: " + names.join(", ")
-        : "No MIDI device detected yet — connect one and it is picked up automatically";
+        : "No MIDI device detected yet. Connect one and it is picked up automatically.";
 }
 async function setMidi(on) {
     if (on) {
@@ -519,7 +519,7 @@ $("#kb-mode-kbd").onclick = () => setMode("kbd");
         ]) {
             const sel = $(`#midi-ch-${which}`);
             sel.innerHTML =
-                '<option value="">—</option>' + Array.from({ length: 16 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join("");
+                '<option value="">-</option>' + Array.from({ length: 16 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join("");
             sel.value = midiCh[which] == null ? "" : String(midiCh[which] + 1);
             sel.disabled = true;
             sel.addEventListener("change", () => {
@@ -532,8 +532,8 @@ $("#kb-mode-kbd").onclick = () => setMode("kbd");
                     lsSet(MIDI_CH_KEYS[other], "");
                     $(`#midi-ch-${other}`).value = "";
                 }
-                const desc = (c) => (c == null ? "—" : `ch ${c + 1}`);
-                tick(`MIDI IN routing: SAMPLE ${desc(midiCh.sample)} · KEYBOARD ${desc(midiCh.kbd)} (— = follow the toggle)`);
+                const desc = (c) => (c == null ? "-" : `ch ${c + 1}`);
+                tick(`MIDI IN routing: SAMPLE ${desc(midiCh.sample)} · KEYBOARD ${desc(midiCh.kbd)} (- = follow the toggle)`);
             });
         }
         const ml = $("#midi-learn");

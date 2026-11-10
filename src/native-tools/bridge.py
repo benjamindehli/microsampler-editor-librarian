@@ -63,7 +63,7 @@ class DeviceGone(RuntimeError):
 
 # what the UI shows once a vanished device's handle has been dropped
 GONE_MSG = ('microSAMPLER disconnected (switched off, unplugged, or the '
-            'computer slept) — press RETRY to reconnect')
+            'computer slept). Press RETRY to reconnect.')
 
 
 def usb_gone(e):
@@ -220,10 +220,10 @@ class Device:
                         break
             if not reply:
                 ms.close()
-                raise RuntimeError('no inquiry reply — the device did not answer '
-                                   '(often a transient USB claim glitch; press '
+                raise RuntimeError('no inquiry reply: the device did not answer '
+                                   '(often a transient USB claim glitch). Press '
                                    'RETRY, or power-cycle the device only if it '
-                                   'keeps failing)')
+                                   'keeps failing')
             self.ms, self.cable = ms, cable
             self.ms.cable = cable
             self.channel = reply[2] & 0x0f
@@ -306,7 +306,7 @@ class Device:
             return False
         was = self.ms is not None
         if was:
-            sys.stderr.write('  USB device gone (%s) — released the handle\n' % e)
+            sys.stderr.write('  USB device gone (%s), released the handle\n' % e)
         self._stop.set()
         self._stop_clock()
         with self.lock:
@@ -355,7 +355,7 @@ class Device:
                 # back off, but keep looping so the reader recovers if the
                 # device returns; a clean close()/release() still exits us by
                 # setting _stop (and nulling self.ms → the `return` above).
-                sys.stderr.write('  reader: USB read error (%s) — retrying\n'
+                sys.stderr.write('  reader: USB read error (%s), retrying\n'
                                  % err)
                 time.sleep(0.5)
             else:
@@ -539,11 +539,11 @@ class Device:
         if self.ms is None:
             if DAEMON and not self.open_error:
                 # idle-released, not failed — reconnecting is one reload away
-                raise DeviceGone('device not claimed — reload the editor '
+                raise DeviceGone('device not claimed: reload the editor '
                                  'page (or press RETRY) to reconnect')
             if self.open_error == GONE_MSG:  # unplugged, not wedged: no
                 raise DeviceGone(GONE_MSG)   # power-cycle advice
-            raise DeviceGone('device not connected%s — power-cycle it and '
+            raise DeviceGone('device not connected%s: power-cycle it and '
                              'press RETRY' % (' (%s)' % self.open_error
                                               if self.open_error else ''))
 
@@ -554,9 +554,9 @@ class Device:
         self._require_device()
         reply, _ = self.ms.device_inquiry(timeout_ms=2000, cables=(self.cable,))
         if not reply:
-            raise RuntimeError('device inquiry failed — the device did not answer '
-                               '(often transient; press RETRY, or power-cycle it '
-                               'only if it keeps failing)')
+            raise RuntimeError('device inquiry failed: the device did not answer '
+                               '(often transient). Press RETRY, or power-cycle it '
+                               'only if it keeps failing')
         self.channel = reply[2] & 0x0f
 
     def send_param(self, obj, param, value):
@@ -1493,7 +1493,7 @@ def _check_backup_writable():
     sudo (device) run made it root-owned and a non-root (library) run now writes."""
     if os.path.isdir(BACKUP_ROOT) and not os.access(BACKUP_ROOT, os.W_OK):
         raise RuntimeError(
-            'cannot write backups in %s — it is owned by another user (most '
+            'cannot write backups in %s: it is owned by another user (most '
             'likely root, from running the device bridge with sudo). Fix it once '
             'with:  sudo chown -R "$(id -un)" "%s"' % (BACKUP_ROOT, BACKUP_ROOT))
 
@@ -1595,7 +1595,7 @@ def restorable_dir(dirname):
         raise RuntimeError('unknown backup: %s' % dirname)
     if not os.path.isfile(os.path.join(src, 'bank.bin')):
         raise RuntimeError("this backup can't be restored to the device "
-                           '(no bank.bin) — import the original .msmpl_bank '
+                           '(no bank.bin). Import the original .msmpl_bank '
                            'file again to make a restorable copy')
     return src
 
@@ -1646,7 +1646,7 @@ def _watch_idle_exit(srv, secs, poll=5):
         if empty_since is None:
             empty_since = time.monotonic()
         if time.monotonic() - empty_since >= secs:
-            print('no UI connected for %ds — exiting' % secs)
+            print('no UI connected for %ds, exiting' % secs)
             srv.shutdown()
             return
 
@@ -2085,7 +2085,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--port', type=int, default=None,
-                    help='HTTP port (default 8765; 8766 in --library mode so it '
+                    help='HTTP port (default 8765, or 8766 in --library mode so it '
                          'never collides with a running device bridge)')
     ap.add_argument('--mock', action='store_true',
                     help='serve fake data for UI development (no hardware)')
@@ -2097,7 +2097,7 @@ def main():
                          'daemon): start without claiming the device, claim it when '
                          'the editor opens, release it after MSMPL_IDLE_RELEASE s idle')
     ap.add_argument('--no-reader', action='store_true',
-                    help='disable the background panel-edit reader (diagnostic; '
+                    help='disable the background panel-edit reader (diagnostic: '
                          'the /api/events stream stays silent)')
     ap.add_argument('--trace', action='store_true',
                     help='hexdump every USB read/write to stderr (diagnostic)')
@@ -2114,8 +2114,8 @@ def main():
         # background service: don't claim at startup — the device stays free
         # for DAWs until the editor page actually opens (maybe_claim), and is
         # released again after MSMPL_IDLE_RELEASE s without any UI connected
-        print('DAEMON mode — device unclaimed until the editor opens; '
-              'idle-release after %ds without UI.' % IDLE_RELEASE_SECS)
+        print('Daemon mode: the device stays unclaimed until the editor opens, '
+              'and is released after %ds without a UI.' % IDLE_RELEASE_SECS)
 
         def idle_watch():
             empty_since = None
@@ -2129,7 +2129,7 @@ def main():
                     continue                      # never release mid-transfer
                 empty_since = empty_since or time.monotonic()
                 if time.monotonic() - empty_since >= IDLE_RELEASE_SECS:
-                    print('no UI for %ds — releasing the device'
+                    print('no UI for %ds, releasing the device'
                           % IDLE_RELEASE_SECS)
                     try:
                         DEVICE.release()
@@ -2145,13 +2145,13 @@ def main():
             # panel with a Retry button (POST /api/connect), instead of the user
             # seeing only this terminal line. Power-cycle + Retry usually recovers.
             DEVICE.open_error = str(e)
-            print('device open failed: %s\n  → serving the editor anyway; '
-                  'power-cycle the device and click Retry (or restart).' % e)
+            print('device open failed: %s\n  → serving the editor anyway. '
+                  'Power-cycle the device and click Retry (or restart).' % e)
     if args.library:
-        print('LIBRARY mode — no device; browse/import/export bank backups.')
+        print('Library mode: no device. Browse, import and export bank backups.')
     if not args.mock and not args.library and not DAEMON \
             and DEVICE.open_error is None:
-        print("microSAMPLER claimed (cable %d, channel %d); other MIDI apps can't "
+        print("microSAMPLER claimed (cable %d, channel %d). Other MIDI apps can't "
               'use it until the bridge exits.' % (DEVICE.cable, DEVICE.channel + 1))
 
     # Closing the Terminal window sends SIGHUP (service managers send SIGTERM);

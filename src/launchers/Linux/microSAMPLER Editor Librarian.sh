@@ -65,21 +65,21 @@ open_ui() {
 }
 
 if port_open; then
-  echo "Bridge already running — opening the editor."
+  echo "Bridge already running, opening the editor."
   open_ui
   read -r -p "Press Enter to close… " _
   exit 0
 fi
 
 echo
-echo "Starting the bridge — your password may be asked (root is needed to"
+echo "Starting the bridge. Your password may be asked (root is needed to"
 echo "claim the USB interface). The editor window opens by itself."
 echo "Stop the bridge with Ctrl+C."
 echo "────────────────────────────────────────────────────────────────"
 # ask for the password first, so the window watcher's timeout below only
 # covers the bridge starting up, not the time spent typing it
 if ! sudo -v; then
-  read -r -p "No admin password given — press Enter to close… " _
+  read -r -p "No admin password given. Press Enter to close… " _
   exit 1
 fi
 

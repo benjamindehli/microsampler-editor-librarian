@@ -61,7 +61,7 @@ open_ui() {
 }
 
 if port_open; then
-  echo "Library bridge already running — opening it."
+  echo "Library bridge already running, opening it."
   open_ui
   read -r -p "Press Enter to close… " _
   exit 0

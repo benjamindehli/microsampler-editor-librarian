@@ -112,7 +112,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let up = bridgeIsUp()
             DispatchQueue.main.async {
                 if up {
-                    shellLog("bridge already up — opening UI")
+                    shellLog("bridge already up, opening UI")
                     self.openUI()          // bridge already up (ours or a CLI one)
                 } else {
                     self.startChild()
@@ -136,7 +136,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 // the bridge ended on its own (web QUIT button, idle-exit, or
                 // a crash) — the Dock icon must not outlive the server
                 if !self.quitting {
-                    shellLog("child bridge exited (status \(proc.terminationStatus)) — quitting shell")
+                    shellLog("child bridge exited (status \(proc.terminationStatus)), quitting shell")
                     NSApp.terminate(nil)
                 }
             }
@@ -161,7 +161,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let up = bridgeIsUp()
             DispatchQueue.main.async {
                 if up {
-                    shellLog("bridge up after \(attempt) poll(s) — opening UI")
+                    shellLog("bridge up after \(attempt) poll(s), opening UI")
                     self.openUI()
                 } else {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -193,7 +193,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 shellLog("  \(app): open exited \(p.terminationStatus)")
                 if p.terminationStatus == 0 { return }
             }
-            shellLog("no Chromium app-mode browser — using the default browser")
+            shellLog("no Chromium app-mode browser, using the default browser")
             DispatchQueue.main.async { NSWorkspace.shared.open(uiURL) }
         }
     }

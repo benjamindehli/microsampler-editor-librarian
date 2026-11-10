@@ -99,7 +99,7 @@ function setToolsEnabled(on, haveFile) {
     $("#ud-slice").disabled = !on; // slicing needs a decodable WAV
     const note = $("#ud-tools-note");
     note.hidden = on || !haveFile;
-    if (!note.hidden) note.textContent = "Tools unavailable for this file — it will upload unchanged.";
+    if (!note.hidden) note.textContent = "Tools unavailable for this file. It will upload unchanged.";
 }
 async function syncNameFromFile() {
     const f = $("#ud-file").files[0];
@@ -174,7 +174,7 @@ async function uploadPreflight() {
     el.hidden = false;
     if (need > free) {
         el.classList.add("over");
-        el.textContent = `✕ WON'T FIT — needs ${fmtMem(need)}, only ${fmtMem(Math.max(0, free))} free`;
+        el.textContent = `✕ WON'T FIT: needs ${fmtMem(need)}, only ${fmtMem(Math.max(0, free))} free`;
         ok.disabled = true;
     } else {
         el.textContent = `SMPL MEM after load: ${fmtMem(used - freed + need)}/${fmtMem(MEM_SMPL_TOTAL)}`;

@@ -131,7 +131,7 @@ $("#panic-btn").onclick = () => {
     stopTransport();
     releaseLatched(false);
     api("/api/panic", { method: "POST" })
-        .then(() => tick("⏻ panic — all sound off"))
+        .then(() => tick("⏻ panic: all sound off"))
         .catch(() => {});
 };
 

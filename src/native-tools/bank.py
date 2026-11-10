@@ -256,7 +256,7 @@ def restore(ms, channel, bank, src, log=print, progress=True):
             log(f"warning: leave-dump-mode: {e} (power-cycle the device "
                   f"if it is unresponsive)")
 
-    where = 'current bank (RAM — save on the device to keep!)' if bank is None \
+    where = 'current bank (RAM, so save on the device to keep it)' if bank is None \
             else f'user bank {bank + 1} (persistent)'
     log(f"restore complete -> {where}")
 
@@ -265,7 +265,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('command', choices=['backup', 'restore'],
-                    help='backup: device bank -> directory; '
+                    help='backup: device bank -> directory, '
                          'restore: directory -> device bank')
     ap.add_argument('src', nargs='?',
                     help='(restore) backup directory to restore from')
@@ -281,7 +281,7 @@ def main():
     if args.command == 'backup':
         out = args.out or ('bank_current' if bank is None else f'bank_{args.bank}')
         if os.path.exists(out) and os.listdir(out):
-            print(f"{out}/ already exists and is not empty — choose another -o")
+            print(f"{out}/ already exists and is not empty. Choose another -o")
             return 1
     else:
         if not args.src or not os.path.isfile(os.path.join(args.src, 'manifest.json')):
@@ -296,7 +296,7 @@ def main():
     with MicroSampler() as ms:
         reply, cable = ms.device_inquiry()
         if not reply:
-            print("No inquiry reply — is the device on? (power-cycle if wedged)")
+            print("No inquiry reply. Is the device on? (power-cycle it if wedged)")
             return 1
         channel = reply[2] & 0x0f
         ms.cable = cable

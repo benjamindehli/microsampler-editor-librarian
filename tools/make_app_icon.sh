@@ -37,4 +37,4 @@ end run
 EOF
   echo "icon applied to: $TARGET"
 done
-echo "(if either was already in the Dock, remove and re-add it — Dock icons cache)"
+echo "(if either was already in the Dock, remove and re-add it: Dock icons are cached)"

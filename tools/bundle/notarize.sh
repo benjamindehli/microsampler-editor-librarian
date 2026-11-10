@@ -21,7 +21,7 @@ for attempt in 1 2 3; do
     ok=1
     break
   fi
-  [ "$attempt" -lt 3 ] && { echo "submit attempt $attempt failed — retrying in 30 s"; sleep 30; }
+  [ "$attempt" -lt 3 ] && { echo "submit attempt $attempt failed, retrying in 30 s"; sleep 30; }
 done
 [ "$ok" = 1 ] || { echo "ERROR: all submit attempts failed"; exit 1; }
 SUB_ID=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['id'])" "$OUT")

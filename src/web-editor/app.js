@@ -79,7 +79,7 @@ async function onConnected(st) {
         // bridge is up but the device op failed — stay online, surface the error
         tick(`⚠ bank read failed: ${e.message}`);
         $("#bank-name").textContent = "ERROR";
-        $("#editor-empty").querySelector("p").textContent = "BANK READ FAILED — " + e.message.toUpperCase();
+        $("#editor-empty").querySelector("p").textContent = "BANK READ FAILED: " + e.message.toUpperCase();
         console.error("bank read failed:", e.message);
     }
     restoreView(); // now that the app is up
@@ -113,8 +113,8 @@ function showDeviceHelp(st) {
         ? "The bridge lost its USB connection to the device:"
         : "The bridge is running, but it couldn’t claim the device:";
     $("#device-help-hint").textContent = gone
-        ? "Make sure the microSAMPLER is switched on and the USB cable is connected, then retry — no need to restart the bridge."
-        : "Power-cycle the microSAMPLER (turn it off, then on), check the USB cable, then retry — no need to restart the bridge.";
+        ? "Make sure the microSAMPLER is switched on and the USB cable is connected, then retry. There's no need to restart the bridge."
+        : "Power-cycle the microSAMPLER (turn it off, then on), check the USB cable, then retry. There's no need to restart the bridge.";
     $("#device-help-msg").textContent = (st && st.error) || "The microSAMPLER isn’t responding.";
     $("#device-help").hidden = false;
 }

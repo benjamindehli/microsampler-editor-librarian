@@ -43,7 +43,7 @@
                 <p id="device-help-lead">The bridge is running, but it couldn’t claim the device:</p>
                 <code id="device-help-msg"></code>
                 <p class="dim" id="device-help-hint">
-                    Power-cycle the microSAMPLER (turn it off, then on), check the USB cable, then retry — no need to restart the bridge.
+                    Power-cycle the microSAMPLER (turn it off, then on), check the USB cable, then retry. There's no need to restart the bridge.
                 </p>
                 <button class="hw-btn" id="device-help-retry"><span class="hw-btn-cap">RETRY</span></button>
             </div>
@@ -124,7 +124,7 @@
                 <label
                     class="follow-toggle stack"
                     id="autosync-toggle"
-                    title="Auto-Sync: re-read the bank when you return to this window, to pick up edits made on the hardware. A bank read stops a playing pattern and releases LOOP HOLD notes; untick to keep them playing, and press RECEIVE yourself after hardware edits."
+                    title="Auto-Sync: re-read the bank when you return to this window, to pick up edits made on the hardware. A bank read stops a playing pattern and releases LOOP HOLD notes. Untick to keep them playing, and press RECEIVE yourself after hardware edits."
                 >
                     <input type="checkbox" id="auto-sync" checked /> <span class="stack-cap">AUTO-SYNC</span>
                 </label>
@@ -132,7 +132,7 @@
                     <span class="hw-btn-cap">RECEIVE</span>
                 </button>
                 <!-- bundled app only (status.shutdown): stops the local bridge from the UI -->
-                <button class="hw-btn" id="quit-btn" hidden title="Quit — stop the local bridge">
+                <button class="hw-btn" id="quit-btn" hidden title="Quit: stop the local bridge">
                     <span class="hw-btn-cap">QUIT</span>
                 </button>
             </div>
@@ -155,7 +155,7 @@
                     <div>
                         <div class="panel-title">BANK EFFECT</div>
                         <p class="util-note">
-                            One effect per bank, applied to samples with FX&nbsp;SW on. Edits are live (current bank = RAM — save on the device to
+                            One effect per bank, applied to samples with FX&nbsp;SW on. Edits are live (current bank = RAM, so save on the device to
                             keep them).
                         </p>
                     </div>
@@ -186,7 +186,7 @@
                 </div>
 
                 <div class="fx-params" id="fx-params">
-                    <p class="backup-empty">NO BANK DATA — PRESS RECEIVE</p>
+                    <p class="backup-empty">NO BANK DATA: PRESS RECEIVE</p>
                 </div>
                 <p class="fx-legend" id="fx-legend" hidden>
                     Boxes badged <b>FX1</b> / <b>FX2</b> are mapped to the device's FX&nbsp;EDIT knobs · hover any parameter for its range and
@@ -211,7 +211,7 @@
                         <button
                             class="hw-btn rec"
                             id="pattern-rec"
-                            title="Record into the device's current pattern — press to arm, again to start, again to end"
+                            title="Record into the device's current pattern: press to arm, again to start, again to end"
                         >
                             <span class="hw-btn-cap">● REC</span>
                         </button>
@@ -274,13 +274,13 @@
                 </div>
 
                 <div class="panel-title" style="margin-top: 1.2rem">TRANSFER LOG</div>
-                <div class="op-console" id="op-console">— idle —</div>
+                <div class="op-console" id="op-console">idle</div>
             </section>
         </main>
 
         <main class="deck utility-deck" id="view-library" hidden>
             <section class="lib">
-                <div class="panel-title">LIBRARY <span class="dim">— open Korg microSAMPLER backups, no hardware needed</span></div>
+                <div class="panel-title">LIBRARY <span class="dim">· open Korg microSAMPLER backups, no hardware needed</span></div>
                 <div class="lib-bar">
                     <button class="hw-btn" id="lib-import"><span class="hw-btn-cap">OPEN BANK FILE…</span></button>
                     <input type="file" id="lib-file" accept=".msmpl_bank,.zip" hidden />
@@ -301,15 +301,15 @@
                 <label
                     >TARGET
                     <select id="rd-target">
-                        <option value="">CURRENT BANK (RAM — temporary)</option>
-                        <option value="0">USER BANK 1 (A) — FLASH</option>
-                        <option value="1">USER BANK 2 (B) — FLASH</option>
-                        <option value="2">USER BANK 3 (C) — FLASH</option>
-                        <option value="3">USER BANK 4 (D) — FLASH</option>
-                        <option value="4">USER BANK 5 (E) — FLASH</option>
-                        <option value="5">USER BANK 6 (F) — FLASH</option>
-                        <option value="6">USER BANK 7 (G) — FLASH</option>
-                        <option value="7">USER BANK 8 (H) — FLASH</option>
+                        <option value="">CURRENT BANK (RAM, temporary)</option>
+                        <option value="0">USER BANK 1 (A, FLASH)</option>
+                        <option value="1">USER BANK 2 (B, FLASH)</option>
+                        <option value="2">USER BANK 3 (C, FLASH)</option>
+                        <option value="3">USER BANK 4 (D, FLASH)</option>
+                        <option value="4">USER BANK 5 (E, FLASH)</option>
+                        <option value="5">USER BANK 6 (F, FLASH)</option>
+                        <option value="6">USER BANK 7 (G, FLASH)</option>
+                        <option value="7">USER BANK 8 (H, FLASH)</option>
                     </select></label
                 >
                 <div class="dlg-actions">
@@ -547,7 +547,7 @@
                                 class="follow-toggle stack"
                                 id="midi-toggle"
                                 hidden
-                                title="Play and control the device from a connected MIDI controller (uses your browser's Web MIDI). Notes follow the SAMPLE / KEYBOARD toggle or the SMP / KBD channel fields; mapped MIDI CCs control their sample controls."
+                                title="Play and control the device from a connected MIDI controller (uses your browser's Web MIDI). Notes follow the SAMPLE / KEYBOARD toggle or the SMP / KBD channel fields, and mapped MIDI CCs control their sample controls."
                             >
                                 <input type="checkbox" id="midi-in" />
                                 <span class="stack-cap" id="midi-cap">MIDI IN</span>
@@ -575,19 +575,19 @@
                                 id="midi-learn"
                                 hidden
                                 aria-pressed="false"
-                                title="MIDI Learn: click to arm, click a sample control above, then move a knob or slider on your MIDI controller to assign it. Right-click a control to learn it directly; while learning, right-click clears its binding."
+                                title="MIDI Learn: click to arm, click a sample control above, then move a knob or slider on your MIDI controller to assign it. Right-click a control to learn it directly. While learning, right-click clears its binding."
                             >
                                 LEARN
                             </button>
                             <label
                                 class="follow-toggle stack"
-                                title="Type to play: your computer keyboard plays the highlighted keys through the device — home row = white keys, top row = black keys, Z / X (or ◀ ▶) shift the octave"
+                                title="Type to play: your computer keyboard plays the highlighted keys through the device. Home row = white keys, top row = black keys, Z / X (or ◀ ▶) shift the octave"
                             >
                                 <input type="checkbox" id="qwerty-play" /> <span class="stack-cap" id="qwerty-cap">TYPE TO PLAY</span>
                             </label>
                         </div>
                     </div>
-                    <div class="piano" id="piano" role="group" aria-label="On-screen keyboard — click a key to play"></div>
+                    <div class="piano" id="piano" role="group" aria-label="On-screen keyboard: click a key to play"></div>
                 </section>
             </div>
         </main>
@@ -609,15 +609,15 @@
         <!-- ── activity ticker ─────────────────────────────────────────────────── -->
         <footer class="ticker reveal" style="--d: 0.24s">
             <span class="ticker-led" id="ticker-led"></span>
-            <div class="ticker-log" id="ticker-log" role="log" aria-live="polite" aria-label="Activity log">— device event monitor —</div>
-            <span class="ticker-note">TRANSFERS TARGET THE CURRENT BANK (RAM) — SAVE TO A USER BANK ON THE DEVICE TO KEEP</span>
+            <div class="ticker-log" id="ticker-log" role="log" aria-live="polite" aria-label="Activity log">device event monitor</div>
+            <span class="ticker-note">TRANSFERS TARGET THE CURRENT BANK (RAM). SAVE TO A USER BANK ON THE DEVICE TO KEEP</span>
         </footer>
 
         <!-- ── bank settings dialog ────────────────────────────────────────────── -->
         <dialog id="bank-dialog" class="hw-dialog" aria-label="Bank settings">
             <form method="dialog">
                 <h3>BANK SETTINGS</h3>
-                <p class="warn">Edits the device's current bank (RAM) — save on the device to keep them.</p>
+                <p class="warn">Edits the device's current bank (RAM). Save on the device to keep them.</p>
                 <label>NAME <input type="text" id="bd-name" maxlength="8" spellcheck="false" /></label>
                 <label>BPM <input type="number" id="bd-bpm" min="20" max="300" step="0.1" /></label>
                 <div class="dlg-actions">
@@ -631,8 +631,8 @@
             <form method="dialog">
                 <h3>ORIGINAL BPM</h3>
                 <p class="warn">
-                    This is the sample's original tempo (used for BPM-sync stretching). Changing it re-uploads the sample to the device — its audio
-                    and all other settings are kept, so it takes a moment.
+                    This is the sample's original tempo (used for BPM-sync stretching). Changing it re-uploads the sample to the device. Its audio and
+                    all other settings are kept, so it takes a moment.
                 </p>
                 <label>BPM <input type="number" id="td-bpm" min="20" max="300" step="0.1" /></label>
                 <div class="dlg-actions">
@@ -644,7 +644,7 @@
 
         <dialog id="help-dialog" class="hw-dialog" aria-label="Help and shortcuts">
             <form method="dialog">
-                <h3>microSAMPLER EDITOR — HELP</h3>
+                <h3>microSAMPLER EDITOR · HELP</h3>
                 <div class="help-body">
                     <p>
                         <b>Where's the sound?</b> Everything plays <i>on the microSAMPLER</i> (pads, audition, keyboard, patterns), so listen to the
@@ -652,13 +652,13 @@
                         (The Library plays samples on the computer, since it works without the device.)
                     </p>
                     <p>
-                        <b>Pads</b>: click to edit. Bright LED = audio downloaded (waveform ready); dim LED = used, not downloaded yet. Hold
-                        <b>▶</b> (lower-right) to play the sample on the device. Drag a pad onto another to <b>copy / swap</b>; drop a <b>.wav</b>
+                        <b>Pads</b>: click to edit. Bright LED = audio downloaded (waveform ready), dim LED = used but not downloaded yet. Hold
+                        <b>▶</b> (lower-right) to play the sample on the device. Drag a pad onto another to <b>copy / swap</b>, or drop a <b>.wav</b>
                         onto a pad to load it.
                     </p>
                     <p>
                         <b>Waveform</b>: drag the <b>S</b>/<b>E</b> edges to set start/end. With <b>ZERO-SNAP</b> on, a dragged point snaps to the
-                        nearest zero crossing so the cut doesn't click; type a value for an exact frame. <b>Scroll</b> to zoom, <b>drag</b> the body
+                        nearest zero crossing so the cut doesn't click. Type a value for an exact frame. <b>Scroll</b> to zoom, <b>drag</b> the body
                         to pan, and <b>double-click</b> (or <b>FIT</b>) to see the whole sample.
                     </p>
                     <p>
@@ -685,7 +685,7 @@
                     <p>
                         <b>Keyboard</b> (below the editor): an on-screen piano that mirrors the 36 pads. Click a key to play it on the device. The
                         <b>SAMPLE / KEYBOARD</b> toggle picks how the keys play: <b>SAMPLE</b> triggers a different pad per key (keys with no sample
-                        are dimmed); <b>KEYBOARD</b> plays the selected sample across the keyboard, pitched.
+                        are dimmed), and <b>KEYBOARD</b> plays the selected sample across the keyboard, pitched.
                     </p>
                     <p>
                         <b>Type to play</b>: tick <b>TYPE TO PLAY</b> to play from your computer keyboard. Home row <kbd>A S D F G H J K</kbd> = white
@@ -705,10 +705,10 @@
                     </p>
                     <p>
                         <b>MIDI learn</b>: pin a knob or slider on your MIDI controller to a sample control. Click <b>LEARN</b> (next to MIDI IN) or
-                        <b>right-click</b> a control. The target shows a <b>LEARN</b> badge (click another control to change it); move the knob and
+                        <b>right-click</b> a control. The target shows a <b>LEARN</b> badge (click another control to change it). Move the knob and
                         the badge shows its CC number (<b>PB</b> = pitch-bend wheel). A binding belongs to the pad that was selected when you learned
-                        it and keeps controlling that pad while you edit others; each CC drives one control. While learning, right-click a control to
-                        clear its binding, and <kbd>Esc</kbd> stops learning. A bound CC#64 or pitch-bend wheel controls its parameter instead of
+                        it and keeps controlling that pad while you edit others, and each CC drives one control. While learning, right-click a control
+                        to clear its binding, and <kbd>Esc</kbd> stops learning. A bound CC#64 or pitch-bend wheel controls its parameter instead of
                         sustain or bend.
                     </p>
                     <p>
@@ -880,14 +880,14 @@
                             class="on"
                             aria-pressed="true"
                             type="button"
-                            title="Pencil — click to add, drag to move, drag the right edge to resize"
+                            title="Pencil: click to add, drag to move, drag the right edge to resize"
                         >
                             ✎ DRAW
                         </button>
-                        <button id="pe-tool-eraser" aria-pressed="false" type="button" title="Eraser — click or drag over notes to remove them">
+                        <button id="pe-tool-eraser" aria-pressed="false" type="button" title="Eraser: click or drag over notes to remove them">
                             ⌫ ERASE
                         </button>
-                        <button id="pe-tool-select" aria-pressed="false" type="button" title="Select — click a note, or drag a box to select several">
+                        <button id="pe-tool-select" aria-pressed="false" type="button" title="Select: click a note, or drag a box to select several">
                             ▭ SELECT
                         </button>
                     </div>
@@ -912,7 +912,7 @@
                 ></div>
             </div>
             <div class="pe-foot">
-                <span class="dot smp"></span>SAMPLE&nbsp;(PAD) &nbsp;·&nbsp; <span class="dot kbd"></span>KEYBOARD&nbsp;(PITCH) &nbsp;—&nbsp; DRAW
+                <span class="dot smp"></span>SAMPLE&nbsp;(PAD) &nbsp;·&nbsp; <span class="dot kbd"></span>KEYBOARD&nbsp;(PITCH) &nbsp;·&nbsp; DRAW
                 add/move/resize · ERASE click to remove · SELECT drag a box · scroll a note for velocity &nbsp;·&nbsp; ⌘/Ctrl+A all · ⌘/Ctrl+C/V
                 copy/paste · ⌘/Ctrl+Z undo · Space play · Esc discards
             </div>

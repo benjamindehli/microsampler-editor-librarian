@@ -544,7 +544,7 @@ function setTool(t) {
 // ── open / save ────────────────────────────────────────────────────────────────
 function fillSampleSelect() {
     const sel = $("#pe-sample");
-    const opts = ['<option value="">— none —</option>'];
+    const opts = ['<option value="">none</option>'];
     const slots = (state.bank && state.bank.slots) || [];
     for (let i = 0; i < 36; i++) {
         const s = slots[i];

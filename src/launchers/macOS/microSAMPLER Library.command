@@ -37,7 +37,7 @@ port_open() { (exec 3<>"/dev/tcp/127.0.0.1/$PORT") 2>/dev/null; }
 open_ui() { open -na "Google Chrome" --args --app="$URL" 2>/dev/null || open "$URL"; }
 
 if port_open; then
-  echo "Bridge already running — opening the library."
+  echo "Bridge already running, opening the library."
   open_ui
   echo "(close this window)"
   exit 0

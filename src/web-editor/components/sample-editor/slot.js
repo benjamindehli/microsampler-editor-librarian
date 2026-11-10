@@ -73,7 +73,7 @@ export function renderChips(s) {
             ["LEN", `${s.seconds >= 10 ? s.seconds.toFixed(1) : s.seconds.toFixed(2)}s`]
         );
     } else {
-        pairs.push(["RATE", "—"], ["LEN", "—"]);
+        pairs.push(["RATE", "-"], ["LEN", "-"]);
     }
     for (const [k, v] of pairs) chips.insertAdjacentHTML("beforeend", `<span class="chip">${k} <b>${v}</b></span>`);
     // ORIG BPM is editable — a normal button (styled like the others) opens the
@@ -82,7 +82,7 @@ export function renderChips(s) {
         chips.insertAdjacentHTML(
             "beforeend",
             `<button class="hw-btn chip-bpm" id="chip-bpm" type="button"
-         title="Original BPM (sample tempo) — click to edit"><span class="hw-btn-cap">BPM <b>${s.tempo_bpm.toFixed(1)}</b></span></button>`
+         title="Original BPM (sample tempo): click to edit"><span class="hw-btn-cap">BPM <b>${s.tempo_bpm.toFixed(1)}</b></span></button>`
         );
 }
 

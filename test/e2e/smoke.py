@@ -205,7 +205,7 @@ def run_checks(wav_path):
         pg2.on('console', lambda m: errors.append('console.error(helper): %s' % m.text)
                if m.type == 'error' else None)
         wedged = json.dumps({'connected': False, 'mock': True, 'version': '0',
-                             'error': 'no inquiry reply — device off or wedged'})
+                             'error': 'no inquiry reply: device off or wedged'})
         ok = json.dumps({'connected': True, 'mock': True, 'version': '0', 'error': None})
         pg2.route('**/api/status', lambda r: r.fulfill(
             status=200, content_type='application/json', body=wedged))

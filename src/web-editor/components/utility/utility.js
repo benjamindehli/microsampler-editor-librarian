@@ -12,7 +12,7 @@ export async function loadBackups() {
     const list = $("#backup-list");
     list.innerHTML = "";
     if (!backups.length) {
-        list.innerHTML = '<p class="backup-empty">NO BACKUPS YET — MAKE ONE ←</p>';
+        list.innerHTML = '<p class="backup-empty">NO BACKUPS YET: MAKE ONE ←</p>';
         return;
     }
     for (const b of backups) {
@@ -148,7 +148,7 @@ function buildCpDst() {
         prev = sel.value;
     const slots = (state.bank && state.bank.slots) || [];
     sel.innerHTML = slots
-        .map((s, i) => `<option value="${i}">${String(i + 1).padStart(2, "0")} · ${noteName(i)} · ${s.empty ? "— empty —" : esc(s.name)}</option>`)
+        .map((s, i) => `<option value="${i}">${String(i + 1).padStart(2, "0")} · ${noteName(i)} · ${s.empty ? "(empty)" : esc(s.name)}</option>`)
         .join("");
     if (prev && sel.querySelector(`option[value="${prev}"]`)) sel.value = prev;
     else {
@@ -205,6 +205,6 @@ export function onOpEvent(evt) {
     });
     $("#smp-button").onclick = () =>
         apiJson("/api/sampling/button", { method: "POST" })
-            .then(() => tick("● [SAMPLING] pressed — check the device screen"))
+            .then(() => tick("● [SAMPLING] pressed: check the device screen"))
             .catch((e) => tick(`⚠ sampling: ${e.message}`));
 }

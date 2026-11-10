@@ -161,7 +161,7 @@ class MicroSampler:
             self.dev = usb.core.find(idVendor=VID, idProduct=PID, backend=backend)
         except usb.core.NoBackendError:
             raise RuntimeError(
-                "no libusb backend could load — the bundled library failed (on "
+                "no libusb backend could load: the bundled library failed (on "
                 "macOS, make sure the unzipped folder isn't quarantined) and no "
                 "system libusb was found.") from None
         if self.dev is None:
@@ -468,7 +468,7 @@ def cmd_monitor():
                 for i in range(0, len(raw) - 3, 4):
                     mp.feed_packet(raw[i:i + 4])
         except KeyboardInterrupt:
-            print(f"\nstopped. ({mp.clock} clock ticks seen — device alive)")
+            print(f"\nstopped. ({mp.clock} clock ticks seen, so the device is alive)")
     return 0
 
 
@@ -522,7 +522,7 @@ def cmd_params(slot):
     try:
         reply, _ = ms.device_inquiry(cables=(1,))
         if not reply:
-            print('no inquiry reply -- device off or wedged?')
+            print('no inquiry reply: is the device off or wedged?')
             return 1
         ch = reply[2] & 0x0f
         par = DL.fetch_params(ms, ch, slot)

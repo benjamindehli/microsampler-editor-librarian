@@ -133,7 +133,7 @@ def load_stamps():
     STAMP['jpg'] = _jpg_meta(os.path.join(ASSETS, 'demo-poster.jpg'))
     miss = [k for k in ('png', 'jpg') if not STAMP[k]]
     if miss:
-        print('  ! no %s metadata stamp found in docs/assets — those stay untagged'
+        print('  ! no %s metadata stamp found in docs/assets, so those stay untagged'
               % '/'.join(miss))
 
 
