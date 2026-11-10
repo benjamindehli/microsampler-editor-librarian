@@ -17,7 +17,6 @@ const {
     BIPOLAR,
     PARAM,
     OBJ_BASE,
-    DEFAULT_CC_MAP,
     ccToParamValue,
     getCcForParam,
     assignParamCC,
@@ -115,7 +114,6 @@ test("ccToParamValue scales 7-bit CC (0..127) to each parameter's model range", 
 });
 
 test("per-slot MIDI CC mapping isolates bindings per sample slot", () => {
-    assert.equal(DEFAULT_CC_MAP[7], PARAM.LEVEL);
     // Pin CC#7 to slot 2 (SMPL 03) LEVEL and CC#14 to slot 0 (SMPL 01) LEVEL
     assignParamCC(PARAM.LEVEL, 7, 2);
     assignParamCC(PARAM.LEVEL, 14, 0);

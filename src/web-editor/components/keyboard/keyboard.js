@@ -467,6 +467,20 @@ async function setMidi(on) {
     lsSet("msmpl.midi", on ? "1" : "0");
 }
 
+// arm MIDI Learn (optionally targeting a param), switching MIDI IN on first —
+// a controller CC can't arrive otherwise. Used by LEARN and right-click on a control.
+export async function armMidiLearn(param = null) {
+    if (!MIDI_OK) return false;
+    const mi = $("#midi-in");
+    if (!mi.checked) {
+        mi.checked = true;
+        await setMidi(true);
+        if (!mi.checked) return false; // permission denied
+    }
+    setMidiLearn(true, param);
+    return true;
+}
+
 // ── mouse/touch on the on-screen piano (works even when not armed) ────────────
 function clickRelease() {
     if (clickSlot == null) return;
@@ -552,13 +566,7 @@ $("#kb-mode-kbd").onclick = () => setMode("kbd");
         const ml = $("#midi-learn");
         if (ml) {
             ml.hidden = false;
-            ml.onclick = async () => {
-                if (!mi.checked) {
-                    mi.checked = true;
-                    await setMidi(true);
-                }
-                if (mi.checked) setMidiLearn(!isMidiLearnActive());
-            };
+            ml.onclick = () => (isMidiLearnActive() ? setMidiLearn(false) : armMidiLearn());
         }
         // re-enable only if it was on before — avoids a surprise permission prompt on every load
         if (lsGet("msmpl.midi") === "1") {

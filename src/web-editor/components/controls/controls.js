@@ -68,19 +68,6 @@ const SPEC = {
     [PARAM.VELO_INT]: { kind: "fader", ctl: "#ctl-velo", val: "#val-velo", key: "velo_int", label: "VELO INT", fmt: fmtSigned, def: 0 }
 };
 
-// Default external MIDI CC -> sample param map (Worlde Panda 200 / GM / Polyend Play):
-// CC#7 Volume -> LEVEL, CC#10 Pan -> PAN, CC#74 Cutoff -> TUNE, CC#73 Attack -> SEMITONE,
-// CC#75 Decay -> DECAY, CC#72 Release -> RELEASE, CC#71 Timbre -> VELO INT.
-export const DEFAULT_CC_MAP = {
-    7: PARAM.LEVEL,
-    10: PARAM.PAN,
-    71: PARAM.VELO_INT,
-    72: PARAM.RELEASE,
-    73: PARAM.SEMITONE,
-    74: PARAM.TUNE,
-    75: PARAM.DECAY
-};
-
 // Map a 7-bit MIDI CC value (0..127) into the target sample parameter's model space.
 export function ccToParamValue(param, ccVal) {
     const v = Math.max(0, Math.min(127, Math.round(ccVal)));
@@ -405,6 +392,8 @@ function sendParamCoalesced(slot, param, value) {
         });
 }
 
+const CC_SWEEP_GAP_MS = 1500;
+
 export function handleExternalCC(cc, ccVal) {
     if (learnMode && learnParam != null && state.sel != null) {
         const param = learnParam;
@@ -427,11 +416,15 @@ export function handleExternalCC(cc, ccVal) {
         return true;
     }
     if (before != null) {
-        const top = undoStack[undoStack.length - 1];
-        if (top && top.slot === slot && top.param === param && top.ccSweep) {
+        // one knob sweep = one undo step: fold into the top entry while the same
+        // CC keeps moving; a pause longer than CC_SWEEP_GAP_MS starts a new step
+        const top = undoStack[undoStack.length - 1],
+            now = Date.now();
+        if (top && top.slot === slot && top.param === param && top.ccSweep && now - top.ccAt < CC_SWEEP_GAP_MS) {
             top.after = value;
+            top.ccAt = now;
         } else {
-            undoStack.push({ slot, param, before, after: value, ccSweep: true });
+            undoStack.push({ slot, param, before, after: value, ccSweep: true, ccAt: now });
             if (undoStack.length > 200) undoStack.shift();
             redoStack.length = 0;
         }
@@ -470,6 +463,8 @@ export function handleExternalCC(cc, ccVal) {
             if (!ctl) return;
             const param = +ctl.dataset.flash;
             if (!SPEC[param]) return;
+            // no Web MIDI → nothing to learn from: keep the normal browser menu
+            if (!learnMode && !navigator.requestMIDIAccess) return;
             e.preventDefault();
             if (learnMode) {
                 const oldCc = unassignParamCC(param, state.sel);
@@ -480,7 +475,8 @@ export function handleExternalCC(cc, ccVal) {
                         : `${who}${SPEC[param].label} has no CC assigned`
                 );
             } else {
-                setMidiLearn(true, param);
+                // arming also switches MIDI IN on (a CC can't arrive otherwise)
+                import("components/keyboard/keyboard.js").then((k) => k.armMidiLearn(param));
             }
         });
         addEventListener("keydown", (e) => {
