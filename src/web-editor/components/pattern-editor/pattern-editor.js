@@ -82,6 +82,9 @@ function buildBackground(roll) {
     bgBars = cur.bars;
 }
 
+const noteTitle = (nt) => `${midiLabel(nt.note)} · vel ${nt.vel}`;
+const isNoteEl = (el) => !!el?.classList?.contains("pe-note");
+
 // full note-layer rebuild (note SET changed: add/remove/reorder/geometry). For
 // selection- or velocity-only changes use paintNotes() — a cheap in-place patch.
 function renderRoll() {
@@ -89,7 +92,7 @@ function renderRoll() {
     // the rebuild below replaces every note element, which would drop keyboard
     // focus — remember which note was focused and restore it afterwards
     const af = /** @type {HTMLElement} */ (document.activeElement);
-    const refocus = af && af.classList && af.classList.contains("pe-note") ? af.dataset.i : null;
+    const refocus = isNoteEl(af) ? af.dataset.i : null;
     const ph = roll.querySelector("#pe-playhead"); // preserve the moving playhead across the rebuild
     roll.style.height = ROWS * ROWH + "px";
     if (bgBars !== cur.bars || !roll.querySelector(".pe-bar")) buildBackground(roll);
@@ -106,7 +109,7 @@ function renderRoll() {
         d.tabIndex = 0;
         d.setAttribute("role", "button");
         d.setAttribute("aria-label", noteLabel(nt));
-        d.title = `${midiLabel(nt.note)} · vel ${nt.vel}`;
+        d.title = noteTitle(nt);
         d.style.cssText = `left:${(nt.start / tot) * 100}%;width:${w}%;top:${rowTop(nt.note) + 1}px;height:${ROWH - 2}px;background:${noteFill(nt)}`;
         const grip = document.createElement("span");
         grip.className = "pe-resize";
@@ -130,7 +133,7 @@ function paintNotes() {
         el.classList.toggle("sel", cur.sel.has(i));
         el.style.background = noteFill(nt);
         el.setAttribute("aria-label", noteLabel(nt)); // velocity is in the label
-        el.title = `${midiLabel(nt.note)} · vel ${nt.vel}`;
+        el.title = noteTitle(nt);
     }
 }
 
@@ -374,7 +377,7 @@ function syncNoteEls(idxs) {
         el.style.width = (nt.dur / tot) * 100 + "%";
         el.style.top = rowTop(nt.note) + 1 + "px";
         el.setAttribute("aria-label", noteLabel(nt)); // keep AT + tooltip current
-        el.title = `${midiLabel(nt.note)} · vel ${nt.vel}`;
+        el.title = noteTitle(nt);
     }
 }
 
@@ -502,7 +505,7 @@ function onKey(e) {
     // Delete removes the whole selection (plus a focused note, if any)
     if (e.key === "Delete" || e.key === "Backspace") {
         const kill = new Set(cur.sel);
-        if (ae && ae.classList && ae.classList.contains("pe-note")) kill.add(+ae.dataset.i);
+        if (isNoteEl(ae)) kill.add(+ae.dataset.i);
         if (!kill.size) return;
         e.preventDefault();
         cur.notes = cur.notes.filter((_, i) => !kill.has(i));
@@ -515,7 +518,7 @@ function onKey(e) {
         return;
     }
     // arrows nudge the FOCUSED note (single)
-    if (!ae || !ae.classList || !ae.classList.contains("pe-note")) return;
+    if (!isNoteEl(ae)) return;
     const idx = +ae.dataset.i;
     const nt = cur.notes[idx];
     if (!nt) return;

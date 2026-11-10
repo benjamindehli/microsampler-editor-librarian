@@ -2,7 +2,7 @@
 // strip wiring, panel-edit reflection, and external MIDI CC learn/control.
 import { state } from "functions/state.js";
 import { tick } from "functions/ticker.js";
-import { $, api, closestEl, fmtSigned, jsonBody, lsGet, lsSet } from "functions/util.js";
+import { $, api, closestEl, fmtSigned, jsonBody, lsGet, lsSet, setSegActive } from "functions/util.js";
 import { VALUE_TABLES } from "functions/valueTables.js";
 
 // Live-edit param ids — HARDWARE-CONFIRMED 2026-06-06 by panel-knob capture
@@ -103,12 +103,16 @@ function readModel(slot, param) {
 
 // send a param to a SPECIFIC slot (model-space value): cache it, mirror the
 // control if that slot is showing, POST it. Used by edits + undo/redo.
-async function sendParamTo(slot, param, value) {
+// cache a model value for `slot` and mirror it on the controls if that slot is showing
+function applyLocal(slot, param, value) {
     cacheParam(slot, param, value);
     if (slot === state.sel) {
         flash(param);
         setControl(param, value);
     }
+}
+async function sendParamTo(slot, param, value) {
+    applyLocal(slot, param, value);
     try {
         await api("/api/param", jsonBody({ obj: OBJ_BASE + slot, param, value }));
         tick(`→ S${slot + 1} #${param} = ${value}`);
@@ -120,13 +124,16 @@ async function sendParamTo(slot, param, value) {
 // ── undo / redo of sample param edits ────────────────────────────────────
 const undoStack = [],
     redoStack = [];
+function pushUndo(entry) {
+    undoStack.push(entry);
+    if (undoStack.length > 200) undoStack.shift();
+    redoStack.length = 0; // a new edit invalidates the redo history
+}
 async function sendParam(param, value) {
     if (state.sel == null) return;
     const before = readModel(state.sel, param);
     if (before !== value) {
-        undoStack.push({ slot: state.sel, param, before, after: value });
-        if (undoStack.length > 200) undoStack.shift();
-        redoStack.length = 0;
+        pushUndo({ slot: state.sel, param, before, after: value });
     }
     await sendParamTo(state.sel, param, value);
 }
@@ -177,12 +184,7 @@ function wireSeg(sel, param) {
         });
 }
 function setSeg(v) {
-    $("#ctl-sync")
-        .querySelectorAll("button")
-        .forEach((b) => {
-            b.classList.toggle("on", +b.dataset.v === v);
-            b.setAttribute("aria-pressed", String(+b.dataset.v === v));
-        });
+    setSegActive([...$("#ctl-sync").querySelectorAll("button")].map((b) => [b, +b.dataset.v === v]));
     // device rule: Pitch Change disables Tune AND Semitone
     $("#tune-block").classList.toggle("locked", v === 2);
     $("#semitone-block").classList.toggle("locked", v === 2);
@@ -312,6 +314,8 @@ export function unassignParamCC(param, slot = state.sel) {
     return removed;
 }
 
+const paramLabel = (param) => SPEC[param]?.label || "#" + param;
+const whoTag = () => (state.sel != null ? `S${state.sel + 1} ` : ""); // "S3 " prefix for ticker lines
 const fmtCc = (cc) => (cc === PITCH_BEND_CC ? "PB" : `CC${String(cc).padStart(2, "0")}`);
 
 export function syncCcBadges() {
@@ -359,7 +363,7 @@ export function setMidiLearn(on, targetParam = null) {
     syncCcBadges();
     if (learnMode) {
         const label = SPEC[learnParam]?.label || `#${learnParam}`;
-        const who = state.sel != null ? `S${state.sel + 1} ` : "";
+        const who = whoTag();
         tick(`MIDI learn: move a slider/knob to pin to ${who}${label} (click any control to switch, right-click to clear, Esc to exit)`);
     } else {
         tick("MIDI learn: OFF");
@@ -380,7 +384,7 @@ function sendParamCoalesced(slot, param, value) {
     ccInFlight.add(key);
     api("/api/param", jsonBody({ obj: OBJ_BASE + slot, param, value }))
         .then(() => {
-            if (!ccPending.has(key)) tick(`-> S${slot + 1} ${SPEC[param]?.label || "#" + param} = ${value}`);
+            if (!ccPending.has(key)) tick(`-> S${slot + 1} ${paramLabel(param)} = ${value}`);
         })
         .catch((e) => tick(`! send failed: ${e.message}`))
         .finally(() => {
@@ -402,7 +406,7 @@ export function handleExternalCC(cc, ccVal) {
         assignParamCC(param, cc, slot);
         learnMode = false;
         syncCcBadges();
-        tick(`MIDI learn: pinned ${fmtCc(cc)} -> S${slot + 1} ${SPEC[param]?.label || "#" + param}`);
+        tick(`MIDI learn: pinned ${fmtCc(cc)} -> S${slot + 1} ${paramLabel(param)}`);
     }
     const binding = ccMap[cc];
     if (!binding) return false; // unmapped: ignore silently (a wheel sweep would flood the ticker)
@@ -425,16 +429,10 @@ export function handleExternalCC(cc, ccVal) {
             top.after = value;
             top.ccAt = now;
         } else {
-            undoStack.push({ slot, param, before, after: value, ccSweep: true, ccAt: now });
-            if (undoStack.length > 200) undoStack.shift();
-            redoStack.length = 0;
+            pushUndo({ slot, param, before, after: value, ccSweep: true, ccAt: now });
         }
     }
-    cacheParam(slot, param, value);
-    if (slot === state.sel) {
-        flash(param);
-        setControl(param, value);
-    }
+    applyLocal(slot, param, value);
     sendParamCoalesced(slot, param, value);
     return true;
 }
@@ -454,7 +452,7 @@ export function handleExternalCC(cc, ccVal) {
                 e.stopPropagation();
                 learnParam = param;
                 syncCcBadges();
-                const who = state.sel != null ? `S${state.sel + 1} ` : "";
+                const who = whoTag();
                 tick(`MIDI learn: move a slider/knob to pin to ${who}${SPEC[param].label}`);
             },
             true
@@ -469,7 +467,7 @@ export function handleExternalCC(cc, ccVal) {
             e.preventDefault();
             if (learnMode) {
                 const oldCc = unassignParamCC(param, state.sel);
-                const who = state.sel != null ? `S${state.sel + 1} ` : "";
+                const who = whoTag();
                 tick(
                     oldCc != null
                         ? `MIDI learn: cleared ${fmtCc(oldCc)} from ${who}${SPEC[param].label}`

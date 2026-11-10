@@ -230,7 +230,7 @@ function stopPlayhead() {
 }
 function startPlayhead(p, btn, bpm) {
     stopPlayhead();
-    const wrap = btn.closest(".pattern-card") && btn.closest(".pattern-card").querySelector(".pattern-roll-wrap");
+    const wrap = btn.closest(".pattern-card")?.querySelector(".pattern-roll-wrap");
     if (!wrap) return;
     const ph = document.createElement("div");
     ph.className = "p-playhead";

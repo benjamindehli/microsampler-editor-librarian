@@ -1,11 +1,11 @@
 // UTILITY view: backup list, restore dialog, background-op console.
 import { refreshBank } from "app.js";
 import { loadAllSamples } from "components/meter/meter.js";
-import { forgetSample } from "components/sample-editor/sampleLoad.js";
+import { forgetAllSamples, forgetSample } from "components/sample-editor/sampleLoad.js";
 import { noteName } from "functions/notes.js";
 import { state } from "functions/state.js";
 import { tick } from "functions/ticker.js";
-import { $, apiJson, esc, jsonBody } from "functions/util.js";
+import { $, apiJson, esc, jsonBody, setSegActive } from "functions/util.js";
 
 export async function loadBackups() {
     const { backups } = await apiJson("/api/backups");
@@ -185,8 +185,7 @@ export function onOpEvent(evt) {
         setOpRunning(false);
         loadBackups().catch(() => {});
         if (evt.name === "restore" && evt.ok) {
-            state.buffers.clear();
-            state.formats.clear(); // bank contents replaced
+            forgetAllSamples(); // bank contents replaced
             refreshBank().catch(() => {});
         }
         tick(`${evt.ok ? "✓" : "✗"} ${evt.name} ${evt.ok ? "complete" : "failed"}`);
@@ -198,10 +197,7 @@ export function onOpEvent(evt) {
     const seg = $("#smp-input");
     seg.querySelectorAll("button").forEach((b) => {
         b.onclick = () => {
-            seg.querySelectorAll("button").forEach((x) => {
-                x.classList.toggle("on", x === b);
-                x.setAttribute("aria-pressed", String(x === b));
-            });
+            setSegActive([...seg.querySelectorAll("button")].map((x) => [x, x === b]));
             apiJson("/api/sampling/input", jsonBody({ resample: b.dataset.resample === "1" }))
                 .then(() => tick(`input → ${b.textContent.trim()}`))
                 .catch(() => {});

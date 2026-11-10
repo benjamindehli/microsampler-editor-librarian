@@ -10,7 +10,7 @@ import { decodeWavPcm, encodeWav, processBuffer, readWavHeader, toolsActive } fr
 import { noteName } from "functions/notes.js";
 import { slotData, state } from "functions/state.js";
 import { tick } from "functions/ticker.js";
-import { $, api, apiJson, confirmDialog, jsonBody } from "functions/util.js";
+import { $, api, apiJson, clampBpm, confirmDialog, jsonBody } from "functions/util.js";
 
 // the selected file decoded to float channels (null if not a PCM WAV we can
 // process) and its raw bytes — both cached so OK doesn't re-read the file.
@@ -279,7 +279,7 @@ $("#bank-lcd").onkeydown = (e) => {
 $("#bd-ok").onclick = async (e) => {
     e.preventDefault();
     const name = $("#bd-name").value.trim().toUpperCase().slice(0, 8);
-    const bpm = Math.max(20, Math.min(300, +$("#bd-bpm").value || 120));
+    const bpm = clampBpm(+$("#bd-bpm").value);
     if (!name) return;
     $("#bd-ok").setAttribute("aria-busy", "true");
     try {

@@ -12,26 +12,8 @@ import { state } from "functions/state.js";
 import { tick } from "functions/ticker.js";
 import { $, $$, api, closestEl, jsonBody, lsGet, lsSet, setSegActive } from "functions/util.js";
 
-// the on-screen caption letter for each mapped computer key (see QWERTY_KEYMAP)
-const KEYLABEL = {
-    KeyA: "A",
-    KeyW: "W",
-    KeyS: "S",
-    KeyE: "E",
-    KeyD: "D",
-    KeyF: "F",
-    KeyT: "T",
-    KeyG: "G",
-    KeyY: "Y",
-    KeyH: "H",
-    KeyU: "U",
-    KeyJ: "J",
-    KeyK: "K",
-    KeyO: "O",
-    KeyL: "L",
-    KeyP: "P",
-    Semicolon: ";"
-};
+// the on-screen caption for a mapped computer key (see QWERTY_KEYMAP)
+const keyLabel = (code) => (code === "Semicolon" ? ";" : code.slice(3)); // "KeyA" → "A"
 const WHITE = [0, 2, 4, 5, 7, 9, 11]; // white-key semitones within an octave
 const BLACK_AFTER = { 0: 1, 1: 3, 3: 6, 4: 8, 5: 10 }; // white-index → black-key semitone
 
@@ -61,40 +43,39 @@ function send(body) {
 function note(slot, on) {
     send({ slot, on });
 } // on-screen/qwerty keys play at the send() default velocity
+// a resolved note target {slot, note, kbd}: KEYBOARD routing sends the raw note
+// (pitched, one channel up), SAMPLE routing triggers the slot's pad
+const targetBody = (t) => (t.kbd ? { note: t.note, keyboard: true } : { slot: t.slot, keyboard: false });
+const sendOn = (t, velocity) => send({ ...targetBody(t), on: true, velocity });
+const sendOff = (t) => send({ ...targetBody(t), on: false });
+
+const pianoKey = (slot) => document.querySelector(`#piano .pkey[data-slot="${slot}"]`);
+const padEl = (slot) => document.querySelector(`#pad-grid .pad[data-slot="${slot}"]`);
 function paint(slot, sounding) {
     // always light the piano key; in KEYBOARD mode the pad isn't what's triggered
     // (the selected sample plays pitched), so don't light the pad grid there
-    const pkey = document.querySelector(`#piano .pkey[data-slot="${slot}"]`);
-    if (pkey) pkey.classList.toggle("sounding", sounding || isPianoSlotLatched(slot));
-    if (mode !== "kbd") {
-        const pad = document.querySelector(`#pad-grid .pad[data-slot="${slot}"]`);
-        if (pad) pad.classList.toggle("sounding", sounding || isSlotLatched(slot));
-    }
+    pianoKey(slot)?.classList.toggle("sounding", sounding || isPianoSlotLatched(slot));
+    if (mode !== "kbd") padEl(slot)?.classList.toggle("sounding", sounding || isSlotLatched(slot));
 }
 function toggleLatch(target, velocity = 100) {
     const id = target.kbd ? "k:" + target.note : "s:" + target.slot;
     if (latched.has(id)) {
         const entry = latched.get(id);
         latched.delete(id);
-        send(entry.kbd ? { note: entry.note, on: false, keyboard: true } : { slot: entry.slot, on: false, keyboard: false });
+        sendOff(entry);
         if (entry.slot != null) {
-            const pkey = document.querySelector(`#piano .pkey[data-slot="${entry.slot}"]`);
-            if (pkey) pkey.classList.toggle("sounding", isPianoSlotLatched(entry.slot));
-            const pad = document.querySelector(`#pad-grid .pad[data-slot="${entry.slot}"]`);
-            if (pad) pad.classList.toggle("sounding", isSlotLatched(entry.slot));
+            // stays lit only if another latch still holds this slot
+            pianoKey(entry.slot)?.classList.toggle("sounding", isPianoSlotLatched(entry.slot));
+            padEl(entry.slot)?.classList.toggle("sounding", isSlotLatched(entry.slot));
         }
         return false;
     }
     const entry = { slot: target.slot, note: target.note ?? 48 + target.slot, kbd: !!target.kbd };
     latched.set(id, entry);
-    send(entry.kbd ? { note: entry.note, on: true, velocity, keyboard: true } : { slot: entry.slot, on: true, velocity, keyboard: false });
+    sendOn(entry, velocity);
     if (entry.slot != null) {
-        const pkey = document.querySelector(`#piano .pkey[data-slot="${entry.slot}"]`);
-        if (pkey) pkey.classList.add("sounding");
-        if (!entry.kbd) {
-            const pad = document.querySelector(`#pad-grid .pad[data-slot="${entry.slot}"]`);
-            if (pad) pad.classList.add("sounding");
-        }
+        pianoKey(entry.slot)?.classList.add("sounding");
+        if (!entry.kbd) padEl(entry.slot)?.classList.add("sounding");
     }
     return true;
 }
@@ -103,14 +84,10 @@ export function togglePadHold(slot, velocity = 100) {
 }
 export function releaseLatched(sendOffNotes = true) {
     for (const entry of latched.values()) {
-        if (sendOffNotes) {
-            send(entry.kbd ? { note: entry.note, on: false, keyboard: true } : { slot: entry.slot, on: false, keyboard: false });
-        }
+        if (sendOffNotes) sendOff(entry);
         if (entry.slot != null) {
-            const pkey = document.querySelector(`#piano .pkey[data-slot="${entry.slot}"]`);
-            if (pkey) pkey.classList.remove("sounding");
-            const pad = document.querySelector(`#pad-grid .pad[data-slot="${entry.slot}"]`);
-            if (pad) pad.classList.remove("sounding");
+            pianoKey(entry.slot)?.classList.remove("sounding");
+            padEl(entry.slot)?.classList.remove("sounding");
         }
     }
     latched.clear();
@@ -172,7 +149,7 @@ export function syncKeybed() {
     const labelBySlot = {};
     for (const code in QWERTY_KEYMAP) {
         const slot = qwertySlot(code, octave);
-        if (slot != null) labelBySlot[slot] = KEYLABEL[code];
+        if (slot != null) labelBySlot[slot] = keyLabel(code);
     }
     const slots = state.bank && state.bank.slots;
     for (const el of piano.children) {
@@ -200,9 +177,7 @@ function setOctave(next) {
 function setMode(next) {
     if (next === mode) return;
     releaseLatched();
-    releaseKeys();
-    clickRelease();
-    releaseMidi(); // release held notes on the OLD channel first
+    releaseAllHeld(); // release held notes on the OLD channel first
     mode = next;
     setSegActive([
         [$("#kb-mode-sample"), mode === "sample"],
@@ -283,17 +258,14 @@ addEventListener(
 );
 
 // never leave a note stuck if focus or tab visibility changes mid-hold
-addEventListener("blur", () => {
+function releaseAllHeld() {
     releaseKeys();
     clickRelease();
     releaseMidi();
-});
+}
+addEventListener("blur", releaseAllHeld);
 document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-        releaseKeys();
-        clickRelease();
-        releaseMidi();
-    }
+    if (document.hidden) releaseAllHeld();
 });
 
 // ── real MIDI keyboard input (Web MIDI) ───────────────────────────────────────
@@ -329,29 +301,34 @@ function midiTarget(m, ch = 0) {
     const slot = m - 48,
         inRange = slot >= 0 && slot <= 35,
         kbd = midiKbd(ch);
-    if (kbd) return { body: { note: m, keyboard: true }, slot: inRange ? slot : null, kbd: true };
-    return inRange ? { body: { slot, keyboard: false }, slot, kbd: false } : null;
+    if (kbd) return { slot: inRange ? slot : null, note: m, kbd: true };
+    return inRange ? { slot, note: m, kbd: false } : null;
 }
-function sendOff(m, entry) {
-    send(entry.kbd ? { note: m, on: false, keyboard: true } : { slot: entry.slot, on: false, keyboard: false });
+// send note-offs for every held entry in `map` (controller note → target) and unlight them
+function flushOffs(map) {
+    for (const entry of map.values()) {
+        sendOff(entry);
+        if (entry.slot != null) paint(entry.slot, false);
+    }
+    map.clear();
 }
 
 function midiNoteOn(m, vel, ch = 0) {
     const t = midiTarget(m, ch);
     if (!t) return;
     if (loopHold) {
-        const nowOn = toggleLatch({ slot: t.slot, note: m, kbd: t.kbd }, vel);
+        const nowOn = toggleLatch(t, vel);
         if (nowOn && !t.kbd && state.follow && t.slot != null) followSelect(t.slot);
         return;
     }
     if (sustainedOff.has(m)) {
-        sendOff(m, sustainedOff.get(m));
+        sendOff(sustainedOff.get(m));
         sustainedOff.delete(m);
     } // clean re-attack
     if (!t.kbd && state.follow && t.slot != null) followSelect(t.slot);
-    send({ ...t.body, on: true, velocity: vel });
+    sendOn(t, vel);
     if (t.slot != null) paint(t.slot, true);
-    midiHeld.set(m, { slot: t.slot, kbd: t.kbd });
+    midiHeld.set(m, t);
 }
 function midiNoteOff(m) {
     if (!midiHeld.has(m)) return;
@@ -361,7 +338,7 @@ function midiNoteOff(m) {
         // pedal down: keep it sounding (and lit) until the pedal lifts
         sustainedOff.set(m, entry);
     } else {
-        sendOff(m, entry);
+        sendOff(entry);
         if (entry.slot != null) paint(entry.slot, false);
     }
 }
@@ -369,12 +346,7 @@ function midiSustain(on) {
     // CC#64 — app-side (the device may not honor the CC itself)
     sustainOn = on;
     if (!on) {
-        // pedal up: release everything it was holding
-        for (const [m, entry] of sustainedOff) {
-            sendOff(m, entry);
-            if (entry.slot != null) paint(entry.slot, false);
-        }
-        sustainedOff.clear();
+        flushOffs(sustainedOff); // pedal up: release everything it was holding
     }
 }
 let bentKbd = false; // a non-centre bend is currently applied (keyboard channel)
@@ -382,29 +354,22 @@ function midiPitchBend(lsb, msb, ch = 0) {
     if (!midiKbd(ch)) return; // the device pitch-bends only the keyboard-mode voice
     const value = (msb << 7) | lsb; // 14-bit, centre 8192
     bentKbd = value !== 8192;
-    api("/api/pitch-bend", jsonBody({ value, keyboard: true })).catch(() => {
-        /* ignore */
-    });
+    sendBend(value);
 }
 function resetBend() {
     // return the wheel to centre (on release / mode switch / blur)
     if (!bentKbd) return;
     bentKbd = false;
-    api("/api/pitch-bend", jsonBody({ value: 8192, keyboard: true })).catch(() => {
-        /* ignore */
+    sendBend(8192);
+}
+function sendBend(value) {
+    api("/api/pitch-bend", jsonBody({ value, keyboard: true })).catch(() => {
+        /* best-effort: a dropped bend is corrected by the next wheel move */
     });
 }
 function releaseMidi() {
-    for (const [m, entry] of midiHeld) {
-        sendOff(m, entry);
-        if (entry.slot != null) paint(entry.slot, false);
-    }
-    midiHeld.clear();
-    for (const [m, entry] of sustainedOff) {
-        sendOff(m, entry);
-        if (entry.slot != null) paint(entry.slot, false);
-    }
-    sustainedOff.clear();
+    flushOffs(midiHeld);
+    flushOffs(sustainedOff);
     sustainOn = false;
     resetBend();
 }
@@ -514,7 +479,7 @@ $("#kb-mode-kbd").onclick = () => setMode("kbd");
 {
     const raw = lsGet("msmpl.qwerty.oct");
     const n = raw == null ? 1 : +raw;
-    octave = Number.isInteger(n) && n >= 0 && n <= 2 ? n : 1;
+    octave = Number.isInteger(n) && n >= 0 && n < QWERTY_OCTAVES.length ? n : 1;
     if (lsGet("msmpl.qwerty.mode") === "kbd") mode = "kbd";
     setSegActive([
         [$("#kb-mode-sample"), mode === "sample"],

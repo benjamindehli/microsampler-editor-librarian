@@ -12,7 +12,7 @@ import { releaseLatched } from "components/keyboard/keyboard.js";
 import { initLibrary, renderLibrary } from "components/library/library.js";
 import { loadAllSamples, renderMeter } from "components/meter/meter.js";
 import { renderPads } from "components/pads/pads.js";
-import { reapplyFormats } from "components/sample-editor/sampleLoad.js";
+import { forgetAllSamples, reapplyFormats } from "components/sample-editor/sampleLoad.js";
 import { showSlot } from "components/sample-editor/slot.js";
 import { redrawCurrent } from "components/sample-editor/waveform.js"; // also wires marker drag/audition
 import { checkForUpdate } from "components/update/update.js";
@@ -175,8 +175,7 @@ export async function refreshBank() {
         const bankChanged = reloadAll || state.bank.name !== prevName;
         reloadAll = false;
         if (bankChanged) {
-            state.buffers.clear();
-            state.formats.clear();
+            forgetAllSamples();
         }
         reapplyFormats();
         $("#bank-name").textContent = (state.bank.name || "--------").padEnd(8);

@@ -47,3 +47,7 @@ export function forgetSample(i) {
     state.buffers.delete(i);
     state.formats.delete(i);
 }
+export function forgetAllSamples() {
+    state.buffers.clear();
+    state.formats.clear();
+}

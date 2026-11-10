@@ -232,14 +232,17 @@ function markKnobParams() {
     }
 }
 
+// a type change re-initialises the params and knob assigns to that type's defaults (the device does the same)
+function setFxType(t) {
+    state.fx.type = t;
+    state.fx.vals = fxDefaults(t);
+    state.fx.knobs = [...(FX_TYPES[t] || FX_TYPES[0]).knobs];
+    renderFx();
+}
 $("#fx-type").onchange = (ev) => {
     const t = +(/** @type {HTMLSelectElement} */ (ev.target).value);
-    state.fx.type = t;
-    state.fx.vals = fxDefaults(t); // device re-inits its params on type
-    const fx = FX_TYPES[t]; // change — mirror with the defaults
-    state.fx.knobs = [...fx.knobs];
     sendFx(1, t);
-    renderFx();
+    setFxType(t);
 };
 for (const k of [0, 1])
     $(k ? "#fx-knob2" : "#fx-knob1").onchange = (ev) => {
@@ -319,10 +322,7 @@ export function fxReflect(param, value) {
     if (!state.fx) return;
     value = dec14(value);
     if (param === 1) {
-        state.fx.type = value;
-        state.fx.vals = fxDefaults(value);
-        state.fx.knobs = [...(FX_TYPES[value] || FX_TYPES[0]).knobs];
-        renderFx();
+        setFxType(value);
     } else if (param === 2 || param === 3) {
         state.fx.knobs[param - 2] = value;
         renderFx();
