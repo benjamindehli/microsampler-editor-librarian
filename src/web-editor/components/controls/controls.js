@@ -413,10 +413,7 @@ export function handleExternalCC(cc, ccVal) {
         tick(`MIDI learn: pinned ${fmtCc(cc)} -> S${slot + 1} ${SPEC[param]?.label || "#" + param}`);
     }
     const binding = ccMap[cc];
-    if (!binding) {
-        tick(`MIDI ${fmtCc(cc)} = ${ccVal} (click LEARN to pin to a sample control)`);
-        return false;
-    }
+    if (!binding) return false; // unmapped: ignore silently (a wheel sweep would flood the ticker)
     const { slot, param } = binding;
     const s = state.bank?.slots?.[slot];
     // Respect hardware rule: Pitch Change (bpm_sync === 2) locks Tune and Semitone
