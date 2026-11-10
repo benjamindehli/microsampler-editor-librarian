@@ -28,6 +28,18 @@ let clickSlot = null; // slot currently held by the mouse on the piano
 export const isLoopHold = () => loopHold;
 export const isSlotLatched = (slot) => latched.has("s:" + slot);
 const isPianoSlotLatched = (slot) => latched.has("s:" + slot) || latched.has("k:" + (48 + slot));
+// is `slot` lit right now: latched, or held down (typed key, mouse, MIDI note or
+// sustain pedal)? The pad grid and piano redraws use these so a held note stays
+// lit when the selection changes (e.g. FOLLOW). Like paint(), KEYBOARD mode
+// lights only the piano key, not the pad.
+export const isKeySounding = (slot) => isPianoSlotLatched(slot) || heldOn(slot, false);
+export const isPadSounding = (slot) => isSlotLatched(slot) || heldOn(slot, true);
+function heldOn(slot, padOnly) {
+    if (padOnly && mode === "kbd") return false; // same rule as paint()
+    if (clickSlot === slot || [...held.values()].includes(slot)) return true;
+    for (const map of [midiHeld, sustainedOff]) for (const e of map.values()) if (e.slot === slot) return true;
+    return false;
+}
 
 // ── device note + visual paint ───────────────────────────────────────────────
 // SAMPLE mode plays note 48+slot on the global channel (triggers that pad);
@@ -161,7 +173,7 @@ export function syncKeybed() {
         key.classList.toggle("used", !!(s && !s.empty));
         key.classList.toggle("loaded", state.buffers.has(slot));
         key.classList.toggle("sel", state.sel === slot);
-        key.classList.toggle("sounding", isPianoSlotLatched(slot));
+        key.classList.toggle("sounding", isKeySounding(slot));
     }
 }
 

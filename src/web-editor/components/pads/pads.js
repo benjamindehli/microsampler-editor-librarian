@@ -1,6 +1,6 @@
 // 36-slot pad grid: rendering, selection, device note-play, WAV drop.
 import { openUpload, uploadBatch } from "components/dialogs/dialogs.js";
-import { isLoopHold, isSlotLatched, syncKeybed, togglePadHold } from "components/keyboard/keyboard.js";
+import { isLoopHold, isPadSounding, syncKeybed, togglePadHold } from "components/keyboard/keyboard.js";
 import { showSlot } from "components/sample-editor/slot.js";
 import { openSlotOp } from "components/sample-editor/slotops.js";
 import { isBlackKey, noteName } from "functions/notes.js";
@@ -33,7 +33,7 @@ export function syncPads() {
         if (!s.empty) used++;
         b.classList.toggle("sel", state.sel === s.slot);
         b.classList.toggle("loaded", !s.empty && state.buffers.has(s.slot));
-        b.classList.toggle("sounding", isSlotLatched(s.slot));
+        b.classList.toggle("sounding", isPadSounding(s.slot));
         const nameEl = b.querySelector(".pad-name");
         const name = s.empty ? "· · · ·" : s.name;
         if (nameEl.textContent !== name) nameEl.textContent = name;
@@ -61,7 +61,7 @@ export function renderPads() {
             (black ? " black" : "") +
             (state.sel === s.slot ? " sel" : "") +
             (loaded ? " loaded" : "") +
-            (isSlotLatched(s.slot) ? " sounding" : "");
+            (isPadSounding(s.slot) ? " sounding" : "");
         b.innerHTML =
             `<span class="pad-num">${String(s.slot + 1).padStart(2, "0")} · ${noteName(s.slot)}</span>
                    <span class="pad-name">${s.empty ? "· · · ·" : esc(s.name)}</span>
@@ -132,7 +132,7 @@ $("#pad-search").addEventListener("input", applyPadFilter);
         window.addEventListener(ev, () => {
             if (down == null) return;
             const pad = grid.querySelector(`.pad[data-slot="${down}"]`);
-            if (pad && !isSlotLatched(down)) pad.classList.remove("sounding");
+            if (pad && !isPadSounding(down)) pad.classList.remove("sounding");
             noteOff();
         });
     }
