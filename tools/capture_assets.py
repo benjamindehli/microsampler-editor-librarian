@@ -20,6 +20,7 @@ Usage (from anywhere):
     python3 tools/capture_assets.py --only screenshots  # all 6 device screenshots
     python3 tools/capture_assets.py --only demo      # the mp4/webm + poster
     python3 tools/capture_assets.py --only library   # just the Library screenshot
+    python3 tools/capture_assets.py --only og        # the docs pages' Open Graph cards
     python3 tools/capture_assets.py --out /tmp/check # write elsewhere (e.g. to verify)
 
 It reuses a bridge already serving on the chosen port, otherwise spawns a mock one
@@ -253,6 +254,52 @@ def build_demo(frames, out):
     shutil.rmtree(seq, ignore_errors=True)
 
 
+# ── Open Graph cards (1200x630) for the docs sub-pages ───────────────────────
+OG_PAGES = [
+    ('concepts', 'How it works', 'Banks, sample vs keyboard mode, BPM-sync, effects and the pattern sequencer.'),
+    ('getting-started', 'Getting started', 'Install on macOS, Linux &amp; Windows, first run, and the device setup you need.'),
+    ('guide', 'The guide', 'Every view in depth: Samples, Effect, Patterns &amp; editor, Utility, Library and the keyboard.'),
+    ('troubleshooting', 'Troubleshooting &amp; FAQ',
+     'Connection &amp; USB fixes, the MIDI-clock setting, and common questions answered.'),
+]
+OG_HTML = """<!doctype html><meta charset="utf-8"><style>
+html,body{margin:0;width:1200px;height:630px;overflow:hidden}
+body{position:relative;font-family:'DejaVu Sans',Verdana,sans-serif;color:#fff;
+  background:radial-gradient(900px 500px at 80%% 0%%,#1a191e,transparent 70%%),#0b0b0d}
+.brand{position:absolute;left:80px;top:78px;display:flex;align-items:center;gap:16px;font-size:26px}
+.brand img{height:44px}.brand b{font-weight:700}.brand span{color:#9a958e}
+.bar{position:absolute;left:80px;top:202px;width:128px;height:6px;border-radius:3px;
+  background:linear-gradient(90deg,#ffc063,#ff8a1e)}
+h1{position:absolute;left:80px;top:226px;margin:0;font-size:68px;font-weight:700;letter-spacing:.5px}
+p{position:absolute;left:80px;top:326px;margin:0;width:500px;font-size:26px;line-height:1.45;color:#a8a29a}
+.url{position:absolute;left:80px;top:516px;font-size:20px;color:#8a857e;letter-spacing:.3px}
+.foot{position:absolute;left:0;right:0;bottom:0;height:8px;background:#ff8a1e}
+</style><div class="brand"><img src="%(logo)s"><div><b>microSAMPLER</b> <span>Editor / Librarian</span></div></div>
+<div class="bar"></div><h1>%(title)s</h1><p>%(sub)s</p>
+<div class="url">benjamindehli.github.io/microsampler-editor-librarian</div><div class="foot"></div>"""
+
+
+def capture_og(out):
+    """The four docs sub-page share cards, rendered from OG_HTML."""
+    import base64
+    with open(os.path.join(ASSETS, 'logo.svg'), 'rb') as f:
+        logo = 'data:image/svg+xml;base64,' + base64.b64encode(f.read()).decode()
+    os.makedirs(os.path.join(out, 'og'), exist_ok=True)
+    tmp = tempfile.mkdtemp(prefix='og-')
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        pg = browser.new_page(viewport={'width': 1200, 'height': 630})
+        for name, title, sub in OG_PAGES:
+            pg.set_content(OG_HTML % {'logo': logo, 'title': title, 'sub': sub})
+            pg.evaluate("async () => { await document.fonts.ready; }")
+            png = os.path.join(tmp, name + '.png')
+            pg.screenshot(path=png)
+            save_jpg(Image.open(png).convert('RGB'), os.path.join(out, 'og', name + '.jpg'), 88)
+        browser.close()
+    shutil.rmtree(tmp, ignore_errors=True)
+    return ['og/%s.jpg' % n for n, _, _ in OG_PAGES]
+
+
 # ── synthetic Korg .msmpl_bank backups for the (hardware-free) Library shot ───
 _chunk = msmpl_chunk
 
@@ -322,7 +369,7 @@ def capture_library(out, port):
 def main():
     ap = argparse.ArgumentParser(description='Regenerate docs/assets from the live app.')
     ap.add_argument('--only', default='all',
-                    help='comma list of samples,screenshots,demo,library (default: all)')
+                    help='comma list of samples,screenshots,demo,library,og (default: all)')
     ap.add_argument('--out', default=ASSETS, help='output assets dir (default: docs/assets)')
     ap.add_argument('--no-metadata', action='store_true',
                     help='skip the XMP/IPTC/Exif/GPS stamp carried from the tagged assets')
@@ -334,11 +381,11 @@ def main():
     want = set()
     for tok in (t.strip() for t in args.only.split(',')):
         if tok == 'all':
-            want.update({'screenshots', 'demo', 'library'})
-        elif tok in ('samples', 'screenshots', 'demo', 'library'):
+            want.update({'screenshots', 'demo', 'library', 'og'})
+        elif tok in ('samples', 'screenshots', 'demo', 'library', 'og'):
             want.add(tok)
         elif tok:
-            ap.error('unknown --only target %r (use samples, screenshots, demo, library)' % tok)
+            ap.error('unknown --only target %r (use samples, screenshots, demo, library, og)' % tok)
     os.makedirs(os.path.join(args.out, 'screenshots'), exist_ok=True)
 
     written = []
@@ -368,6 +415,8 @@ def main():
     if 'library' in want:
         capture_library(args.out, LIB_PORT)
         written.append('screenshots/library.png')
+    if 'og' in want:
+        written += capture_og(args.out)
 
     print('wrote %d asset(s) to %s:' % (len(written), args.out))
     for p in written:

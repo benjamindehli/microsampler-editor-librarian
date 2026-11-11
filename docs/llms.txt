@@ -7,8 +7,8 @@ The app runs on your computer and talks to the microSAMPLER over USB, using MIDI
 ## Docs
 
 - [Home](https://benjamindehli.github.io/microsampler-editor-librarian/): overview, feature summary, and a demo video of the editor.
-- [Getting started](https://benjamindehli.github.io/microsampler-editor-librarian/getting-started): download the signed macOS and Linux apps, connect the device, and set the required MIDI-clock option.
-- [Guide](https://benjamindehli.github.io/microsampler-editor-librarian/guide): full walkthrough of the Samples, Effect, Patterns, Utility, and Library views.
+- [Getting started](https://benjamindehli.github.io/microsampler-editor-librarian/getting-started): download the signed macOS apps, the Linux Library app or the launcher ZIP, connect the device, and set the required MIDI-clock option.
+- [Guide](https://benjamindehli.github.io/microsampler-editor-librarian/guide): full walkthrough of the Samples, Effect, Patterns, Utility, and Library views, plus the on-screen keyboard and MIDI controller features (MIDI Learn, Loop Hold, channel routing).
 - [Concepts](https://benjamindehli.github.io/microsampler-editor-librarian/concepts): how the microSAMPLER works, covering banks, sample vs keyboard mode, effects, the pattern sequencer, and RAM-versus-flash persistence.
 - [Troubleshooting](https://benjamindehli.github.io/microsampler-editor-librarian/troubleshooting): fixes for connection and USB problems, the MIDI-clock setting, and a frequently asked questions section.
 
