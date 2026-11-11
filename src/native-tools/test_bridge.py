@@ -72,7 +72,7 @@ print('body size cap: OK')
 st, _, data = req('POST', '/api/release')       # nothing claimed → safe no-op
 assert st == 200 and json.loads(data) == {'released': True, 'was_claimed': False}
 
-_dev = B.Device(reader=False)                   # real ctor — no USB touched
+_dev = B.Device(reader=False)                   # real ctor - no USB touched
 _attempts = []
 def _fail_open():
     _attempts.append(1)
@@ -208,19 +208,18 @@ st, _, data = req('GET', '/api/bank')
 s5 = json.loads(data)['slots'][5]
 assert s5['name'] == 'BEEPY' and s5['tempo_bpm'] == 99.5
 
-# query values arrive percent-encoded (encodeURIComponent) — must be decoded,
+# query values arrive percent-encoded (encodeURIComponent) - must be decoded,
 # or 'MY KIT' lands on the device as literal 'MY%20KIT'
 st, _, _ = req('POST', '/api/sample/6?name=MY%20KIT&tempo=120', body=buf.getvalue())
 assert st == 200
 st, _, data = req('GET', '/api/bank')
 assert json.loads(data)['slots'][6]['name'] == 'MY KIT'
 
-# a non-WAV upload body is client input → 400 (and must not kill the handler
-# thread — load_wav used to raise SystemExit, which except Exception misses)
+# a non-WAV upload body is client input → 400, and must not kill the handler thread
 st, _, _ = req('POST', '/api/sample/7?name=BAD', body=b'this is not a wav')
 assert st == 400
 
-# --- ORIG BPM edit (mock HTTP) — re-uploads the sample with a new header tempo --
+# --- ORIG BPM edit (mock HTTP) - re-uploads the sample with a new header tempo --
 st, _, data = req('POST', '/api/sample/5/tempo', body=json.dumps({'bpm': 88.0}))
 assert st == 200 and json.loads(data) == {'slot': 5, 'tempo_bpm': 88.0}
 st, _, data = req('GET', '/api/bank')
@@ -281,7 +280,7 @@ imp = json.loads(data)
 assert st == 200 and imp['note_count'] == 20 and imp['bars'] == 4, imp
 st, _, mid5 = req('GET', '/api/pattern/5.mid')
 assert mid5 == mid0                       # converters reach a fixpoint
-# init endpoint resets notes but keeps the sample assignment (was 0)
+# init endpoint resets notes but keeps the sample assignment
 st, _, data = req('POST', '/api/pattern/5/init')
 ini = json.loads(data)
 assert ini['note_count'] == 0 and ini['name'] == 'INITPTRN' and ini['sample'] == 0
@@ -296,7 +295,7 @@ assert bk2['name'] == 'MYBANK' and bk2['bpm'] == 98.5
 st, _, _ = req('POST', '/api/bank/settings', body=json.dumps({'name': ''}))
 assert st == 400
 
-# --- sample params (authoritative switch state for self-heal) --------------------
+# --- sample params (diagnostic read of a slot's switch state) ---------------------
 st, _, data = req('GET', '/api/sample/1/params')
 pp = json.loads(data)
 assert pp['empty'] is False and pp['loop'] is True and pp['fx_sw'] is False
@@ -440,10 +439,10 @@ assert st == 200
 
 srv.shutdown()
 
-# --- real Device paths against the fake transport (regression: the device
-# requires a fresh inquiry per session; the bank summary must be blob-only —
-# bare func 0x16 selects would strand the device's sample-select state)
-from test_bank import FakeMS, blob, samples, seqs
+# --- real Device paths against the fake transport: every session starts with a
+# fresh inquiry, and the bank summary is blob-only (bare func 0x16 selects would
+# strand the device in a sample-select session)
+from test_bank import FakeMS, FakeWriteDev, FakeWriteMS, blob, samples, seqs
 
 real = B.Device()
 real.ms = FakeMS(bytes(blob), samples, seqs)
@@ -454,8 +453,8 @@ assert out['name'] == 'TESTBANK'
 assert len(out['effect']['params']) == 32          # packed @0x950 -> JSON
 assert len(out['seq_lengths']) == 16               # pattern storage units
 used = [s for s in out['slots'] if not s['empty']]
-# emptiness = END==0, NOT flags8 bit7 (bit7 is LOOP — a looping used sample
-# must NOT vanish as "empty"; regression for the 2026-06-08 discovery)
+# emptiness = END==0, not flags8 bit7 (bit7 is LOOP: a looping sample must
+# not read as empty)
 assert len(used) == 2, [s['slot'] for s in used]
 assert used[0]['name'] == 'SMPA' and used[0]['end'] == 62
 assert used[0]['loop'] is False and used[0]['bpm_sync'] == 0
@@ -464,7 +463,7 @@ assert used[1]['bpm_sync'] == 1 and used[1]['fx_sw'] is True
 assert used[1]['reverse'] is False
 assert real.ms.left_dump == 1                  # committed leave-dump-mode
 assert real.ms.selected is None                # no select session left open
-wavbytes, wavtempo = real.download_wav(0)       # now returns (bytes, orig BPM)
+wavbytes, wavtempo = real.download_wav(0)       # (bytes, orig BPM)
 with wave.open(io.BytesIO(wavbytes)) as w:
     assert w.getnframes() == 64
 assert wavtempo is not None                     # orig BPM rides the header
@@ -481,11 +480,10 @@ real.ms.send_sysex = lambda m, cable=None: real.ms.sysexes.append(bytes(m))
 real.set_bank_settings('AB', 90.5)
 real.ms.send_sysex = _orig_send
 assert len(real.ms.sysexes) == 9
-import protocol as PP
-assert real.ms.sysexes[0] == PP.parameter_change(0, 0, 0, ord('A'))
-assert real.ms.sysexes[1] == PP.parameter_change(0, 0, 1, ord('B'))
-assert real.ms.sysexes[2] == PP.parameter_change(0, 0, 2, ord(' '))
-assert real.ms.sysexes[8] == PP.parameter_change(0, 0, 16, 905)
+assert real.ms.sysexes[0] == B.P.parameter_change(0, 0, 0, ord('A'))
+assert real.ms.sysexes[1] == B.P.parameter_change(0, 0, 1, ord('B'))
+assert real.ms.sysexes[2] == B.P.parameter_change(0, 0, 2, ord(' '))
+assert real.ms.sysexes[8] == B.P.parameter_change(0, 0, 16, 905)
 
 # --- play note over the real Device path (USB-MIDI short message) --------------
 real.ms.shorts = []
@@ -498,7 +496,7 @@ assert real.ms.shorts == [(0x90, 48 + 7, 100, 1),   # note on, C3+slot, cable 1
 
 # --- start/end points over the real Device path (param-blob write) -------------
 # set_points must fetch the CURRENT blob (0x14), patch ONLY the two u32s,
-# and write it back (0x44) — without opening a select session.
+# and write it back (0x44) - without opening a select session.
 res_pts = real.set_points(0, 7, 55)
 assert res_pts == {'slot': 0, 'start': 7, 'end': 55}
 wp = bytes(real.ms.w_params[0])
@@ -509,7 +507,7 @@ assert wp[:0x0c] == orig_par[:0x0c]                # name/flags untouched
 assert wp[0x14:] == orig_par[0x14:]                # all other params untouched
 assert real.ms.selected is None                    # no select session opened
 # read-back reflects the write (FakeMS serves w_params on 0x14)
-par2 = real.set_points(0, 9, 60)
+real.set_points(0, 9, 60)
 wp2 = bytes(real.ms.w_params[0])
 assert int.from_bytes(wp2[0x0c:0x10], 'little') == 9
 
@@ -542,8 +540,7 @@ except Exception as e:
     assert '0x29' in str(e), e
 
 # --- patterns over the real Device path (fake transport, SEQP blobs) ----------
-import protocol as P2
-seqs2 = {q: P2.build_init_pattern() for q in range(16)}
+seqs2 = {q: B.P.build_init_pattern() for q in range(16)}
 realp = B.Device()
 realp.ms = FakeMS(bytes(blob), samples, seqs2)
 realp.channel = 0
@@ -556,19 +553,18 @@ assert mid[:4] == b'MThd'
 
 # --- pattern write over the real Device path (fake write transport) -----------
 wpat = B.Device()
-wpat.ms = FakeWriteMS2 = __import__('test_bank').FakeWriteMS()
-wpat.ms.dev = __import__('test_bank').FakeWriteDev(wpat.ms)
+wpat.ms = FakeWriteMS()
+wpat.ms.dev = FakeWriteDev(wpat.ms)
 wpat.channel = 0
 wpat.cable = 1
-blob5 = P2.smf_to_pattern(P2.pattern_to_smf(P2.build_init_pattern()))
+blob5 = B.P.smf_to_pattern(B.P.pattern_to_smf(B.P.build_init_pattern()))
 res5 = wpat.pattern_write(5, blob5)
 assert res5['valid'] and res5['name'] == 'INITPTRN'
 assert bytes(wpat.ms.w_seqs[5][1]) == blob5        # exact bytes on the wire
 assert wpat.pattern_cache[5] == blob5
 
 # --- backup/restore ops over the op runner -----------------------------------
-import tempfile, time as _t
-from test_bank import FakeWriteMS, FakeWriteDev
+import tempfile
 
 B.BACKUP_ROOT = tempfile.mkdtemp()
 
@@ -580,7 +576,7 @@ res = bk.start_backup()
 for _ in range(100):
     if bk.op['done']:
         break
-    _t.sleep(0.05)
+    time.sleep(0.05)
 assert bk.op['done'] and bk.op['ok'], bk.op['lines']
 assert any('backup complete' in l for l in bk.op['lines'])
 lst = B.list_backups()
@@ -611,13 +607,13 @@ rs.start_restore(res['dir'], 4)
 for _ in range(100):
     if rs.op['done']:
         break
-    _t.sleep(0.05)
+    time.sleep(0.05)
 assert rs.op['done'] and rs.op['ok'], rs.op['lines']
 assert rs.ms.w_bank == 4 and rs.ms.left_dump == 1
 assert bytes(rs.ms.w_samples[0][1]) == samples[0][1]      # PCM round-trips
 
-# RESTORE needs bank.bin: device backups have one, a complete Korg .msmpl_bank
-# import now gets one, and an older import without it is refused up front
+# RESTORE needs bank.bin: device backups and complete Korg .msmpl_bank imports
+# have one; a backup without it is refused up front
 from test_msmpl import build_bank, build_full_bank
 _full = B.import_msmpl_bank(build_full_bank()[0])
 _part = B.import_msmpl_bank(build_bank('PARTIAL')[0])    # no MfxD → no bank.bin
@@ -632,7 +628,7 @@ rk.start_restore(_full, None)                 # Korg bank → device, end to end
 for _ in range(100):
     if rk.op['done']:
         break
-    _t.sleep(0.05)
+    time.sleep(0.05)
 assert rk.op['done'] and rk.op['ok'], rk.op['lines']
 import msmpl_bank as _MB
 _fdata, _fpats = build_full_bank()[0], build_full_bank()[4]
@@ -647,7 +643,7 @@ for dev in (B.Device(), B.MockDevice()):
         assert 'no bank.bin' in str(e), e
 print('Korg bank restore (bank.bin gate): OK')
 
-# restore dir name is untrusted HTTP input — traversal must be rejected
+# restore dir name is untrusted HTTP input - traversal must be rejected
 for evil in ('..', '.', '...', '../x', 'a/b', '/etc', 'x\x00y', ''):
     try:
         B.backup_dir(evil)
@@ -675,7 +671,7 @@ if hasattr(os, 'geteuid') and os.geteuid() != 0:   # (root ignores perms; skip t
     finally:
         os.chmod(ro, 0o755)
         B.BACKUP_ROOT = _saved_root
-B._own_backups_to_invoker()                      # no-op here (not root) — must not raise
+B._own_backups_to_invoker()                      # no-op here (not root) - must not raise
 print('backups writability/ownership guard: OK')
 
 # pattern export: a backup with one recorded pattern → list / MIDI / zip
@@ -736,7 +732,7 @@ _s0 = next(s for s in _m['samples'] if not s['empty'])
 assert 'samples/' + B.zip_sample_name(_s0['slot'], _s0['name'], '.wav') in zsamples
 _disk = sorted(os.listdir(os.path.join(B.BACKUP_ROOT, res['dir'], 'samples')))
 assert sorted(os.listdir(os.path.join(B.BACKUP_ROOT, newdir, 'samples'))) == _disk
-# an OLD-style zip (sNN names, made by v1.17.4 and earlier) still imports as-is
+# a zip with sNN-style sample names still imports as-is
 old = io.BytesIO()
 with _zf.ZipFile(old, 'w') as z:
     z.writestr('OLDBANK/manifest.json', '{}')
@@ -793,7 +789,7 @@ try:
 except RuntimeError as e:
     assert 'invalid backup name' in str(e)
 
-# busy guard: second op while one runs must 409 at the device layer
+# busy guard: a second op while one runs is refused at the device layer
 try:
     bk.op['done'] = False
     bk.start_backup()

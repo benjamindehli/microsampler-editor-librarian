@@ -2,7 +2,8 @@
 
 ![CI](https://github.com/benjamindehli/microsampler-editor-librarian/actions/workflows/ci.yml/badge.svg)
 
-Editor/librarian for the **Korg microSAMPLER**. I originally made it because Korg's old 32-bit editor stopped working on newer versions of macOS.
+Editor/librarian for the **Korg microSAMPLER**.
+I originally made it because Korg's old 32-bit editor stopped working on newer versions of macOS.
 
 The hardware protocol was reverse-engineered from the original binary and verified against a real device.
 
@@ -42,8 +43,10 @@ The [latest release](https://github.com/benjamindehli/microsampler-editor-librar
 - **SAMPLES**:
   - 36-slot bank overview
   - Audition on the device (honors start/end points) with a playhead on the waveform
-  - On-screen keyboard mirroring the 36 pads. Click to play, or tick **⌨ TYPE TO PLAY** to play from your computer keyboard (Z/X shift octave). A **SAMPLE / KEYBOARD** toggle switches between triggering one sample per key (empty keys dimmed) and playing the selected sample pitched across the keyboard
-  - **MIDI IN**: play the device from a connected MIDI keyboard, with velocity, pitch bend and sustain pedal (uses the browser's Web MIDI, and honors the SAMPLE / KEYBOARD mode)
+  - On-screen keyboard mirroring the 36 pads. Click to play, or tick **TYPE TO PLAY** to play from your computer keyboard (Z/X shift octave). A **SAMPLE / KEYBOARD** toggle switches between triggering one sample per key (empty keys dimmed) and playing the selected sample pitched across the keyboard
+  - **MIDI IN**: play the device from a connected MIDI controller, with velocity, pitch bend and sustain pedal (uses the browser's Web MIDI). Notes follow the SAMPLE / KEYBOARD toggle, or route them by channel with **SMP CH / KBD CH**, so a split controller can trigger pads and play the pitched sample at once
+  - **MIDI Learn**: pin a controller knob, slider or the pitch-bend wheel to a sample control (level, pan, tune, decay and so on) with **LEARN** or a right-click on the control. Each binding belongs to the pad it was learned on, and bindings are saved in the browser
+  - **LOOP HOLD**: latch notes so looped samples keep playing until you trigger them again
   - WAV download/upload (auto-resample to 48/24/12/6 kHz). Drop several WAVs onto the pads to bulk-fill consecutive slots
   - Auto-slice can split a long recording across consecutive pads, either by equal divisions or by detected transients (great for drum breaks and loops)
   - Upload processing includes normalize, gain, silence trimming, fades, and mono/stereo conversion (done in-browser before transfer)
@@ -54,7 +57,7 @@ The [latest release](https://github.com/benjamindehli/microsampler-editor-librar
   - The waveform view supports scroll-wheel zoom and click-drag panning, which makes it easier to line up trims on short drum hits or transients
     - Stereo samples show as two half-height lanes (left above right) so each channel reads on its own
   - Renaming banks and samples
-  - All samples preload on connect, and again when you switch banks on the device (re-synced when you return to the app). Progress is shown, so the memory meter is exact and waveforms are instant
+  - All samples preload on connect, and again when you switch banks on the device (picked up when you return to the window with **AUTO-SYNC** on). Progress is shown, so the memory meter is exact and waveforms are instant
   - **FOLLOW** toggle (on by default): the selection tracks the last sample triggered on the device, whether you play it or a pattern does
 - **EFFECT**:
   - All 22 effect types with their full parameter sets
@@ -77,35 +80,35 @@ The [latest release](https://github.com/benjamindehli/microsampler-editor-librar
   - Cherry-pick restore: copy a single sample out of a backup into any pad of the current bank
   - Restore banks saved by Korg's original editor (`.msmpl_bank`) to the device, with all their settings and patterns
   - Remote sampling trigger (input select + [SAMPLING] over MIDI, with no device-state readback, so watch the device screen)
-- **Live two-way sync**:
-  - Panel edits on the device show up in the app instantly
+- **Panel edits sync back**: knob moves on the device show up in the app while the device is on its sample-edit page. Other hardware changes are picked up by the next bank read (RECEIVE, or **AUTO-SYNC** when you return to the window)
+- **AUTO-SYNC** (on by default): re-reads the bank when you come back to the window. A bank read stops a playing pattern and releases held notes, so untick it to keep loops running while you work in another app
 - **Master volume** slider for the device output, and a **panic** button (all sound off / stop) for stuck notes
 - **12 accent themes** picked from a swatch dropdown. The whole interface (buttons, LCD, waveform, keys) recolours to match
 - Remembers your last-open view across reloads
 - Tells you when a newer release is available (checks GitHub, dismissible)
-- **Library mode** (no hardware): import original Korg `.msmpl_bank` backups (or this app's `.zip` backups), browse and play their samples in the browser, export them as WAVs, and recover the recorded patterns as MIDI files. Useful if you have old `.msmpl_bank` backups and want to recover the samples or recorded patterns from them.
+- **Library mode** (no hardware): import original Korg `.msmpl_bank` backups (or this app's `.zip` backups), browse and play their samples in the browser, export them as WAVs, and recover the recorded patterns as MIDI files.
 
 ## Requirements
 
-**The desktop apps above bundle everything** (macOS 13+ / Linux x86-64). The
-requirements below apply to the classic ZIP + launchers:
+**The desktop apps above bundle everything** (macOS 13+ / Linux x86-64).
+The requirements below apply to the classic ZIP + launchers:
 
 - macOS (tested), Linux (should work) or Windows (untested)
 - **Python 3.8+** is the only thing you install.
   - [pyusb](https://github.com/pyusb/pyusb) (BSD) and [libusb](https://libusb.info/) (LGPL) are bundled in [`src/native-tools/vendor/`](src/native-tools/vendor/), so there's no `pip` or Homebrew step.
   - A system pyusb/libusb, if you have one installed, is used in preference, and the bundled copies are just a fallback.
-  - A newer system libusb, e.g. `brew install libusb`, can be more robust across reconnects.
-- Chrome/Chromium recommended, but any modern should work
+  - A newer system libusb (e.g. `brew install libusb`) survives more reconnects before the device needs a power-cycle.
+- Chrome or Chromium recommended, but any modern browser should work (MIDI IN and MIDI Learn need Web MIDI: Chrome, Edge or Firefox)
 - A Korg microSAMPLER connected with USB
 
 ## Run
 
-**Installed the apps?** Just open them.
+**Installed the apps?**
+Just open them.
 The Editor app puts a ♪ in the menu bar and opens the editor, and the Library app opens straight into the librarian.
 
 > **Where's the sound?**
-> The editor plays everything on the microSAMPLER itself (pads, audition, the on-screen keyboard, patterns),
-> so you hear it from the device's own outputs, not your computer's speakers.
+> The editor plays everything on the microSAMPLER itself (pads, audition, the on-screen keyboard, patterns), so you hear it from the device's own outputs, not your computer's speakers.
 > That way you hear exactly what the hardware sounds like, envelope and effects included.
 > The Library app works without the device, so it plays samples through your computer instead.
 
@@ -118,8 +121,7 @@ Each folder also has a **`microSAMPLER Library`** launcher, see [Library mode](#
 - **macOS:**
   - The launcher is unsigned, so the first run is blocked ("unidentified developer").
   - Approve it once: right-click (Control-click) the launcher → **Open** → **Open**.
-  - On newer macOS without an _Open_ option, double-click once, then **System Settings → Privacy & Security → Open Anyway**.
-    (Or clear the quarantine in a terminal: `xattr -dr com.apple.quarantine "<unzipped folder>"`.)
+  - On newer macOS without an _Open_ option, double-click once, then **System Settings → Privacy & Security → Open Anyway**. (Or clear the quarantine in a terminal: `xattr -dr com.apple.quarantine "<unzipped folder>"`.)
 - **Linux:**
   - Mark the `.sh` executable / "Allow launching" first, or run `./'Linux/microSAMPLER Editor Librarian.sh'` from a terminal.
 - **Windows (experimental/untested):**
@@ -151,7 +153,8 @@ python3 src/native-tools/bridge.py --library
 ```
 
 Library mode serves on **<http://localhost:8766>**, a separate port from the device bridge's 8765, so it never clashes with (or attaches to) a running device bridge.
-Or just double-click the **`microSAMPLER Library`** launcher in your platform's folder (`macOS/`, `Linux/`, `Windows/`). No password is needed, since library mode never touches USB.
+Or just double-click the **`microSAMPLER Library`** launcher in your platform's folder (`macOS/`, `Linux/`, `Windows/`).
+No password is needed, since library mode never touches USB.
 Open the editor, go to **LIBRARY**, and use **OPEN BANK FILE…** to import a `.msmpl_bank` (original Korg) or a `.zip` (this app's) backup.
 You can then play each sample in the browser, download individual WAVs, or grab the whole bank as a ZIP of WAVs.
 If the bank holds recorded patterns, they're listed below the pads.
@@ -164,7 +167,12 @@ python3 src/native-tools/msmpl_bank.py info    "my bank.msmpl_bank"   # list sam
 python3 src/native-tools/msmpl_bank.py extract "my bank.msmpl_bank"   # -> WAVs + manifest
 ```
 
-Bank backups land in `src/native-tools/backups/` (gitignored, they're your data).
+Bank backups are saved to:
+
+- `native-tools/backups/` next to the bridge (ZIP or source checkout, gitignored since they're your data)
+- `/Users/Shared/DehliMusikk/microSAMPLER Editor/backups` (macOS Editor app)
+- `~/Library/Application Support/DehliMusikk/microSAMPLER Library/backups` (macOS Library app) or `~/.local/share/DehliMusikk/microSAMPLER Library/backups` (Linux Library app)
+
 Note that sample/parameter transfers target the device's **current bank (RAM)**.
 Save on the device or restore to a user bank to persist.
 
@@ -179,6 +187,7 @@ src/                          application source (everything that ships)
     bank.py                     full-bank backup/restore CLI
     msusb.py                    transport + diagnostics (inquiry/monitor/…)
     protocol.py                 Korg SysEx/bulk protocol (offline self-test)
+    msmpl_bank.py               Korg .msmpl_bank reader (library mode + CLI)
     test_*.py                   offline regression suite (mock device)
   launchers/                  double-clickable launchers per OS (macOS/, Linux/,
                               Windows/), each with a device "Editor Librarian"
@@ -186,7 +195,7 @@ src/                          application source (everything that ships)
 tools/                        dev + build + packaging (not shipped as the app):
   build.mjs / pack.mjs          minified dist/ + release ZIP
   re/                           reverse-engineering toolkit (needs the original
-                                Korg installer, not included) — regenerates
+                                Korg installer, not included). Regenerates
                                 src/web-editor/functions/fxData.js etc.
   bundle/                       the desktop apps: PyInstaller specs + entries,
                                 the Swift menu-bar shell, DMG/AppImage/notarize
@@ -216,7 +225,8 @@ JavaScript unit tests for the pure modules (audio DSP + value encoders), via Nod
 npm test        # Node's built-in runner over test/unit/*.test.mjs
 ```
 
-There isn't a frontend build step during development. The browser loads the ES modules directly from `src/web-editor/`.
+There isn't a frontend build step during development.
+The browser loads the ES modules directly from `src/web-editor/`.
 
 End-to-end browser smoke (boots the mock bridge, drives the app headless, fails on any page/console error or broken interaction):
 
@@ -228,14 +238,16 @@ python3 test/e2e/smoke.py        # reuses a bridge already on the port, else sta
 ### Linting
 
 Bug-focused linters (dev-only, not runtime dependencies) keep the no-build code honest.
-They catch undefined names, unused imports, etc. CI runs both.
+They catch undefined names, unused imports, etc. CI runs all of them.
 
 ```bash
-# Python (src/native-tools/ + tools/) — needs ruff (pip install ruff)
+# Python (src/native-tools/, tools/, test/e2e/): needs ruff (pip install ruff)
 ruff check
 
-# JavaScript (src/web-editor/) — needs the dev deps (npm install)
+# JavaScript (src/web-editor/, docs/): needs the dev deps (npm install)
 npm run lint:js
+npm run lint:types     # JSDoc type check (tsc --checkJs)
+npm run format:check   # Prettier; `npx prettier --write <file>` fixes a file
 ```
 
 ## Build a release
@@ -243,21 +255,22 @@ npm run lint:js
 To create a smaller distribution build for releases (JS bundled + minified, CSS merged + minified, HTML comments stripped, dev/RE/test files excluded):
 
 ```bash
-npm install      # one dev-only dependency: esbuild (MIT)
+npm install      # dev-only tools: esbuild, ESLint, Prettier, TypeScript
 npm run build    # -> dist/
 sudo python3 dist/native-tools/bridge.py
 
 npm run pack     # -> dist/ + release/microsampler-editor-librarian-vX.Y.Z.zip
 ```
 
-`dist/` mirrors the run layout (`web-editor/` + `native-tools/` + launcher) and runs exactly like the source.
-`esbuild` is build-time only, so the app ships no runtime npm dependencies.
+`dist/` mirrors the run layout (`web-editor/` + `native-tools/` + the launchers) and runs exactly like the source.
+The npm packages are dev/build-time only, so the app ships no runtime npm dependencies.
 
 `npm run pack` builds `dist/` and packages it into the release ZIP under `release/`, named to match the version (`<name>-vX.Y.Z.zip`) and the docs download link, with a single top-level folder and the launchers kept executable.
-Upload that ZIP to the GitHub release.
+You don't upload it by hand: the Release workflow builds and attaches it when you publish (see below).
 The packer is plain Node (no `zip` binary needed).
 
-Bumping the version with `npm version <new>` automatically stamps it into the docs download link and structured data (the `version` lifecycle runs `npm run stamp-version` and stages `docs/index.html` into the version commit), so the **Download vX.Y.Z (ZIP)** button on the site always points at the matching release asset.
+`npm version <new>` stamps the new version into the docs, `bridge.py` and `CITATION.cff`, and stages them into the version commit.
+That keeps the site's **Download vX.Y.Z (ZIP)** button pointing at the matching release asset.
 Run `npm run stamp-version` manually if you bump the version some other way.
 
 ### Cutting a release
@@ -275,13 +288,15 @@ Both verify the tag matches `package.json` first.
 
 ## Disclaimer
 
-This is an **independent, unofficial project**. It is not affiliated with, endorsed, sponsored, or supported by Korg Inc.
-_microSAMPLER_ and _Korg_ are trademarks of Korg Inc., used here only to identify the hardware this software interoperates with.
+This is an **independent, unofficial project**.
+It is not affiliated with, endorsed, sponsored, or supported by Korg Inc. _microSAMPLER_ and _Korg_ are trademarks of Korg Inc., used here only to identify the hardware this software interoperates with.
 
 This repository contains **no Korg software, firmware, or other Korg copyrighted material**.
-The communication protocol was independently reverse-engineered for the sole purpose of **interoperability** with hardware owned by the user (as permitted by, e.g., Directive 2009/24/EC art. 6 in the EU/EEA).
+The communication protocol was independently reverse-engineered for the sole purpose of **interoperability** with hardware owned by the user (as permitted by, e.g., Directive 2009/24/EC art.
+6 in the EU/EEA).
 
-**Use at your own risk.** This software is provided _“as is”_, without warranty of any kind, as set out in sections 15–16 of the [GNU GPL v3](LICENSE).
+**Use at your own risk.**
+This software is provided _“as is”_, without warranty of any kind, as set out in sections 15–16 of the [GNU GPL v3](LICENSE).
 The author accepts **no responsibility or liability** for any damage to your device, loss of samples, patterns or other data, or any other consequence of using this software.
 It writes to the device's memory, so **back up your bank** (UTILITY → BACKUP) before bulk operations, and never disconnect the device mid-transfer.
 

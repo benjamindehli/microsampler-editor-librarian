@@ -1,17 +1,16 @@
-// ESLint — bug-focused linting for the browser ES modules. Dev/CI only; the app
-// itself ships no runtime npm dependencies. Catches the classes of mistake the
-// no-build setup otherwise only surfaces at runtime: undefined names (e.g. the
-// `api` import that once slipped through), unused vars/imports, unreachable
-// code, duplicate keys. NOT a style enforcer — Prettier owns formatting, so
-// ESLint omits stylistic rules to avoid fighting it (see .prettierrc).
+// ESLint: bug-focused linting for the browser ES modules (dev/CI only; the app
+// ships no runtime npm dependencies). Catches what the build-free setup would
+// otherwise only surface at runtime: undefined names, unused vars/imports,
+// unreachable code, duplicate keys. Prettier owns formatting, so stylistic
+// rules are left out (see .prettierrc).
 //
-//   npx eslint src/web-editor/js        # or: npm run lint:js
+//   npm run lint:js        # = eslint src/web-editor docs
 import js from "@eslint/js";
 import globals from "globals";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 
 export default [
-    // generated data modules — not hand-written, don't lint
+    // generated data modules - not hand-written, don't lint
     { ignores: ["src/web-editor/functions/valueTables.js", "src/web-editor/functions/fxData.js"] },
 
     js.configs.recommended,
@@ -33,8 +32,8 @@ export default [
             "simple-import-sort/imports": "error",
             "simple-import-sort/exports": "error",
             // simple-import-sort sorts but doesn't format; this keeps the reordered
-            // `{ a, b }` members space-separated (core rule; deprecated in ESLint 9
-            // but still functional — swap to @stylistic if a future major drops it).
+            // `{ a, b }` members space-separated (a deprecated core formatting rule;
+            // move to @stylistic if a future ESLint removes it).
             "comma-spacing": ["error", { before: false, after: true }]
         }
     },

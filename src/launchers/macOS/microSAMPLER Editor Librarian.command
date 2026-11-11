@@ -2,7 +2,7 @@
 # Double-clickable starter for the microSAMPLER editor.
 #
 # Opens a Terminal window, starts the bridge with sudo (type your password
-# here — same as the CLI flow), auto-opens the editor in a Chrome app-mode
+# here - same as the CLI flow), auto-opens the editor in a Chrome app-mode
 # window once the bridge is ready, and shows live bridge output.
 # Stop with Ctrl+C or by closing the window.
 
@@ -40,7 +40,7 @@ echo "python: $PY"
 PORT=8765
 URL="http://localhost:$PORT"
 
-# bash-builtin port probe — macOS nc can hang on localhost/IPv6
+# bash-builtin port probe - macOS nc can hang on localhost/IPv6
 port_open() { (exec 3<>"/dev/tcp/127.0.0.1/$PORT") 2>/dev/null; }
 
 open_ui() {
@@ -48,15 +48,27 @@ open_ui() {
 }
 
 if port_open; then
-  echo "Bridge already running — opening the editor."
+  echo "Bridge already running, opening the editor."
   open_ui
   echo "(close this window)"
   exit 0
 fi
 
-# open the editor window as soon as the bridge starts listening
+echo
+echo "Starting the bridge. Your password may be asked (needed to claim"
+echo "the USB interface from CoreMIDI). The editor window opens by itself."
+echo "Stop the bridge with Ctrl+C."
+echo "────────────────────────────────────────────────────────────────"
+# ask for the password first, so the window watcher's timeout below only
+# covers the bridge starting up, not the time spent typing it
+if ! sudo -v; then
+  read -r -p "No admin password given. Press Return to close… " _
+  exit 1
+fi
+
+# open the editor window as soon as the bridge starts listening (≤ 2 min)
 (
-  for _ in $(seq 1 240); do
+  for _ in $(seq 1 480); do
     if port_open; then
       open_ui
       exit 0
@@ -66,11 +78,6 @@ fi
 ) &
 WATCHER=$!
 
-echo
-echo "Starting the bridge — your password may be asked (needed to claim"
-echo "the USB interface from CoreMIDI). The editor window opens by itself."
-echo "Stop the bridge with Ctrl+C."
-echo "────────────────────────────────────────────────────────────────"
 sudo "$PY" bridge.py
 RC=$?
 kill "$WATCHER" 2>/dev/null

@@ -106,7 +106,7 @@ assert got == pcm, (len(got), len(pcm))
 
 par = D.fetch_params(ms, 0, 3)
 assert par['name'] == 'TESTSMP' and par['long_name'] == 'Test sample'
-assert par['semitone'] == -5 and par['tune'] == 7
+assert par['semitone'] == -5 and par['velo_int'] == 7
 
 D.write_wav('/tmp/test_dl.wav', got, hdr['rate_hz'], hdr['stereo'])
 import wave

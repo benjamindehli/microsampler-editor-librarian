@@ -1,5 +1,5 @@
 // Unit tests for the pure upload-audio DSP (src/web-editor/functions/audioTools.js).
-// Built-in node:test — no deps. Run: node --test test/  (or: npm test)
+// Built-in node:test, no deps. Run: npm test
 import assert from "node:assert/strict";
 import test from "node:test";
 

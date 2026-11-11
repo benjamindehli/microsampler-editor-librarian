@@ -1,14 +1,10 @@
 // Shared helpers: DOM lookup, escaping, formatting, bridge API access.
 import { readWavHeader } from "functions/audioTools.js";
 
-// AppEl is deliberately PERMISSIVE: every element type the app actually pulls
-// out of its own markup, intersected. The DOM lookups really return `Element`,
-// which would make `.value` / `.checked` / `.showModal` / `.getContext` /
-// `.dataset` an error at ~180 call sites and force a cast on each one. The
-// intersection trades that precision (a `$("#some-div").value` still passes) for
-// keeping the rest of the type checking — misspelled methods, bad arithmetic,
-// wrong argument types — available without a mass refactor. Tighten it later by
-// splitting out typed helpers ($input, $dialog) if the looseness ever bites.
+// AppEl is a permissive intersection of the element types the app queries, so
+// `.value` / `.showModal()` / `.getContext()` type-check at ~180 call sites
+// without a cast each (the lookups really return Element). The trade-off: a
+// `$("#some-div").value` also passes. Split into typed helpers if that bites.
 /** @typedef {HTMLElement & HTMLInputElement & HTMLDialogElement & HTMLCanvasElement & HTMLAnchorElement} AppEl */
 
 /** @type {(s: string) => AppEl} */
@@ -41,7 +37,7 @@ export async function api(path, opts) {
 }
 export const apiJson = async (path, opts) => (await api(path, opts)).json();
 
-// localStorage wrappers — persistence is best-effort: private-mode, a disabled
+// localStorage wrappers - persistence is best-effort: private-mode, a disabled
 // store, or a quota error must never throw into the caller. lsGet returns the
 // fallback when the key is missing OR storage is unavailable; lsSet is a no-op
 // on failure.
@@ -61,7 +57,7 @@ export function lsSet(key, value) {
     }
 }
 
-// opts for a JSON POST — pass to api() (raw response) or apiJson() (parsed),
+// opts for a JSON POST - pass to api() (raw response) or apiJson() (parsed),
 // whichever the caller needs. Centralises the method + Content-Type + stringify.
 export const jsonBody = (data) => ({
     method: "POST",
@@ -69,7 +65,7 @@ export const jsonBody = (data) => ({
     body: JSON.stringify(data)
 });
 
-// styled replacement for window.confirm — a themed <dialog>, returns a
+// styled replacement for window.confirm - a themed <dialog>, returns a
 // Promise<boolean> (native dialog gives focus-trap + Esc-to-cancel for free).
 export function confirmDialog(title, body, okLabel = "OK") {
     const dlg = $("#confirm-dialog");
@@ -84,20 +80,20 @@ export function confirmDialog(title, body, okLabel = "OK") {
 
 export function wavFormat(arrayBuf) {
     // channels + rate off the shared RIFF/WAVE chunk walk (device WAVs have a
-    // canonical 44-byte header, so a 44-byte slice is enough — see sampleLoad)
+    // canonical 44-byte header, so a 44-byte slice is enough - see sampleLoad)
     const h = readWavHeader(new DataView(arrayBuf));
     return h ? { channels: h.channels, rate: h.rate } : null;
 }
 
 // clamp a BPM into the device's supported range (also the pattern-playhead
-// sweep range) — used wherever a bank/pattern BPM drives timing.
+// sweep range) - used wherever a bank/pattern BPM drives timing.
 export const clampBpm = (bpm) => Math.max(20, Math.min(300, bpm || 120));
 
 // Approximate looping playhead: sweep `el` left→right across `width` px over
 // `durMs`, looping, via a compositor-only transform. `alive()` gates each frame
 // (stopped / superseded). Returns a stop() that cancels the rAF. Shared by the
 // pattern card mini-rolls and the pattern-editor preview (the waveform audition
-// playhead is bespoke — reverse / one-shot / zoom-clipping).
+// playhead is bespoke - reverse / one-shot / zoom-clipping).
 export function sweepPlayhead(el, durMs, width, alive) {
     let t0 = null,
         raf = null;
@@ -113,9 +109,8 @@ export function sweepPlayhead(el, durMs, width, alive) {
     };
 }
 
-// toggle `.on` + aria-pressed across a segmented button group. `pairs` is
-// [[element, isActive], …] — the single spelling of the pattern that was
-// hand-rolled in the keyboard mode switch, pattern-editor tool/track, etc.
+// toggle `.on` + aria-pressed across a segmented button group;
+// `pairs` = [[element, isActive], …]
 export function setSegActive(pairs) {
     for (const [el, on] of pairs) {
         el.classList.toggle("on", on);

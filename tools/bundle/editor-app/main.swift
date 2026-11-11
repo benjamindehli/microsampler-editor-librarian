@@ -1,4 +1,4 @@
-// microSAMPLER Editor Librarian — menu-bar app (macOS 13+).
+// microSAMPLER Editor Librarian - menu-bar app (macOS 13+).
 //
 // A thin native shell around the bridge: the actual work happens in the
 // launchd ROOT daemon this app registers via SMAppService (the frozen
@@ -9,21 +9,22 @@
 // the USB device only while the editor UI is open (claim-on-demand +
 // idle-release, implemented in the bridge's --daemon mode).
 //
-// Built by make_editor_app.sh with plain swiftc — no Xcode project.
+// Built by make_editor_app.sh with plain swiftc - no Xcode project.
 import AppKit
 import Foundation
 import ServiceManagement
 
 let bridgeURL = URL(string: "http://localhost:8765")!               // opened in the browser
-let statusURL = URL(string: "http://127.0.0.1:8765/api/status")!   // internal: explicit IPv4
-let releaseURL = URL(string: "http://127.0.0.1:8765/api/release")! // (no localhost/::1 + proxy)
+// status/release go to explicit IPv4 127.0.0.1 via localSession (no proxy, no ::1)
+let statusURL = URL(string: "http://127.0.0.1:8765/api/status")!
+let releaseURL = URL(string: "http://127.0.0.1:8765/api/release")!
 let bridgePort: UInt16 = 8765
 let daemonPlist = "no.dehlimusikk.msmpl.bridge.plist"
 
-// URLSession that bypasses the system/PAC proxy and times out fast: a plain
-// URLSession to `localhost` ran proxy discovery + tried IPv6 ::1, stalling
-// ~60 s per request on some Macs. For the two calls that need a body; pure
-// reachability uses a raw socket (bridgeIsUp).
+// URLSession that bypasses the system/PAC proxy and times out fast: proxy
+// discovery plus an IPv6 ::1 attempt for `localhost` can stall ~60 s per request
+// on some Macs. Used for the two calls that need a body; plain reachability
+// uses a raw socket (bridgeIsUp).
 let localSession: URLSession = {
     let cfg = URLSessionConfiguration.ephemeral
     cfg.connectionProxyDictionary = [:]
@@ -31,7 +32,7 @@ let localSession: URLSession = {
     return URLSession(configuration: cfg)
 }()
 
-// Is the bridge accepting connections on 127.0.0.1:bridgePort? Raw socket —
+// Is the bridge accepting connections on 127.0.0.1:bridgePort? Raw socket -
 // instant, no proxy/DNS/IPv6 detour.
 func bridgeIsUp() -> Bool {
     let fd = socket(AF_INET, SOCK_STREAM, 0)
@@ -87,11 +88,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // ── background service lifecycle ─────────────────────────────────────────
     func ensureService(interactive: Bool) {
         // SMAppService needs the app at a stable path; a translocated or
-        // ad-hoc location makes register() fail confusingly — say so instead.
-        // App Translocation: a quarantined app can RUN from a randomized
-        // read-only path even though its file sits in /Applications (e.g. the
-        // zip was unpacked in place instead of Finder-dragging the app) — the
-        // fix is de-quarantining, not moving.
+        // ad-hoc location makes register() fail confusingly - say so instead.
+        // App Translocation: a quarantined app can run from a randomized
+        // read-only path even though its file sits in /Applications (e.g. a
+        // zip unpacked in place); the fix is de-quarantining, not moving.
         if interactive && Bundle.main.bundlePath.contains("/AppTranslocation/") {
             alert("One more step",
                   "macOS is running a temporary copy of this app (quarantine translocation), so the background service can’t be installed yet.\n\nIn Terminal, run:\nxattr -d com.apple.quarantine \"/Applications/microSAMPLER Editor Librarian.app\"\n\nIf that says “Operation not permitted”, first enable Terminal under System Settings → Privacy & Security → App Management, then run it again. Reopen this app afterwards.")
@@ -116,10 +116,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     promptApproval()
                 }
             } catch {
-                // QUIRK: for daemons register() THROWS "Operation not
-                // permitted" when user approval is PENDING — the registration
-                // landed and status is .requiresApproval. That's the normal
-                // first-run path, not a failure.
+                // For daemons, register() throws "Operation not permitted"
+                // while user approval is pending: the registration landed and
+                // status is .requiresApproval. That's the normal first-run
+                // path, not a failure.
                 if service.status == .requiresApproval {
                     if interactive { promptApproval() }
                 } else if interactive {
@@ -132,7 +132,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // The service is .enabled, but the running daemon may be a PREVIOUS app
     // version's binary: SMAppService doesn't reload the daemon when the app is
-    // updated, and we skip register() when already enabled — so a stale daemon
+    // updated, and we skip register() when already enabled - so a stale daemon
     // keeps running old code against the new on-disk bundle, which fails in
     // confusing ways (e.g. a replaced PyInstaller archive → zlib import errors).
     // Compare the running daemon's reported version to ours and reload it on a
@@ -159,7 +159,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         do {
             try service.register()
         } catch {
-            // approval may have reset on re-register — the catch path checks it
+            // a throw here can mean approval is pending; the status check below handles it
         }
         switch service.status {
         case .enabled:        openWhenBridgeUp()
@@ -200,7 +200,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     /// Open the editor in a Chromium "app mode" window when one is installed
-    /// (own window, no tabs/URL bar — app-like, keeps Web MIDI + downloads);
+    /// (own window, no tabs/URL bar - app-like, keeps Web MIDI + downloads);
     /// otherwise the default browser. Runs off the main thread: each `open`
     /// probe waits for exit, and a LaunchServices stall must not beachball
     /// the menu bar.
@@ -232,10 +232,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func pollBridge(attempt: Int) {
-        if attempt > 60 {   // ~18 s — daemon should be up long before this
+        if attempt > 60 {   // ~18 s - daemon should be up long before this
             // The daemon never answered. On a fresh install or version update
-            // the usual cause is a PENDING Login-Items approval — a (re)registered
-            // daemon won't launch until approved — so steer there rather than
+            // the usual cause is a PENDING Login-Items approval - a (re)registered
+            // daemon won't launch until approved - so steer there rather than
             // leaving the user at a dead browser page. Only fall back to the log
             // hint when the service is already approved (.enabled) yet silent.
             if service.status == .requiresApproval {
@@ -290,7 +290,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func alert(_ title: String, _ text: String) {
-        // an .accessory (menu-bar) app isn't frontmost — without activating,
+        // an .accessory (menu-bar) app isn't frontmost - without activating,
         // first-run alerts can appear behind other windows
         NSApp.activate(ignoringOtherApps: true)
         let a = NSAlert()

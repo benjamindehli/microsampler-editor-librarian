@@ -3,7 +3,7 @@
 # Dehli Musikk icon.
 #
 # Applies src/web-editor/assets/AppIcon.png (1024x1024, transparent background,
-# pre-rendered from AppIcon.svg) with NSWorkspace — a Finder "custom icon",
+# pre-rendered from AppIcon.svg) with NSWorkspace - a Finder "custom icon",
 # stored in local extended attributes / resource fork. NOTE: git does not
 # preserve those, so the icon is per-machine; just re-run after cloning.
 #
@@ -12,7 +12,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-# repo checkout keeps sources under src/; the packaged ZIP is flat — support both
+# repo checkout keeps sources under src/; the packaged ZIP is flat - support both
 if [ -d src/web-editor ]; then WEB="src/web-editor"; L="src/launchers"; else WEB="web-editor"; L="."; fi
 
 PNG="$PWD/$WEB/assets/AppIcon.png"
@@ -37,4 +37,4 @@ end run
 EOF
   echo "icon applied to: $TARGET"
 done
-echo "(if either was already in the Dock, remove and re-add it — Dock icons cache)"
+echo "(if either was already in the Dock, remove and re-add it: Dock icons are cached)"

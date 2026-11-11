@@ -1,10 +1,7 @@
-/* GENERATED SPLIT of the former app.css — component stylesheet. */
-
 /* ── editor panel ─────────────────────────────────────────────────────── */
 .editor {
     position: relative;
-    /* matte faceplate: a flat steel fill reads as a physical panel, not a
-     light-catching sheen */
+    /* matte faceplate */
     background: var(--steel-1);
     border: 1px solid var(--line);
     border-radius: var(--r);
@@ -59,7 +56,7 @@
     align-items: center;
     flex-wrap: wrap;
 }
-/* RATE / CH / LEN — plain inline readouts, not boxes */
+/* RATE / CH / LEN inline readouts */
 .chip {
     font-family: "Share Tech Mono", monospace;
     font-size: 0.66rem;
@@ -113,10 +110,10 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    /* faint scanlines only — no top-lit sheen */
+    /* faint scanlines */
     background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 3px);
 }
-/* audition playhead — a thin glowing line that tracks browser playback,
+/* audition playhead: an approximate sweep while the device plays the sample,
    moved via requestAnimationFrame (no canvas redraw) */
 .playhead {
     position: absolute;
@@ -127,8 +124,7 @@
     z-index: 2;
     margin-left: -1px;
     pointer-events: none;
-    background: #fff; /* bright core reads on any
-                                                        theme + over the wave */
+    background: #fff; /* bright core reads on any theme and over the wave */
     box-shadow: 0 0 7px 1px rgba(var(--amber-rgb), 0.9); /* themed glow */
 }
 /* zoom controls overlaying the waveform (top-right) */

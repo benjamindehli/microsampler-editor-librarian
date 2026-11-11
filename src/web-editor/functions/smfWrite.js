@@ -2,12 +2,12 @@
 // a format-0 SMF (96 ticks/quarter, the device's resolution). The bridge feeds
 // it straight into the proven smf_to_pattern → pattern_write path, so the editor
 // reuses the exact, hardware-verified converter rather than serialising SEQP in
-// the browser. Pure (no DOM) — unit-tested in test/smfWrite.test.mjs.
+// the browser. Pure (no DOM) - unit-tested in test/unit/smfWrite.test.mjs.
 //
 // notes: [{ start, dur, note, vel, track }]  (ticks @96/quarter; track 0 =
 //   sample-mode/pad, 1 = keyboard-mode). opts: { bars, sample, name }. The
 //   keyboard-track sample is written as a program change on channel 1, and the
-//   name as a track-name meta — exactly what smf_to_pattern reads back.
+//   name as a track-name meta - exactly what smf_to_pattern reads back.
 const TPQ = 96;
 const TPB = TPQ * 4; // 384 ticks per 4/4 bar (the device's bar length)
 
@@ -23,7 +23,7 @@ function vlq(n) {
 }
 
 export function notesToSmf(notes, { bars = 1, sample = null, name = "PATTERN" } = {}) {
-    // [absTick, phase, bytes] — phase orders events sharing a tick: meta/program
+    // [absTick, phase, bytes] - phase orders events sharing a tick: meta/program
     // first, then note-offs, then note-ons, then end-of-track.
     /** @type {[number, number, number[]][]} */
     const ev = [];

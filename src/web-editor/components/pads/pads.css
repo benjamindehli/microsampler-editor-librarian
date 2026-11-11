@@ -1,5 +1,3 @@
-/* GENERATED SPLIT of the former app.css — component stylesheet. */
-
 /* ── pads ─────────────────────────────────────────────────────────────── */
 .pads {
     background: var(--steel-1);
@@ -147,7 +145,7 @@
         0 2px 0 #000;
 }
 
-/* pad ▶ play zone (plays the sample on the DEVICE while held) —
+/* pad ▶ play zone (plays the sample on the device while held) -
    lower-right, clear of the status LED in the upper-right */
 .pad-play {
     position: absolute;
@@ -183,5 +181,3 @@
     opacity: 1;
     color: var(--amber);
 }
-
-/* upload pre-flight memory line */

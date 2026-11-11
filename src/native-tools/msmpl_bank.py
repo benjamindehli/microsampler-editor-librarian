@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Read Korg microSAMPLER ".msmpl_bank" files — the bank backups the ORIGINAL
-Korg editor saved — and extract their samples. For owners who still have the
-backups but no longer have the hardware.
+"""Read Korg microSAMPLER ".msmpl_bank" files (the bank backups Korg's original
+editor saved) and extract their samples, patterns and bank blob. Works without
+the hardware.
 
 The file is a tree of 8-byte-tagged "6150…" chunks (32-byte header: 4B "6150",
 4B tag, u16 header-size=0x20, u32 payload-size, …):
@@ -10,12 +10,12 @@ The file is a tree of 8-byte-tagged "6150…" chunks (32-byte header: 4B "6150",
     6150BnkP  64-byte bank parameter blob (8-char name, u16 BPM*10 @8)
     6150SmpS  sample set → 36× 6150SmpD
       6150SmpD  per sample: 64-byte param blob + 8-byte header + raw 16-bit BE PCM
-    6150SeqS  sequence/pattern data
+    6150SeqS  sequence set → 6150SeqD per pattern (a SEQP blob)
     6150MfxD  master-effect blob (first 36 bytes = the device's packed effect)
 
 BnkP, the 36 SmpD param blobs and MfxD are byte-identical to the sections of
 the device's own 0x974-byte bank blob (checked against a device backup of the
-same bank), so extract also rebuilds that blob as bank.bin — what RESTORE
+same bank), so extract also rebuilds that blob as bank.bin - what RESTORE
 sends. Its 16 bytes @0x940 aren't in the file: the original editor's
 BankWrite fills each from SequenceData::getSequenceLength() = the pattern's
 bar count (u16 BE @0x0A of the SEQP blob, 0 if under 1308 bytes).
@@ -37,7 +37,6 @@ import sys
 import download as DL
 import protocol as P
 
-RATES = {0: 48000, 1: 24000, 2: 12000, 3: 6000}
 EFFECT_SIZE = 0x24                     # packed effect section of the bank blob
 CHUNK_HDR = 32
 
@@ -64,7 +63,15 @@ def _name(b):
 
 def parse_bank(data):
     """Parse a .msmpl_bank → {name, bpm, samples: [ {slot, name, long_name,
-    empty, [rate_hz, stereo, data_size, tempo_bpm, pcm]} … 36 ]}."""
+    empty, [rate_hz, stereo, data_size, tempo_bpm, pcm]} … 36 ]}.
+    A truncated or malformed file raises ValueError."""
+    try:
+        return _parse_bank(data)
+    except (IndexError, struct.error):
+        raise ValueError('truncated or malformed .msmpl_bank file') from None
+
+
+def _parse_bank(data):
     top = _walk(data, 0, len(data))
     if not top or top[0][0] != 'BnkD':
         raise ValueError('not a .msmpl_bank file (missing 6150BnkD chunk)')
@@ -89,7 +96,7 @@ def parse_bank(data):
                 s = {'slot': i, 'name': _name(param[0:8]), 'param': param,
                      'long_name': _name(param[0x20:0x40]), 'empty': data_size == 0}
                 if data_size:
-                    s.update(rate_hz=RATES.get((flags >> 2) & 3, 48000),
+                    s.update(rate_hz=P.CODE_RATE.get((flags >> 2) & 3, 48000),
                              stereo=bool(flags & 1), data_size=data_size,
                              tempo_bpm=tempo10 / 10.0,
                              pcm=data[sb + 72:sb + 72 + data_size])
@@ -99,10 +106,12 @@ def parse_bank(data):
                 if st != 'SeqD':
                     continue
                 blob = data[sb:sb + ss]
-                if len(blob) >= 8:              # SeqD pads past the SEQP's own
-                    used = struct.unpack_from('>I', blob, 4)[0]   # size (u32 BE
-                    if 0 < used <= len(blob):   # @4): 1312 vs 1308 — keep what
-                        blob = blob[:used]      # the device itself sends
+                # SeqD pads 4 bytes past the SEQP's own size (u32 BE @4, 1312 vs
+                # 1308): trim to what the device itself sends
+                if len(blob) >= 8:
+                    used = struct.unpack_from('>I', blob, 4)[0]
+                    if 0 < used <= len(blob):
+                        blob = blob[:used]
                 try:
                     p = P.parse_pattern(blob)
                     notes = len(p['notes']) if p else 0
@@ -144,7 +153,7 @@ def bank_blob(bank):
 
 
 def extract(path, outdir):
-    """Extract a .msmpl_bank FILE — see extract_bytes."""
+    """Extract a .msmpl_bank FILE - see extract_bytes."""
     with open(path, 'rb') as f:
         data = f.read()
     return extract_bytes(data, outdir, os.path.basename(path))
@@ -153,7 +162,7 @@ def extract(path, outdir):
 def extract_bytes(data, outdir, source_name=None):
     """Extract a .msmpl_bank (raw bytes) to a backup directory in our own format
     (manifest.json + samples/sNN.wav, and bank.bin + every pattern when the
-    file is complete — then it restores like a device backup), reusable by the
+    file is complete - then it restores like a device backup), reusable by the
     bridge's librarian (backup list / cherry-pick / ZIP export / RESTORE).
     Returns (non_empty_count, bank)."""
     bank = parse_bank(data)
@@ -168,7 +177,7 @@ def extract_bytes(data, outdir, source_name=None):
         manifest['seq_lengths'] = list(blob[0x940:0x950])
     n = 0
     # use the loop index (not the parsed dict value) for the filename, bounded to
-    # the device's 36 pads — keeps the path provably inside outdir (no traversal
+    # the device's 36 pads - keeps the path provably inside outdir (no traversal
     # from a malformed bank) regardless of how many chunks the file declares.
     for i, s in enumerate(bank['samples']):
         if i > 35:

@@ -106,7 +106,7 @@ function buildZip(files) {
 try {
     statSync(join(DIST, "web-editor", "app.html"));
 } catch {
-    console.error("pack: dist/ not built — run `npm run build` first.");
+    console.error("pack: dist/ not built - run `npm run build` first.");
     process.exit(1);
 }
 rmSync(REL, { recursive: true, force: true });

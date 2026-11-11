@@ -2,6 +2,7 @@
 // master-volume slider.
 import { refreshBank } from "app.js";
 import { redo, undo } from "components/controls/controls.js";
+import { releaseLatched } from "components/keyboard/keyboard.js";
 import { selectSlot } from "components/pads/pads.js";
 import { stopTransport } from "components/patterns/patterns.js";
 import { stopAudition } from "components/sample-editor/waveform.js";
@@ -10,7 +11,7 @@ import { tick } from "functions/ticker.js";
 import { $, api, closestEl, jsonBody, lsGet, lsSet } from "functions/util.js";
 
 // ── accent theming (CSS custom props on :root, persisted) ────────────────
-// Only the three RGB triplets are overridden — every accent surface (glows,
+// Only the three RGB triplets are overridden - every accent surface (glows,
 // borders, the phosphor backgrounds, the canvas waveform) derives from them,
 // so switching theme recolours the whole app.
 // ordered around the colour wheel (red → pink); the saved theme is stored by
@@ -31,9 +32,9 @@ const THEMES = [
     { name: "PINK", rgb: "255, 110, 152", hi: "255, 178, 200", dk: "140, 48, 78" }
 ];
 const DEFAULT_THEME = THEMES.findIndex((t) => t.name === "AMBER");
-// custom dropdown: each row previews its accent with a real colour swatch (a
-// native <select> can't — macOS Chrome draws the popup with the OS menu and
-// ignores option colours)
+// custom dropdown so each row can show its accent as a real colour swatch
+// (macOS Chrome draws a native <select> popup with the OS menu, which ignores
+// option colours)
 const themeTrigger = $("#theme-trigger");
 const themeMenu = $("#theme-menu");
 const themeName = $("#theme-name");
@@ -117,7 +118,7 @@ document.addEventListener("click", (e) => {
 let themeIdx = (() => {
     const saved = lsGet("msmpl.theme");
     const i = THEMES.findIndex((t) => t.name === saved);
-    return i >= 0 ? i : DEFAULT_THEME; // unknown / legacy numeric value → AMBER
+    return i >= 0 ? i : DEFAULT_THEME; // anything that isn't a known theme name → AMBER
 })();
 applyTheme(themeIdx);
 
@@ -128,14 +129,15 @@ $("#help-btn").onclick = () => $("#help-dialog").showModal();
 $("#panic-btn").onclick = () => {
     stopAudition(false); // bridge silences it; just reset UI
     stopTransport();
+    releaseLatched(false);
     api("/api/panic", { method: "POST" })
-        .then(() => tick("⏻ panic — all sound off"))
+        .then(() => tick("⏻ panic: all sound off"))
         .catch(() => {});
 };
 
 // ── master volume (device output, Universal SysEx) ───────────────────────
 // Live while dragging but throttled (one SysEx each), with the final value
-// always sent on release. Sets only — the device doesn't report its level, so
+// always sent on release. Sets only - the device doesn't report its level, so
 // the slider starts at max and doesn't transmit until the user moves it.
 {
     const vol = $("#master-vol");
@@ -165,7 +167,7 @@ const typing = () => {
 const dialogOpen = () => !!document.querySelector("dialog[open]");
 
 addEventListener("keydown", (e) => {
-    // an open dialog owns ALL its keys — incl. ⌘Z: the pattern editor has its own
+    // an open dialog owns ALL its keys - incl. ⌘Z: the pattern editor has its own
     // undo stack (⌘Z here would ALSO undo a device param = double-fire), and text
     // fields need native text undo (a device param undo would hijack it)
     if (dialogOpen()) return;

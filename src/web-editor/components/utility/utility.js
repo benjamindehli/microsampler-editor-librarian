@@ -1,18 +1,18 @@
 // UTILITY view: backup list, restore dialog, background-op console.
 import { refreshBank } from "app.js";
 import { loadAllSamples } from "components/meter/meter.js";
-import { forgetSample } from "components/sample-editor/sampleLoad.js";
+import { forgetAllSamples, forgetSample } from "components/sample-editor/sampleLoad.js";
 import { noteName } from "functions/notes.js";
 import { state } from "functions/state.js";
 import { tick } from "functions/ticker.js";
-import { $, apiJson, esc, jsonBody } from "functions/util.js";
+import { $, apiJson, esc, jsonBody, setSegActive } from "functions/util.js";
 
 export async function loadBackups() {
     const { backups } = await apiJson("/api/backups");
     const list = $("#backup-list");
     list.innerHTML = "";
     if (!backups.length) {
-        list.innerHTML = '<p class="backup-empty">NO BACKUPS YET — MAKE ONE ←</p>';
+        list.innerHTML = '<p class="backup-empty">NO BACKUPS YET: MAKE ONE ←</p>';
         return;
     }
     for (const b of backups) {
@@ -31,7 +31,7 @@ export async function loadBackups() {
         btn.innerHTML = '<span class="hw-btn-cap">RESTORE…</span>';
         btn.onclick = () => openRestore(b);
         if (!b.restorable) {
-            // no bank.bin (a Korg-bank import made before restore support)
+            // no bank.bin (an older Korg-bank import): nothing to restore from
             btn.disabled = true;
             btn.title = "Can't be restored to the device. Import the original .msmpl_bank file again to make a restorable copy.";
         }
@@ -148,7 +148,7 @@ function buildCpDst() {
         prev = sel.value;
     const slots = (state.bank && state.bank.slots) || [];
     sel.innerHTML = slots
-        .map((s, i) => `<option value="${i}">${String(i + 1).padStart(2, "0")} · ${noteName(i)} · ${s.empty ? "— empty —" : esc(s.name)}</option>`)
+        .map((s, i) => `<option value="${i}">${String(i + 1).padStart(2, "0")} · ${noteName(i)} · ${s.empty ? "(empty)" : esc(s.name)}</option>`)
         .join("");
     if (prev && sel.querySelector(`option[value="${prev}"]`)) sel.value = prev;
     else {
@@ -185,8 +185,7 @@ export function onOpEvent(evt) {
         setOpRunning(false);
         loadBackups().catch(() => {});
         if (evt.name === "restore" && evt.ok) {
-            state.buffers.clear();
-            state.formats.clear(); // bank contents replaced
+            forgetAllSamples(); // bank contents replaced
             refreshBank().catch(() => {});
         }
         tick(`${evt.ok ? "✓" : "✗"} ${evt.name} ${evt.ok ? "complete" : "failed"}`);
@@ -198,10 +197,7 @@ export function onOpEvent(evt) {
     const seg = $("#smp-input");
     seg.querySelectorAll("button").forEach((b) => {
         b.onclick = () => {
-            seg.querySelectorAll("button").forEach((x) => {
-                x.classList.toggle("on", x === b);
-                x.setAttribute("aria-pressed", String(x === b));
-            });
+            setSegActive([...seg.querySelectorAll("button")].map((x) => [x, x === b]));
             apiJson("/api/sampling/input", jsonBody({ resample: b.dataset.resample === "1" }))
                 .then(() => tick(`input → ${b.textContent.trim()}`))
                 .catch(() => {});
@@ -209,6 +205,6 @@ export function onOpEvent(evt) {
     });
     $("#smp-button").onclick = () =>
         apiJson("/api/sampling/button", { method: "POST" })
-            .then(() => tick("● [SAMPLING] pressed — check the device screen"))
+            .then(() => tick("● [SAMPLING] pressed: check the device screen"))
             .catch((e) => tick(`⚠ sampling: ${e.message}`));
 }

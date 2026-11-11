@@ -1,8 +1,7 @@
 name: Release
 
-# When you publish a GitHub release (you write the notes), build the dist ZIP and
-# attach it as the release asset. You keep control of the notes; the matching,
-# correctly-named ZIP is produced and uploaded automatically.
+# When a GitHub release is published, build the dist ZIP and attach it to the
+# release (the release notes are written by hand).
 on:
     release:
         types: [published]
@@ -22,17 +21,11 @@ jobs:
                   cache: npm
             - run: npm ci
 
-            # guard: the release tag (vX.Y.Z) must match package.json, and the docs
-            # download link + bridge VERSION must already be stamped to it
-            - name: Check tag matches package.json
+            # the tag goes in via env, not inline: tag names can contain shell metacharacters
+            - name: Check tag matches package.json and the version is stamped
               env:
-                  TAG: ${{ github.event.release.tag_name }} # env, not inline: tag
-              run: | #  names can carry shell
-                  PKG="v$(node -p "require('./package.json').version")"
-                  echo "release tag: $TAG / package.json: $PKG"
-                  test "$TAG" = "$PKG" || { echo "::error::tag $TAG does not match package.json $PKG (run npm version first)"; exit 1; }
-            - name: Check version is stamped
-              run: node tools/stamp-docs-version.mjs --check
+                  TAG: ${{ github.event.release.tag_name }}
+              run: bash tools/check-release-tag.sh "$TAG"
             - name: Unit tests
               run: npm test
 

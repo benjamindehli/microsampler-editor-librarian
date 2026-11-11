@@ -1,6 +1,6 @@
 // 36-slot pad grid: rendering, selection, device note-play, WAV drop.
 import { openUpload, uploadBatch } from "components/dialogs/dialogs.js";
-import { syncKeybed } from "components/keyboard/keyboard.js";
+import { isLoopHold, isPadSounding, syncKeybed, togglePadHold } from "components/keyboard/keyboard.js";
 import { showSlot } from "components/sample-editor/slot.js";
 import { openSlotOp } from "components/sample-editor/slotops.js";
 import { isBlackKey, noteName } from "functions/notes.js";
@@ -12,16 +12,15 @@ export function selectSlot(i) {
     state.sel = i;
     syncPads();
     showSlot(i)
-        .then(syncPads)
-        .catch(() => {}); // light the loaded dot
+        .then(syncPads) // light the loaded dot
+        .catch(() => {});
 }
 
-// In-place refresh of sel/loaded/name on the EXISTING buttons — the hot paths
-// (every pad click ×2, once per preloaded sample) don't need renderPads()'s
-// full 36-button rebuild, which repaints the whole grid and destroys the
-// focused pad (keyboard focus silently dropped to <body>). Falls back to the
-// rebuild when the grid doesn't match the bank (first render, or a slot
-// flipped empty↔used — those change a pad's children/draggable).
+// Refresh sel/loaded/name on the existing buttons in place. The hot paths
+// (every pad click, every preloaded sample) skip renderPads()'s 36-button
+// rebuild, which repaints the grid and drops keyboard focus to <body>. Falls
+// back to the rebuild when the grid doesn't match the bank (first render, or a
+// slot flipped empty↔used, which changes a pad's children/draggable).
 export function syncPads() {
     const kids = $("#pad-grid").children;
     const slots = state.bank.slots;
@@ -33,6 +32,7 @@ export function syncPads() {
         if (!s.empty) used++;
         b.classList.toggle("sel", state.sel === s.slot);
         b.classList.toggle("loaded", !s.empty && state.buffers.has(s.slot));
+        b.classList.toggle("sounding", isPadSounding(s.slot));
         const nameEl = b.querySelector(".pad-name");
         const name = s.empty ? "· · · ·" : s.name;
         if (nameEl.textContent !== name) nameEl.textContent = name;
@@ -52,10 +52,15 @@ export function renderPads() {
         b.dataset.slot = s.slot;
         // "loaded" = decoded audio cached → instant audition/waveform, exact meter
         const loaded = !s.empty && state.buffers.has(s.slot);
-        // sharps (C#/D#/F#/G#/A#) are a keyboard's black keys — tint them darker
+        // sharps (C#/D#/F#/G#/A#) are a keyboard's black keys - tint them darker
         const black = isBlackKey(48 + s.slot);
         b.className =
-            "pad " + (s.empty ? "empty" : "used") + (black ? " black" : "") + (state.sel === s.slot ? " sel" : "") + (loaded ? " loaded" : "");
+            "pad " +
+            (s.empty ? "empty" : "used") +
+            (black ? " black" : "") +
+            (state.sel === s.slot ? " sel" : "") +
+            (loaded ? " loaded" : "") +
+            (isPadSounding(s.slot) ? " sounding" : "");
         b.innerHTML =
             `<span class="pad-num">${String(s.slot + 1).padStart(2, "0")} · ${noteName(s.slot)}</span>
                    <span class="pad-name">${s.empty ? "· · · ·" : esc(s.name)}</span>
@@ -94,10 +99,9 @@ function applyPadFilter() {
 }
 $("#pad-search").addEventListener("input", applyPadFilter);
 
-// play pads THROUGH THE DEVICE: hold the ▶ corner of a pad → MIDI note
-// on/off via the bridge (note 48+slot on the global channel — the same
-// sample-mode numbering patterns use). The device plays the sample with
-// its real envelope/FX, unlike the browser-side audition.
+// play pads on the device: hold the ▶ corner of a pad → MIDI note on/off via
+// the bridge (note 48+slot on the global channel, the sample-mode numbering
+// patterns use), so the sample plays with its real envelope and FX.
 {
     const grid = $("#pad-grid");
     let down = null; // slot currently sounding
@@ -114,13 +118,19 @@ $("#pad-search").addEventListener("input", applyPadFilter);
         e.stopPropagation(); // don't select the pad
         const pad = closestEl(play, ".pad");
         const slot = +pad.dataset.slot;
+        if (isLoopHold()) {
+            togglePadHold(slot, 100);
+            return;
+        }
         down = slot;
         pad.classList.add("sounding");
         api("/api/note", jsonBody({ slot, on: true, velocity: 100 })).catch((err) => tick(`⚠ note failed: ${err.message}`));
     });
     for (const ev of ["pointerup", "pointercancel"]) {
         window.addEventListener(ev, () => {
-            grid.querySelectorAll(".pad.sounding").forEach((p) => p.classList.remove("sounding"));
+            if (down == null) return;
+            const pad = grid.querySelector(`.pad[data-slot="${down}"]`);
+            if (pad && !isPadSounding(down)) pad.classList.remove("sounding");
             noteOff();
         });
     }
@@ -134,7 +144,7 @@ $("#pad-search").addEventListener("input", applyPadFilter);
     );
 }
 
-// drag & drop a WAV straight onto a pad — selects that slot and opens the
+// drag & drop a WAV straight onto a pad - selects that slot and opens the
 // upload dialog pre-filled with the file (works for used AND empty pads)
 {
     const grid = $("#pad-grid");
@@ -167,7 +177,7 @@ $("#pad-search").addEventListener("input", applyPadFilter);
         if (wavs.length > 1) return uploadBatch(slot, wavs);
         state.sel = slot;
         syncPads();
-        showSlot(slot); // no await — dialog opens right away
+        showSlot(slot); // no await - dialog opens right away
         openUpload(wavs[0]);
     });
 }

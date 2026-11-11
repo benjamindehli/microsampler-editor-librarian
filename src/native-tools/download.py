@@ -9,7 +9,7 @@ Mirrors SampleReceiveInternal::process from the original editor:
      dataSize == 0 -> slot is empty, stop.
   3. func 0x1F (no args)  -> device sends one 64-byte DIRECT_MARKER block
      (FF FF FF + 61*00) on bulk IN, then dataSize bytes of RAW PCM
-     (16-bit signed BIG-endian, interleaved — hardware-verified; LE sounds
+     (16-bit signed BIG-endian, interleaved - hardware-verified; LE sounds
      like noise). funcs 0x24/0x26 = error.
   4. func 0x14 ss         -> reply func 0x44: 64-byte parameter blob
      (7-bit encoded).
@@ -140,14 +140,14 @@ def fetch_params(ms, channel, sample_no):
     return par
 
 
-def be_pcm_to_le(pcm):
-    # Wire PCM is 16-bit signed BIG-endian (setByPackedData: first byte << 8);
-    # WAV wants little-endian, so swap. array.byteswap is fast and portable —
-    # audioop.byteswap was removed in Python 3.13, so don't reach for it.
+def swap16(pcm):
+    """Swap the byte order of 16-bit samples: device wire PCM (big-endian,
+    setByPackedData reads the first byte << 8) ⇄ WAV (little-endian). The swap
+    is its own inverse, so it serves both directions. Uses array.byteswap
+    (audioop.byteswap is gone in Python 3.13)."""
     samples = array.array('h')
     samples.frombytes(pcm[:len(pcm) & ~1])
-    if sys.byteorder == 'little':
-        samples.byteswap()
+    samples.byteswap()
     return samples.tobytes()
 
 
@@ -158,7 +158,7 @@ def pcm_to_wav_bytes(pcm, rate_hz, stereo):
         w.setnchannels(2 if stereo else 1)
         w.setsampwidth(2)
         w.setframerate(rate_hz)
-        w.writeframes(be_pcm_to_le(pcm))
+        w.writeframes(swap16(pcm))
     return buf.getvalue()
 
 
@@ -184,7 +184,7 @@ def main():
     with MicroSampler() as ms:
         reply, cable = ms.device_inquiry()
         if not reply:
-            print("No inquiry reply — is the device on? (power-cycle if wedged)")
+            print("No inquiry reply. Is the device on? (power-cycle it if wedged)")
             return 1
         channel = reply[2] & 0x0f
         ms.cable = cable
@@ -200,13 +200,13 @@ def main():
             f.write(hdr['raw'])
         print(f"  -> {out}.header.bin")
         if hdr['data_size'] == 0:
-            print("slot is empty (dataSize 0) — nothing more to fetch.")
+            print("slot is empty (dataSize 0), nothing more to fetch.")
             return 0
         if args.header_only:
-            print("WARNING: func 0x16 SELECTED this sample — the device now "
-                  "waits for the data dump and will refuse further commands "
-                  "until a full download of this slot or a POWER-CYCLE "
-                  "(hardware-verified; the param request does NOT release it).")
+            print("Warning: func 0x16 selected this sample. The device now waits "
+                  "for its data dump and refuses other commands until this slot "
+                  "is fully downloaded or the device is power-cycled (a param "
+                  "request doesn't release it).")
             return 0
 
         # ---- phase 2: PCM ---------------------------------------------------
@@ -224,10 +224,10 @@ def main():
         with open(f'{out}.param.bin', 'wb') as f:
             f.write(par['raw'])
         print(f"params: name '{par['name']}'  long '{par['long_name']}'")
-        print(f"  semitone {par['semitone']:+d}  tune {par['tune']:+d}  "
-              f"flags8 0x{par['flags8']:02x}  u32@0c {par['u32_0c']}  u32@10 {par['u32_10']}")
-        print(f"  b14 {par['b14']}  b15 {par['b15']}  b17 {par['b17']}  "
-              f"b18 {par['b18']}  b1a {par['b1a']}")
+        print(f"  start {par['u32_0c']}  end {par['u32_10']}  flags8 0x{par['flags8']:02x}")
+        print(f"  level {par['level']}  pan {par['pan']}  semitone {par['semitone']:+d}  "
+              f"tune {par['tune']}  velo int {par['velo_int']:+d}  "
+              f"decay {par['decay']}  release {par['release']}")
         print(f"  -> {out}.param.bin")
     return 0
 

@@ -1,9 +1,9 @@
 // Shared sample-audio loader + format cache.
 //
-// A slot is "loaded" once its decoded AudioBuffer is in state.buffers — then
+// A slot is "loaded" once its decoded AudioBuffer is in state.buffers - then
 // audition/waveform are instant and the memory meter is exact. The matching
-// device format (rate/channels/frames) is cached in state.formats, which —
-// unlike the bank slot objects — PERSISTS across refreshBank(); reapplyFormats()
+// device format (rate/channels/frames) is cached in state.formats, which -
+// unlike the bank slot objects - PERSISTS across refreshBank(); reapplyFormats()
 // re-stamps it onto the fresh bank so a focus re-sync doesn't lose load state
 // or reset the memory meter (it would otherwise revert to unknown on focus).
 import { slotData, state } from "functions/state.js";
@@ -15,11 +15,12 @@ export async function loadSampleAudio(i) {
     if (s.empty) return null;
     const resp = await api(`/api/sample/${i}.wav`);
     // sample's original BPM rides a response header (it's in the device sample
-    // header, not the bank blob) — used for the BPM chip + BPM-synced playhead
+    // header, not the bank blob) - used for the BPM chip + BPM-synced playhead
     const tempo = parseFloat(resp.headers.get("X-Sample-Tempo"));
     const wav = await resp.arrayBuffer();
-    const byteLen = wav.byteLength; // read BEFORE decode —
-    const fmt = wavFormat(wav.slice(0, 44)); // decodeAudioData may detach
+    // read size + format before decoding: decodeAudioData may detach the buffer
+    const byteLen = wav.byteLength;
+    const fmt = wavFormat(wav.slice(0, 44));
     state.audio = state.audio || new AudioContext();
     const buf = await state.audio.decodeAudioData(wav);
     state.buffers.set(i, buf);
@@ -46,4 +47,8 @@ export function reapplyFormats() {
 export function forgetSample(i) {
     state.buffers.delete(i);
     state.formats.delete(i);
+}
+export function forgetAllSamples() {
+    state.buffers.clear();
+    state.formats.clear();
 }

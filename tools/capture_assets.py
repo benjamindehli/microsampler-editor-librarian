@@ -1,31 +1,30 @@
 #!/usr/bin/env python3
 """Regenerate the docs/assets screenshots, demo video, and Library screenshot from
-the live app — the single source of truth for the asset pipeline (previously only
-described in prose).
+the live app: the single source of truth for the asset pipeline.
 
 It drives the mock bridge headless via Playwright at 1540x940 DSR=1, then
-downscales LANCZOS to the published sizes. Full-colour PNGs (no 256-quantize — that
+downscales LANCZOS to the published sizes. Full-colour PNGs (no 256-quantize - that
 posterises the dark gradients); the demo mp4/webm are a 12 fps, 2 s-per-view slideshow.
 
 The author/copyright/location metadata (XMP + IPTC on PNGs; Exif+GPS + XMP + IPTC on
-the JPG) is carried forward — it reads the identical stamp from the already-tagged
+the JPG) is carried forward - it reads the identical stamp from the already-tagged
 committed assets and splices it into each regenerated file, so the manual tagging step
 isn't needed after a regen (retag once to change it; --no-metadata to skip).
 
-Dev-only — not shipped, not a runtime dependency. Needs (all permissively licensed):
+Dev-only - not shipped, not a runtime dependency. Needs (all permissively licensed):
     pip install playwright pillow imageio-ffmpeg && playwright install chromium
 
 Usage (from anywhere):
     python3 tools/capture_assets.py                  # regenerate everything
     python3 tools/capture_assets.py --only samples   # just the SAMPLES screenshot
-    python3 tools/capture_assets.py --only screenshots  # all 5 device screenshots
+    python3 tools/capture_assets.py --only screenshots  # all 6 device screenshots
     python3 tools/capture_assets.py --only demo      # the mp4/webm + poster
     python3 tools/capture_assets.py --only library   # just the Library screenshot
     python3 tools/capture_assets.py --out /tmp/check # write elsewhere (e.g. to verify)
 
 It reuses a bridge already serving on the chosen port, otherwise spawns a mock one
 (backups isolated to a temp dir). NOTE: screenshots depend on headless Chromium's
-font rendering, so a CI pixel-diff would be flaky — this is a regenerate-on-demand
+font rendering, so a CI pixel-diff would be flaky - this is a regenerate-on-demand
 tool, not a CI gate.
 """
 import argparse
@@ -36,10 +35,6 @@ import struct
 import subprocess
 import sys
 import tempfile
-import time
-import urllib.request
-import wave
-from contextlib import contextmanager
 
 import imageio_ffmpeg
 from PIL import Image
@@ -48,9 +43,11 @@ from playwright.sync_api import sync_playwright
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS = os.path.join(ROOT, 'docs', 'assets')
 sys.path.insert(0, os.path.join(ROOT, 'src', 'native-tools'))
+sys.path.insert(0, os.path.join(ROOT, 'test', 'e2e'))
+from fixtures import bridge, make_wav, msmpl_chunk
 
-CAP = (1540, 940)        # capture viewport (rail needs ~1519px; DSR=1 keeps PNGs lean)
-SHOT = (1000, 610)       # static screenshots + gif
+CAP = (1540, 940)        # capture viewport (rail needs ~1525px; DSR=1 keeps PNGs lean)
+SHOT = (1000, 610)       # static screenshots
 VID = (1280, 782)        # demo poster + mp4/webm
 DEMO_VIEWS = ['samples', 'effect', 'patterns', 'utility']
 MOCK_PORT = 8801
@@ -65,7 +62,7 @@ def lanczos(src, size):
 
 # ── metadata carry-forward ────────────────────────────────────────────────────
 # The author/copyright/location stamp (XMP + IPTC on PNGs; Exif+GPS + XMP + IPTC on
-# the JPG) is identical on every committed asset, so we don't recreate it — we read
+# the JPG) is identical on every committed asset, so we don't recreate it - we read
 # the exact blocks from the already-tagged assets and splice them, byte-for-byte,
 # into each regenerated file. No exiftool needed; nothing to re-enter by hand. To
 # change the metadata, retag the assets once (any tool) and the next run carries the
@@ -136,7 +133,7 @@ def load_stamps():
     STAMP['jpg'] = _jpg_meta(os.path.join(ASSETS, 'demo-poster.jpg'))
     miss = [k for k in ('png', 'jpg') if not STAMP[k]]
     if miss:
-        print('  ! no %s metadata stamp found in docs/assets — those stay untagged'
+        print('  ! no %s metadata stamp found in docs/assets, so those stay untagged'
               % '/'.join(miss))
 
 
@@ -158,59 +155,6 @@ def save_jpg(img, path, quality):
         while i + 4 <= len(data) and data[i] == 0xFF and data[i + 1] == 0xE0:
             i += 2 + int.from_bytes(data[i + 2:i + 4], 'big')
         _write(path, data[:i] + STAMP['jpg'] + data[i:])
-
-
-def wait_ready(base, timeout):
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        try:
-            with urllib.request.urlopen(base + '/api/status', timeout=1) as r:
-                if r.status == 200:
-                    return True
-        except Exception:
-            time.sleep(0.2)
-    return False
-
-
-@contextmanager
-def bridge(extra_args, port, banks_dir):
-    """Reuse a bridge already on `port`, else spawn one (backups → banks_dir)."""
-    base = 'http://127.0.0.1:%d' % port
-    proc = None
-    if not wait_ready(base, 1):
-        proc = subprocess.Popen(
-            [sys.executable, os.path.join(ROOT, 'src', 'native-tools', 'bridge.py'),
-             *extra_args, '--port', str(port)],
-            env={**os.environ, 'MSMPL_BACKUP_DIR': banks_dir},
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    try:
-        if not wait_ready(base, 20):
-            raise RuntimeError('bridge did not become ready on %s' % base)
-        yield base
-    finally:
-        if proc is not None:
-            proc.terminate()
-            try:
-                proc.wait(timeout=5)
-            except Exception:
-                proc.kill()
-
-
-def make_wav(path):
-    """A short mono WAV so the upload dialog enables its tools + SLICE button."""
-    with wave.open(path, 'wb') as w:
-        w.setnchannels(1)
-        w.setsampwidth(2)
-        w.setframerate(48000)
-        frames = bytearray()
-        for t in range(96000):
-            v = 0.0
-            for at in (0, 24000, 48000, 72000):
-                d = t - at
-                if 0 <= d < 8000:
-                    v += 0.7 * math.sin(2 * math.pi * 220 * d / 48000) * math.exp(-d / 4000)
-            frames += struct.pack('<h', max(-32768, min(32767, int(v * 32767))))
-        w.writeframes(bytes(frames))
 
 
 def _prep_page(pg, base):
@@ -272,7 +216,7 @@ def capture_device(base, wav_path, tmp):
         f = os.path.join(tmp, 'editor.png')
         pg.screenshot(path=f)
         frames['editor'] = f
-        pg.keyboard.press('Escape')   # Esc discards + closes (the CANCEL button is gone)
+        pg.keyboard.press('Escape')   # Esc discards + closes
         pg.wait_for_timeout(200)
         # UPLOAD: open the dialog over the SAMPLES view with a WAV loaded (SLICE on)
         pg.locator('.view-btn[data-view="samples"]').click()
@@ -310,10 +254,7 @@ def build_demo(frames, out):
 
 
 # ── synthetic Korg .msmpl_bank backups for the (hardware-free) Library shot ───
-def _chunk(tag, payload):
-    return (b'6150' + tag + struct.pack('<H', 32) + struct.pack('<I', len(payload))
-            + b'\x00\x00' + struct.pack('<I', 3) + struct.pack('<I', 1)
-            + struct.pack('<I', len(payload)) + b'\xff\xff\xff\xff' + payload)
+_chunk = msmpl_chunk
 
 
 def _sample_chunk(name, long_name, freq):
@@ -394,8 +335,10 @@ def main():
     for tok in (t.strip() for t in args.only.split(',')):
         if tok == 'all':
             want.update({'screenshots', 'demo', 'library'})
-        elif tok:
+        elif tok in ('samples', 'screenshots', 'demo', 'library'):
             want.add(tok)
+        elif tok:
+            ap.error('unknown --only target %r (use samples, screenshots, demo, library)' % tok)
     os.makedirs(os.path.join(args.out, 'screenshots'), exist_ok=True)
 
     written = []
@@ -429,7 +372,7 @@ def main():
     print('wrote %d asset(s) to %s:' % (len(written), args.out))
     for p in written:
         fp = os.path.join(args.out, p)
-        size = Image.open(fp).size if fp.endswith(('png', 'jpg', 'gif')) else ''
+        size = Image.open(fp).size if fp.endswith(('png', 'jpg')) else ''
         print('  %-28s %7.1f kB  %s' % (p, os.path.getsize(fp) / 1024, size))
 
 

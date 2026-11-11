@@ -45,7 +45,7 @@ async function runOp(kind, from, to) {
     }
 }
 
-// CLEAR the selected slot (empties it on the device — RAM)
+// CLEAR the selected slot (empties it on the device - RAM)
 $("#clear-btn").onclick = async () => {
     if (state.sel == null) return;
     const s = slotData(state.sel);

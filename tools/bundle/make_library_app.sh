@@ -16,12 +16,12 @@ SRC="tools/bundle/library-app"
 BRIDGE="dist/bundle/microSAMPLER Library"
 VERSION=$(node -p "require('./package.json').version" 2>/dev/null \
           || python3 -c "import json; print(json.load(open('package.json'))['version'])")
-[ -d "$BRIDGE" ] || { echo "ERROR: $BRIDGE missing — run pyinstaller library.spec first"; exit 1; }
+[ -d "$BRIDGE" ] || { echo "ERROR: $BRIDGE missing. Run pyinstaller library.spec first"; exit 1; }
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-ARCH=$(uname -m)   # arm64 | x86_64 — CI builds each on its native runner
+ARCH=$(uname -m)   # arm64 | x86_64 - CI builds each on its native runner
 swiftc -O -target "$ARCH-apple-macos12.0" \
   -o "$APP/Contents/MacOS/microSAMPLER Library" \
   "$SRC/main.swift"

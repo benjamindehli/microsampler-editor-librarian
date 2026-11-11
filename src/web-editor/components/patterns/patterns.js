@@ -7,12 +7,19 @@ import { $, apiJson, clampBpm, confirmDialog, esc, jsonBody, sweepPlayhead } fro
 let loadingPatterns = false;
 let lastPatterns = null; // for recolouring the rolls on theme change
 
-// repaint the piano-roll cards when the accent theme changes
+// recolour the piano rolls in place when the accent theme changes (a full
+// re-render would rebuild the cards and stop a playing pattern)
 addEventListener("msmpl-theme", () => {
-    if (lastPatterns) renderPatterns(lastPatterns);
+    if (!lastPatterns) return;
+    const rgb = accentRgb(),
+        cards = $("#pattern-grid").children;
+    lastPatterns.forEach((p, i) => {
+        const roll = cards[i]?.querySelector(".pattern-roll");
+        if (p.valid && roll) drawRoll(roll, p, rgb);
+    });
 });
 // the pattern editor reports the one changed pattern after a save (detail = the
-// updated pattern JSON) — update just that card, no full re-receive
+// updated pattern JSON) - update just that card, no full re-receive
 addEventListener("msmpl-pattern-changed", (e) => applyPattern(/** @type {CustomEvent} */ (e).detail));
 
 // live progress from the bridge (one SSE event per pattern read)
@@ -36,9 +43,9 @@ async function loadPatterns() {
     try {
         const { patterns } = await apiJson("/api/patterns");
         renderPatterns(patterns);
-        tick("✓ received 16 patterns");
+        tick(`✓ received ${patterns.length} patterns`);
     } catch (e) {
-        $("#pattern-grid").innerHTML = `<p class="backup-empty">PATTERN READ FAILED — ${esc(e.message.toUpperCase())}</p>`;
+        $("#pattern-grid").innerHTML = `<p class="backup-empty">PATTERN READ FAILED: ${esc(e.message.toUpperCase())}</p>`;
         tick("⚠ patterns: " + e.message);
     } finally {
         loadingPatterns = false;
@@ -46,9 +53,8 @@ async function loadPatterns() {
     }
 }
 
-// the theme accent as an "r,g,b" string. getComputedStyle forces a sync style
-// recalc, so read it ONCE per render (was 16 forced reflows — one per card) and
-// pass it into drawRoll, never read it per card.
+// the theme accent as an "r,g,b" string. getComputedStyle forces a style
+// recalc, so read it once per render and pass it to drawRoll.
 const accentRgb = () => getComputedStyle(document.documentElement).getPropertyValue("--amber-rgb").trim() || "255,138,30";
 
 function renderPatterns(patterns) {
@@ -94,7 +100,7 @@ function buildCard(p) {
       </div>`;
     const actions = document.createElement("div");
     actions.className = "p-actions";
-    // PLAY/STOP on the device — icon + label both toggle via the .playing class
+    // PLAY/STOP on the device - icon + label both toggle via the .playing class
     const play = document.createElement("button");
     play.className = "hw-btn";
     play.disabled = !recorded;
@@ -116,7 +122,7 @@ function buildCard(p) {
     exp.download = `pattern${String(p.pattern + 1).padStart(2, "0")}.mid`;
     exp.title = "Export this pattern as a .mid file";
     exp.innerHTML = '<span class="hw-btn-cap"><span class="ico ico-dn"></span>EXPORT</span>';
-    // EDIT — in-app piano roll (works on empty patterns too, to build from scratch)
+    // EDIT - in-app piano roll (works on empty patterns too, to build from scratch)
     const ed = document.createElement("button");
     ed.className = "hw-btn";
     ed.disabled = !p.valid;
@@ -139,7 +145,7 @@ function buildCard(p) {
     return card;
 }
 
-// Update a single card in place after a save / INIT / import — avoids re-receiving
+// Update a single card in place after a save / INIT / import - avoids re-receiving
 // all 16 patterns from the device (slow + stops the sequencer). The write's POST
 // response already carries the changed pattern (bridge pattern_write → _pattern_json).
 function applyPattern(p) {
@@ -155,7 +161,7 @@ function applyPattern(p) {
 }
 
 function sampleLabel(idx) {
-    if (idx == null) return "—";
+    if (idx == null) return "-";
     const s = state.bank && state.bank.slots[idx];
     return s && !s.empty ? s.name : `#${idx + 1}`;
 }
@@ -168,9 +174,6 @@ function drawRoll(canvas, p, rgb) {
     canvas.height = H;
     const g = canvas.getContext("2d");
     const total = Math.max(p.ticks, 1);
-    // sample-mode track follows the theme accent (passed in — read once per
-    // render); keyboard-mode track keeps its distinct pale-cream so the two
-    // tracks stay tellable apart on any theme.
     // bar grid
     g.strokeStyle = `rgba(${rgb},.14)`;
     g.lineWidth = 1;
@@ -190,7 +193,7 @@ function drawRoll(canvas, p, rgb) {
         const x = (t / total) * W;
         const w = Math.max((dur / total) * W, 2 * dpr);
         const y = H - ((note - lo) / span) * (H - 8 * dpr) - 6 * dpr;
-        // sample-mode track = amber, keyboard-mode track = pale cream
+        // sample-mode track = theme accent; keyboard-mode track = pale cream on every theme
         g.fillStyle = ch ? "#ffe9c9" : `rgb(${rgb})`;
         g.shadowColor = ch ? "rgba(255,233,201,.6)" : `rgba(${rgb},.7)`;
         g.globalAlpha = 0.4 + (vel / 127) * 0.6;
@@ -202,13 +205,13 @@ function drawRoll(canvas, p, rgb) {
 // ── pattern playback (on the DEVICE) ───────────────────────────────────────
 // Play patterns through the hardware sequencer (it sounds exactly like the
 // device). The bridge selects the pattern via NRPN on the [PATTERN] dial, then
-// streams MIDI clock and sends MIDI Start (0xFA) — the sequencer is a slave, so
+// streams MIDI clock and sends MIDI Start (0xFA) - the sequencer is a slave, so
 // the clock is what advances it; STOP sends MIDI Stop (0xFC) + clock off.
 // Hardware-confirmed (device must be on GLOBAL > MIDI CLK = AUTO/EXT MIDI). One
 // transport, so only one pattern plays at a time.
 let playing = null; // { pattern, btn } currently transport-playing, or null
 
-// APPROXIMATE play sweep on the card's mini-roll (the app can't read the device's
+// Approximate play sweep on the card's mini-roll (the app can't read the device's
 // true position): a rAF line over the pattern's duration (bars × 4 beats at the
 // bank BPM, ticks == bars×384 so it maps linearly), looping like the device does.
 let pStop = null,
@@ -223,7 +226,7 @@ function stopPlayhead() {
 }
 function startPlayhead(p, btn, bpm) {
     stopPlayhead();
-    const wrap = btn.closest(".pattern-card") && btn.closest(".pattern-card").querySelector(".pattern-roll-wrap");
+    const wrap = btn.closest(".pattern-card")?.querySelector(".pattern-roll-wrap");
     if (!wrap) return;
     const ph = document.createElement("div");
     ph.className = "p-playhead";
@@ -247,7 +250,7 @@ async function playPattern(p, btn) {
         stopTransport();
         return;
     } // click again = stop
-    // switching patterns: just revert the previous button — the new /play stops
+    // switching patterns: just revert the previous button - the new /play stops
     // it on the device itself (atomically), so we DON'T fire a separate /stop
     // (two racing requests sometimes restarted the OLD pattern).
     if (playing) playing.btn.classList.remove("playing");
@@ -256,7 +259,7 @@ async function playPattern(p, btn) {
     const bpm = (state.bank && state.bank.bpm) || 120;
     startPlayhead(p, btn, bpm);
     try {
-        // the device sequencer is a slave — the bridge streams MIDI clock at this
+        // the device sequencer is a slave - the bridge streams MIDI clock at this
         // tempo so Start actually advances (device needs MIDI CLK = AUTO/EXT MIDI)
         await apiJson(`/api/pattern/${p.pattern}/play`, jsonBody({ bpm }));
         tick(`▶ pattern ${p.pattern + 1} (device)`);
@@ -305,7 +308,7 @@ async function initPattern(q, recorded) {
     if (
         !(await confirmDialog(
             `INIT PATTERN ${q + 1}`,
-            `Reset to the factory INIT pattern` + (recorded ? " — its recorded notes will be LOST (RAM)?" : "?"),
+            `Reset to the factory INIT pattern` + (recorded ? "? Its recorded notes will be LOST (RAM)." : "?"),
             "INIT"
         ))
     )
@@ -321,9 +324,9 @@ async function initPattern(q, recorded) {
 
 $("#patterns-refresh").onclick = () => loadPatterns();
 
-// REC — press the device's [REC] button (NRPN); fire-and-forget, no readback,
+// REC - press the device's [REC] button (NRPN); fire-and-forget, no readback,
 // so the user watches the device screen (arm → start → end). Mirrors SAMPLING.
 $("#pattern-rec").onclick = () =>
     apiJson("/api/pattern/rec", { method: "POST" })
-        .then(() => tick("● REC pressed — arm → start → end on the device"))
+        .then(() => tick("● REC pressed: arm → start → end on the device"))
         .catch((e) => tick(`⚠ rec failed: ${e.message}`));

@@ -1,9 +1,9 @@
 name: Package apps
 
-# Build the double-clickable apps — "microSAMPLER Editor Librarian" (macOS:
+# Build the double-clickable apps - "microSAMPLER Editor Librarian" (macOS:
 # menu-bar shell + SMAppService root daemon, no sudo/terminal) and
 # "microSAMPLER Library" (hardware-free librarian, Linux + macOS).
-# Runs on demand (artifacts only) AND when a GitHub release is published —
+# Runs on demand (artifacts only) AND when a GitHub release is published -
 # then the DMGs + Linux builds are attached to the release, next to the
 # source ZIP that release.yml uploads. Asset names are UNVERSIONED so
 # /releases/latest/download/<name> gives permanent links for the docs.
@@ -31,14 +31,12 @@ jobs:
         runs-on: ubuntu-22.04 # oldest LTS runner = widest glibc compatibility
         steps:
             - uses: actions/checkout@v7
-            - name: Check tag matches package.json
+            # the tag goes in via env, not inline: tag names can contain shell metacharacters
+            - name: Check tag matches package.json and the version is stamped
               if: github.event_name == 'release'
               env:
-                  TAG: ${{ github.event.release.tag_name }} # env, not inline: tag
-              run: | #  names can carry shell
-                  PKG="v$(node -p "require('./package.json').version")"
-                  test "$TAG" = "$PKG" || { echo "::error::tag $TAG does not match package.json $PKG (run npm version first)"; exit 1; }
-                  node tools/stamp-docs-version.mjs --check
+                  TAG: ${{ github.event.release.tag_name }}
+              run: bash tools/check-release-tag.sh "$TAG"
             - uses: actions/setup-python@v7
               with:
                   python-version: "3.12"
@@ -48,15 +46,7 @@ jobs:
             - name: Smoke test the frozen binary
               env:
                   MSMPL_NO_OPEN: "1" # no browser on a headless runner
-              run: |
-                  "./dist/bundle/microSAMPLER Library/microSAMPLER Library" &
-                  for i in $(seq 1 40); do
-                    curl -sf http://localhost:8766/api/status > /dev/null && break
-                    sleep 0.5
-                  done
-                  curl -sf http://localhost:8766/api/status | grep -q '"library": true'
-                  curl -sf http://localhost:8766/app.html | grep -q microSAMPLER
-                  curl -sf -X POST http://localhost:8766/api/shutdown | grep -q '"ok": true'
+              run: bash tools/bundle/smoke_library.sh "./dist/bundle/microSAMPLER Library/microSAMPLER Library"
             - name: Dump the Library log on failure
               if: failure()
               run: cat "$HOME/.local/share/DehliMusikk/microSAMPLER Library/library.log" || true
@@ -87,11 +77,9 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                    # macos-14 retired 2026-11-02 (brownouts before that); the
-                    # Swift shells pin their minimum macOS via swiftc -target
+                    # arm64 runner; the Swift shells pin their minimum macOS via swiftc -target
                     - { runner: macos-15, arch: arm64 }
-                    # macos-13 (the old Intel label) is retired — macos-15-intel is
-                    # GitHub's current x86_64 image; update again when that one goes
+                    # x86_64 runner; replace when GitHub retires this image
                     - { runner: macos-15-intel, arch: x86_64 }
         env:
             HAVE_SIGNING: ${{ secrets.MACOS_CERT_P12 != '' }}
@@ -99,14 +87,12 @@ jobs:
             APP_ED: dist/bundle/microSAMPLER Editor Librarian.app
         steps:
             - uses: actions/checkout@v7
-            - name: Check tag matches package.json
+            # the tag goes in via env, not inline: tag names can contain shell metacharacters
+            - name: Check tag matches package.json and the version is stamped
               if: github.event_name == 'release'
               env:
-                  TAG: ${{ github.event.release.tag_name }} # env, not inline: tag
-              run: | #  names can carry shell
-                  PKG="v$(node -p "require('./package.json').version")"
-                  test "$TAG" = "$PKG" || { echo "::error::tag $TAG does not match package.json $PKG (run npm version first)"; exit 1; }
-                  node tools/stamp-docs-version.mjs --check
+                  TAG: ${{ github.event.release.tag_name }}
+              run: bash tools/check-release-tag.sh "$TAG"
             - uses: actions/setup-python@v7
               with:
                   python-version: "3.12"
@@ -132,15 +118,8 @@ jobs:
               env:
                   MSMPL_NO_OPEN: "1" # no browser on a headless runner
               run: |
-                  "./$APP_LIB/Contents/Resources/bridge/microSAMPLER Library" &
-                  for i in $(seq 1 40); do
-                    curl -sf http://localhost:8766/api/status > /dev/null && break
-                    sleep 0.5
-                  done
-                  curl -sf http://localhost:8766/api/status | grep -q '"library": true'
-                  curl -sf http://localhost:8766/app.html | grep -q microSAMPLER
-                  curl -sf -X POST http://localhost:8766/api/shutdown | grep -q '"ok": true'
-                  # editor daemon: no device on the runner — must still serve, report
+                  bash tools/bundle/smoke_library.sh "./$APP_LIB/Contents/Resources/bridge/microSAMPLER Library"
+                  # editor daemon: no device on the runner - must still serve, report
                   # daemon mode, and survive a claim attempt + release
                   "./$APP_ED/Contents/Resources/bridge/msmpl-bridge" &
                   ED_PID=$!
@@ -182,7 +161,7 @@ jobs:
                   IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
               run: |
                   # inside-out: 1) loose Mach-O files (dylibs/.so/executables, incl.
-                  # the editor's embedded bridge + vendored libusb) — but NOT framework
+                  # the editor's embedded bridge + vendored libusb) - but NOT framework
                   # internals; 2) nested frameworks AS BUNDLES (signing their files
                   # individually leaves the framework unsealed → the app-level sign
                   # dies with "bundle format is ambiguous"); 3) each app bundle last
@@ -206,7 +185,7 @@ jobs:
                   APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
                   APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
               run: |
-                  # ONE submission for both apps (Apple scans everything in the zip)
+                  # one submission for both apps (Apple scans everything in the zip)
                   mkdir build/notarize
                   ditto "$APP_LIB" "build/notarize/$(basename "$APP_LIB")"
                   ditto "$APP_ED" "build/notarize/$(basename "$APP_ED")"
@@ -214,9 +193,9 @@ jobs:
                   tools/bundle/notarize.sh build/notarize.zip
                   tools/bundle/staple.sh "$APP_LIB" "$APP_ED"
 
-            # DMG, not zips: drag-installing from a mounted DMG is the one install
-            # path macOS never App-Translocates (the zip flow reliably did, blocking
-            # SMAppService until a manual de-quarantine — user-hit twice)
+            # DMG, not zips: an app dragged from a mounted DMG is never
+            # App-Translocated; a quarantined zip extract is, and that blocks
+            # SMAppService until the app is manually de-quarantined
             - name: Build DMG (both apps + Applications shortcut)
               run: |
                   VERSION=$(node -p "require('./package.json').version")

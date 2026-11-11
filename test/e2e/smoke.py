@@ -1,27 +1,23 @@
 #!/usr/bin/env python3
 """End-to-end smoke test: boot the mock bridge, drive the web app in a headless
 browser, and assert it loads and the core interactions work with NO page or
-console errors. Catches frontend regressions the unit/offline suites can't —
-e.g. a module that throws at import time (the missing `api` import once did).
+console errors. Catches frontend regressions the unit/offline suites can't,
+e.g. a module that throws at import time.
 
-Dev/CI only — needs Playwright:
+Dev/CI only - needs Playwright:
     pip install playwright && playwright install chromium
 
 Run from anywhere:
     python3 test/e2e/smoke.py       # (override port with SMOKE_PORT)
 """
 import json
-import math
 import os
 import shutil
 import struct
-import subprocess
 import sys
 import tempfile
-import time
-import urllib.request
-import wave
 
+from fixtures import bridge, make_wav, msmpl_chunk
 from playwright.sync_api import sync_playwright
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -29,31 +25,10 @@ PORT = int(os.environ.get('SMOKE_PORT', '8799'))
 BASE = 'http://127.0.0.1:%d' % PORT
 
 
-def make_wav(path):
-    """A 2 s mono WAV with four spaced bursts — works for both equal and
-    transient auto-slicing."""
-    with wave.open(path, 'wb') as w:
-        w.setnchannels(1)
-        w.setsampwidth(2)
-        w.setframerate(48000)
-        frames = bytearray()
-        for t in range(96000):
-            v = 0.0
-            for at in (0, 24000, 48000, 72000):
-                d = t - at
-                if 0 <= d < 8000:
-                    v += 0.7 * math.sin(2 * math.pi * 220 * d / 48000) * math.exp(-d / 4000)
-            frames += struct.pack('<h', max(-32768, min(32767, int(v * 32767))))
-        w.writeframes(bytes(frames))
-
-
 def make_msmpl(path):
     """A minimal synthetic original-Korg .msmpl_bank (one mono sample) for the
-    library-mode leg — same 6150-chunk shape the real files use."""
-    def chunk(tag, payload):
-        return (b'6150' + tag + struct.pack('<H', 32) + struct.pack('<I', len(payload))
-                + b'\x00\x00' + struct.pack('<I', 3) + struct.pack('<I', 1)
-                + struct.pack('<I', len(payload)) + b'\xff\xff\xff\xff' + payload)
+    library-mode leg - same 6150-chunk shape the real files use."""
+    chunk = msmpl_chunk
     pcm = struct.pack('>' + 'h' * 80, *([2000, -2000] * 40))     # mono 16-bit BE
     param = bytearray(b'\xff' * 64)
     param[0:8] = b'SMOKESMP'
@@ -71,21 +46,9 @@ def make_msmpl(path):
         f.write(chunk(b'BnkD', bnkp + smps + seqs))
 
 
-def wait_ready(timeout=20):
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        try:
-            with urllib.request.urlopen(BASE + '/api/status', timeout=1) as r:
-                if r.status == 200:
-                    return True
-        except Exception:
-            time.sleep(0.2)
-    return False
-
-
 def stub_github(pg):
     """Stub the update-check (api.github.com) so the smoke is deterministic offline
-    — an unreachable GitHub otherwise logs CORS/network console errors. The tag is
+    - an unreachable GitHub otherwise logs CORS/network console errors. The tag is
     older than any real release, so no update toast appears."""
     pg.route('**api.github.com**', lambda r: r.fulfill(
         status=200, content_type='application/json',
@@ -242,7 +205,7 @@ def run_checks(wav_path):
         pg2.on('console', lambda m: errors.append('console.error(helper): %s' % m.text)
                if m.type == 'error' else None)
         wedged = json.dumps({'connected': False, 'mock': True, 'version': '0',
-                             'error': 'no inquiry reply — device off or wedged'})
+                             'error': 'no inquiry reply: device off or wedged'})
         ok = json.dumps({'connected': True, 'mock': True, 'version': '0', 'error': None})
         pg2.route('**/api/status', lambda r: r.fulfill(
             status=200, content_type='application/json', body=wedged))
@@ -299,36 +262,24 @@ def main():
     tmp = tempfile.mkdtemp(prefix='msmpl-smoke-')
     wav_path = os.path.join(tmp, 'break.wav')
     make_wav(wav_path)
-    # If a bridge is already serving on PORT, reuse it (run against a live dev
-    # bridge, or let CI start it separately); otherwise spawn a mock one — with
-    # backups isolated to the temp dir so the cherry-pick check stays self-contained.
-    bridge = None
-    if not wait_ready(timeout=1):
-        bridge = subprocess.Popen(
-            [sys.executable, os.path.join(ROOT, 'src', 'native-tools', 'bridge.py'),
-             '--mock', '--port', str(PORT)],
-            env={**os.environ, 'MSMPL_BACKUP_DIR': os.path.join(tmp, 'backups')},
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # reuse a bridge already serving on PORT (a live dev bridge, or one CI started),
+    # else start a mock one with backups in the temp dir, so the cherry-pick check
+    # stays self-contained
     try:
-        if not wait_ready():
-            print('FAIL: mock bridge did not become ready on %s' % BASE)
-            return 1
-        errors = run_checks(wav_path)
-        if errors:
-            print('FAIL: page/console errors during smoke:')
-            for e in errors:
-                print('  ', e)
-            return 1
-        print('e2e smoke: OK')
-        return 0
+        with bridge(['--mock'], PORT, os.path.join(tmp, 'backups')):
+            errors = run_checks(wav_path)
+    except RuntimeError as e:
+        print('FAIL: %s' % e)
+        return 1
     finally:
-        if bridge is not None:
-            bridge.terminate()
-            try:
-                bridge.wait(timeout=5)
-            except Exception:
-                bridge.kill()
         shutil.rmtree(tmp, ignore_errors=True)
+    if errors:
+        print('FAIL: page/console errors during smoke:')
+        for e in errors:
+            print('  ', e)
+        return 1
+    print('e2e smoke: OK')
+    return 0
 
 
 if __name__ == '__main__':

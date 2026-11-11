@@ -1,5 +1,5 @@
 #!/bin/bash
-# Double-clickable LIBRARY-mode starter (macOS) — browse, play and export the
+# Double-clickable LIBRARY-mode starter (macOS) - browse, play and export the
 # samples in microSAMPLER bank backups (the original Korg ".msmpl_bank" files,
 # or this app's own ".zip" backups) with NO hardware connected. No password
 # needed: library mode never touches USB, so it doesn't run as root.
@@ -31,13 +31,13 @@ PY="$(command -v python3 || true)"
 [ -n "$PY" ] || pause_exit "python3 not found in PATH"
 echo "python: $PY"
 
-PORT=8766                 # library mode has its own port — never collides with
-URL="http://localhost:$PORT"   # a device bridge on 8765
+PORT=8766                 # library mode uses 8766; the device bridge uses 8765
+URL="http://localhost:$PORT"
 port_open() { (exec 3<>"/dev/tcp/127.0.0.1/$PORT") 2>/dev/null; }
 open_ui() { open -na "Google Chrome" --args --app="$URL" 2>/dev/null || open "$URL"; }
 
 if port_open; then
-  echo "Bridge already running — opening the library."
+  echo "Bridge already running, opening the library."
   open_ui
   echo "(close this window)"
   exit 0

@@ -1,5 +1,5 @@
 // Unit tests for the pure note/keyboard theory (src/web-editor/functions/notes.js).
-// Built-in node:test — no deps. Run: node --test test/*.test.mjs  (or: npm test)
+// Built-in node:test, no deps. Run: npm test
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -40,7 +40,7 @@ test("qwertySlot: unmapped keys return null (left for shortcuts)", () => {
 });
 
 test("qwertySlot: notes above B5 clamp to null at the top octave", () => {
-    assert.equal(qwertySlot("KeyJ", 2), 35); // B5 (offset 11) — the top pad
+    assert.equal(qwertySlot("KeyJ", 2), 35); // B5 (offset 11) - the top pad
     assert.equal(qwertySlot("KeyK", 2), null); // C6 (offset 12) → above B5
     assert.equal(qwertySlot("Semicolon", 2), null); // offset 16 → above
 });

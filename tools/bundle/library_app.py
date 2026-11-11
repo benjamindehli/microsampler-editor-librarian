@@ -13,7 +13,8 @@ Wraps bridge.py --library for a double-clickable, no-terminal experience:
   * stdout/stderr go to <data dir>/library.log when frozen (windowed apps may
     have no usable stdio)
 
-Build: pyinstaller tools/bundle/library.spec  (see .github/workflows/package.yml)
+Build: pyinstaller --noconfirm --distpath dist/bundle --workpath build/bundle \
+         tools/bundle/library.spec  (see .github/workflows/package.yml)
 Plain `python3 tools/bundle/library_app.py` also works for a quick local run.
 """
 import json
@@ -30,7 +31,7 @@ import webbrowser
 PORT = 8766          # library mode's own port (device bridge uses 8765)
 
 # Chromium-family browsers that support `--app=URL` (own window, no tabs/URL
-# bar — feels like an app, keeps every browser feature incl. downloads)
+# bar - feels like an app, keeps every browser feature incl. downloads)
 CHROMIUM_MACOS = ('Google Chrome', 'Microsoft Edge', 'Brave Browser', 'Chromium')
 CHROMIUM_LINUX = ('google-chrome', 'microsoft-edge', 'brave-browser',
                   'chromium', 'chromium-browser')
@@ -60,7 +61,7 @@ def open_ui(url):
 
 def resource_root():
     """Where bundled data files live: PyInstaller extracts datas next to the
-    binary (_MEIPASS); unfrozen = the repo root (two levels up from here)."""
+    binary (_MEIPASS); unfrozen = the repo's src/ directory."""
     if getattr(sys, 'frozen', False):
         return sys._MEIPASS
     return os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -94,9 +95,9 @@ def port_free(port):
     try:
         s = socket.socket()
         # SO_REUSEADDR so this pre-check matches the actual server (HTTPServer
-        # sets allow_reuse_address): without it, a just-killed bridge's socket
-        # in TIME_WAIT makes this falsely report "busy", which sent the child
-        # to a random port the shell can't find → "Library not responding".
+        # sets allow_reuse_address): otherwise a just-killed bridge's socket in
+        # TIME_WAIT reads as "busy" and the child moves to a port the Swift
+        # shell doesn't know.
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind(('127.0.0.1', port))
         s.close()
@@ -121,7 +122,7 @@ def main():
     os.makedirs(os.path.join(data, 'backups'), exist_ok=True)
 
     if getattr(sys, 'frozen', False):
-        # windowed bundles may have no stdio — keep a log for troubleshooting
+        # windowed bundles may have no stdio - keep a log for troubleshooting
         log_path = os.path.join(data, 'library.log')
         try:
             if os.path.getsize(log_path) > 5 * 1024 * 1024:
@@ -133,7 +134,7 @@ def main():
         print('--- microSAMPLER Library started', time.strftime('%Y-%m-%d %H:%M:%S'))
 
     # under the Swift shell (macOS .app) the shell owns the browser + only knows
-    # PORT, so the child must NOT wander to a random port — bind PORT or fail.
+    # PORT, so the child must NOT wander to a random port - bind PORT or fail.
     shell_mode = os.environ.get('MSMPL_NO_OPEN') == '1'
     port = PORT
     if not port_free(port):
@@ -150,7 +151,7 @@ def main():
     os.environ['MSMPL_WEB_ROOT'] = os.path.join(root, 'web-editor')
     os.environ.setdefault('MSMPL_BACKUP_DIR', os.path.join(data, 'backups'))
     os.environ['MSMPL_ALLOW_SHUTDOWN'] = '1'
-    # exit ~2 min after the last UI window closes — the app must not linger as
+    # exit ~2 min after the last UI window closes - the app must not linger as
     # an invisible background process (ghost processes also confuse macOS
     # LaunchServices into "app is not open anymore" states)
     os.environ.setdefault('MSMPL_IDLE_EXIT', '120')

@@ -5,10 +5,11 @@ let tickerTimer;
 export function tick(text) {
     const log = $("#ticker-log");
     const prev = log.textContent.slice(0, 220);
+    // build with DOM nodes, not innerHTML: old entries must never round-trip back in as markup
     const b = document.createElement("b");
-    b.textContent = text; // DOM nodes, not innerHTML — old
-    log.replaceChildren(b, `  ${prev}`); // entries must never round-trip
-    const led = $("#ticker-led"); // back in as markup (CodeQL js/xss)
+    b.textContent = text;
+    log.replaceChildren(b, `  ${prev}`);
+    const led = $("#ticker-led");
     led.classList.add("blip");
     clearTimeout(tickerTimer);
     tickerTimer = setTimeout(() => led.classList.remove("blip"), 250);

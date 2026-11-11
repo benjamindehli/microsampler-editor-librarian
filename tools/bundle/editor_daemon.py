@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Entry point for the BUNDLED device bridge — the launchd ROOT DAEMON inside
+"""Entry point for the BUNDLED device bridge - the launchd ROOT DAEMON inside
 "microSAMPLER Editor Librarian.app" (see tools/bundle/editor-app/).
 
 Runs bridge.py in DAEMON mode on the standard device port 8765:
@@ -7,8 +7,8 @@ Runs bridge.py in DAEMON mode on the standard device port 8765:
     auto-released after MSMPL_IDLE_RELEASE s with no UI (so the daemon can run
     24/7 without hogging the microSAMPLER from DAWs)
   * backups go to /Users/Shared (a root daemon has no meaningful $HOME, and
-    the web UI reaches them over HTTP anyway — zip export/import/cherry-pick),
-    but only once secure_dir() has verified the path can't be redirected —
+    the web UI reaches them over HTTP anyway - zip export/import/cherry-pick),
+    but only once secure_dir() has verified the path can't be redirected -
     else the root-only FALLBACK under /Library/Application Support
   * logging is launchd's job (StandardOutPath/StandardErrorPath in the plist)
 
@@ -27,7 +27,7 @@ FALLBACK = '/Library/Application Support/DehliMusikk/microSAMPLER Editor'
 
 def secure_dir(path, base, owner=0):
     """Create `path` (below the existing `base`) one component at a time and
-    verify that NO component — base included — is a symlink, a non-directory,
+    verify that NO component - base included - is a symlink, a non-directory,
     or owned by anyone but `owner` (root), and that none below base is
     group/other-writable. /Users/Shared is writable by every account, so
     without this another local user could pre-create DehliMusikk as a symlink
@@ -83,7 +83,7 @@ def main():
             # tampered with (or hand-edited): don't follow it as root. Backups
             # made before stay where they are; the log says why they're hidden.
             sys.stderr.write('WARNING: %s is a symlink, not owned by root, or '
-                             'writable by others — using %s instead\n'
+                             'writable by others. Using %s instead\n'
                              % (data, FALLBACK))
             data = FALLBACK
             os.makedirs(os.path.join(data, 'backups'), mode=0o755, exist_ok=True)
@@ -98,7 +98,7 @@ def main():
     os.environ.setdefault('MSMPL_BACKUP_DIR', os.path.join(data, 'backups'))
 
     if sys.platform == 'darwin' and os.geteuid() == 0:
-        # launchd creates our log dir/file root-only — open them up so users
+        # launchd creates our log dir/file root-only - open them up so users
         # can `tail` without sudo (log content is transfer chatter, not secrets)
         for path, mode in (('/Library/Logs/DehliMusikk', 0o755),
                            ('/Library/Logs/DehliMusikk/msmpl-bridge.log', 0o644)):
@@ -106,7 +106,7 @@ def main():
                 os.chmod(path, mode)
             except OSError:
                 pass
-        # a KeepAlive daemon logs for months — let macOS's newsyslog rotate it
+        # a KeepAlive daemon logs for months - let macOS's newsyslog rotate it
         # (checked hourly: rotate at 5 MB, keep 3 bzip2'd generations)
         conf = '/etc/newsyslog.d/no.dehlimusikk.msmpl.conf'
         if not os.path.exists(conf):

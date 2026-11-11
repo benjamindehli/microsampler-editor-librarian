@@ -130,7 +130,6 @@ assert ms.pcm_got == len(pcm)
 
 # error ACK raises
 ms2 = FakeMS(10**9)
-orig = ms2.on_write
 def err_write(data):
     midi = from_usb_midi(data)
     if midi and midi[0] == 0xf0 and midi[4] == 0x42:

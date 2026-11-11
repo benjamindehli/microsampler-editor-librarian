@@ -1,4 +1,4 @@
-// Build a lean, minified distribution into dist/ — for publishing a release.
+// Build a lean, minified distribution into dist/ - for publishing a release.
 // The repo itself stays no-build (clone & run from src/web-editor/); this only
 // produces an optional artifact.
 //
@@ -7,11 +7,11 @@
 // Frontend: JS is bundled (all ES modules → one file) + minified, CSS is
 // concatenated in cascade order + minified, HTML comments/indentation are
 // stripped and the stylesheet <link>s collapse to one. Python runtime is copied
-// verbatim minus the test suite (it's the GPL source — not minified, by
+// verbatim minus the test suite (it's the GPL source - not minified, by
 // design; readable source must accompany distributed object code anyway).
 // Dev/RE-only files (tools/re, .pkg, tests, .github) are left out.
 //
-// Only dependency: esbuild (MIT), dev-only — never shipped or imported at
+// Only dependency: esbuild (MIT), dev-only - never shipped or imported at
 // runtime (imported from node_modules; `npm install` once).
 import { build, transform } from "esbuild";
 import { readFileSync, writeFileSync, rmSync, mkdirSync, cpSync, statSync } from "node:fs";
@@ -52,8 +52,11 @@ const js = await build({
 writeFileSync(d("web-editor/app.js"), js.outputFiles[0].text);
 
 // ── CSS: concat the linked sheets in document order, minify as one ───────
-// match any stylesheet link (css/… global sheets OR components/…/styles.css)
-const cssLinks = [...html.matchAll(/<link rel="stylesheet" href="([^"]+\.css)">/g)].map((m) => m[1]);
+// a stylesheet link (styles/*.css or components/<name>/<name>.css), with or
+// without the self-closing slash Prettier writes
+const CSS_LINK = /<link rel="stylesheet" href="([^"]+\.css)"\s*\/?>/g;
+const cssLinks = [...html.matchAll(CSS_LINK)].map((m) => m[1]);
+if (!cssLinks.length) throw new Error("build: no stylesheet <link>s found in app.html - the dist would ship unstyled");
 const cssSrc = cssLinks.map((p) => readFileSync(join(WEB, p), "utf8")).join("\n");
 const cssMin = (await transform(cssSrc, { loader: "css", minify: true })).code;
 writeFileSync(d("web-editor/css/app.css"), cssMin);
@@ -74,10 +77,14 @@ let outHtml =
     stripComments(html)
         // the bundle has no bare imports, so the dev import map isn't needed in dist
         .replace(/<script type="importmap">[\s\S]*?<\/script>\s*/, "")
-        .replace(/(<link rel="stylesheet" href="[^"]+\.css">\s*)+/, '<link rel="stylesheet" href="css/app.css">\n')
+        .replace(/(<link rel="stylesheet" href="[^"]+\.css"\s*\/?>\s*)+/, '<link rel="stylesheet" href="css/app.css">\n')
         .replace(/^[ \t]+/gm, "") // drop indentation
         .replace(/\n{2,}/g, "\n") // collapse blank lines
         .trim() + "\n";
+// the dist must link exactly the merged sheet (any other link points at a file dist doesn't ship)
+const outLinks = [...outHtml.matchAll(CSS_LINK)].map((m) => m[1]);
+if (outLinks.length !== 1 || outLinks[0] !== "css/app.css")
+    throw new Error(`build: dist app.html links ${JSON.stringify(outLinks)}, expected ["css/app.css"]`);
 writeFileSync(d("web-editor/app.html"), outHtml);
 
 // ── static assets (svg logo/icon, vendored fonts + their OFL licenses) ───
@@ -86,7 +93,7 @@ cpSync(join(WEB, "assets"), d("web-editor/assets"), { recursive: true });
 // ── Python runtime (no tests), launcher, icon tooling, docs ──────────────
 for (const f of ["msusb.py", "protocol.py", "download.py", "upload.py", "bank.py", "msmpl_bank.py", "bridge.py"])
     cpSync(r("src/native-tools", f), d("native-tools", f));
-// vendored deps (pyusb + per-platform libusb binaries) — so the release runs
+// vendored deps (pyusb + per-platform libusb binaries) - so the release runs
 // on just Python 3, no pip/brew
 cpSync(r("src/native-tools/vendor"), d("native-tools/vendor"), { recursive: true });
 cpSync(r("tools/make_app_icon.sh"), d("tools/make_app_icon.sh"));

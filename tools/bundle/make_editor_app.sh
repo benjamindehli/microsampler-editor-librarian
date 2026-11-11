@@ -16,14 +16,14 @@ SRC="tools/bundle/editor-app"
 BRIDGE="dist/bundle/msmpl-bridge"
 VERSION=$(node -p "require('./package.json').version" 2>/dev/null \
           || python3 -c "import json; print(json.load(open('package.json'))['version'])")
-[ -d "$BRIDGE" ] || { echo "ERROR: $BRIDGE missing — run pyinstaller editor.spec first"; exit 1; }
+[ -d "$BRIDGE" ] || { echo "ERROR: $BRIDGE missing. Run pyinstaller editor.spec first"; exit 1; }
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" \
          "$APP/Contents/Library/LaunchDaemons"
 
 # the menu-bar shell (single-file AppKit; main.swift = top-level code)
-ARCH=$(uname -m)   # arm64 | x86_64 — CI builds each on its native runner
+ARCH=$(uname -m)   # arm64 | x86_64 - CI builds each on its native runner
 swiftc -O -target "$ARCH-apple-macos13.0" \
   -o "$APP/Contents/MacOS/microSAMPLER Editor Librarian" \
   "$SRC/main.swift"
@@ -31,10 +31,10 @@ swiftc -O -target "$ARCH-apple-macos13.0" \
 sed "s/__VERSION__/$VERSION/g" "$SRC/Info.plist" > "$APP/Contents/Info.plist"
 cp "$SRC/no.dehlimusikk.msmpl.bridge.plist" "$APP/Contents/Library/LaunchDaemons/"
 # ditto, NOT `cp -r`: macOS cp -r follows symlinks, which flattens the
-# Python.framework inside the PyInstaller onedir into an invalid bundle —
+# Python.framework inside the PyInstaller onedir into an invalid bundle -
 # codesign then dies with "bundle format is ambiguous"
 ditto "$BRIDGE" "$APP/Contents/Resources/bridge"
 [ -n "${MSMPL_ICNS:-}" ] && cp "$MSMPL_ICNS" "$APP/Contents/Resources/AppIcon.icns"
 
 echo "assembled: $APP  (v$VERSION, $ARCH, macOS 13+)"
-echo "next: codesign everything (incl. Resources/bridge) + notarize — see package.yml"
+echo "next: codesign everything (incl. Resources/bridge) + notarize (see package.yml)"

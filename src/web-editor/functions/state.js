@@ -5,9 +5,8 @@ export const state = {
     buffers: new Map(), // slot -> AudioBuffer (decoded; "loaded")
     formats: new Map(), // slot -> {rate_hz,stereo,frames,seconds} (persists)
     audio: null, // AudioContext
-    playing: null, // current source node
     online: false,
-    fx: null, // {type, knobs:[a,b], vals:[..32]} — effect view
+    fx: null, // {type, knobs:[a,b], vals:[..32]} - effect view
     follow: true // FOLLOW toggle: selection tracks the last device note
 };
 

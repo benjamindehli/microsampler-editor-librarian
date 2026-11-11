@@ -10,7 +10,7 @@
 //
 // Runs automatically from the npm `version` lifecycle (see package.json), so
 // `npm version <new>` rewrites these and folds them into the version commit.
-// No build step, no placeholder tokens — the files stay valid; this just keeps
+// No build step, no placeholder tokens - the files stay valid; this just keeps
 // the real version in sync. Zero dependencies (node built-ins).
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -25,7 +25,7 @@ const targets = [
     {
         file: "docs/index.html",
         patterns: [
-            // release ZIP URL — version appears in BOTH the tag path and the filename
+            // release ZIP URL - version appears in BOTH the tag path and the filename
             [new RegExp(`releases/download/v${V}/${REPO}-v${V}\\.zip`, "g"), `releases/download/v${version}/${REPO}-v${version}.zip`],
             // the download button label
             [new RegExp(`Download&nbsp;v${V} \\(ZIP\\)`, "g"), `Download&nbsp;v${version} (ZIP)`],
@@ -51,11 +51,11 @@ for (const { file, patterns } of targets) {
     const src = readFileSync(path, "utf8");
     let out = src;
     for (const [re, sub] of patterns) {
-        // every pattern must MATCH — if a rewrite made one vanish (e.g. the button
-        // was reworded), a silent no-op would leave the guard blind to that target
+        // every pattern must match: if a docs edit removes one (e.g. a reworded
+        // button), a silent no-op would leave the guard blind to that target
         if (!src.match(re)) {
             broken = true;
-            console.error(`${file}: stamped pattern not found: ${re} — update tools/stamp-docs-version.mjs`);
+            console.error(`${file}: stamped pattern not found: ${re} - update tools/stamp-docs-version.mjs`);
             continue;
         }
         out = out.replace(re, sub);
@@ -63,7 +63,7 @@ for (const { file, patterns } of targets) {
     if (out === src) continue;
     stale = true;
     if (check) {
-        console.error(`${file} is out of sync with package.json (v${version}) — run: npm run stamp-version`);
+        console.error(`${file} is out of sync with package.json (v${version}) - run: npm run stamp-version`);
     } else {
         writeFileSync(path, out);
         console.log(`stamped ${file} → v${version}`);

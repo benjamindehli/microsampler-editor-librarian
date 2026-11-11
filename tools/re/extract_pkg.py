@@ -31,8 +31,6 @@ def main():
         if data[pos:pos + 6] != b'070707':
             print("bad magic at", pos); break
         pos += 6
-        for _ in range(6):  # dev, ino, mode... read mode at index 2
-            pass
         # ODC fields: dev(6) ino(6) mode(6) uid(6) gid(6) nlink(6) rdev(6)
         # mtime(11) namesize(6) filesize(11)
         _dev = field(6); _ino = field(6); mode = field(6); _uid = field(6)

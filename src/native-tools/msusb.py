@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-microSAMPLER libusb transport — USB-MIDI over the bulk endpoints.
+microSAMPLER libusb transport - USB-MIDI over the bulk endpoints.
 
 Reverse-engineered from the original editor (DirectUsbAccessBase::sendCommand,
 UsbMidiInterpreter::createPackets):
@@ -8,15 +8,18 @@ UsbMidiInterpreter::createPackets):
     packets and written to bulk OUT (0x01).
   * The device streams MIDI Timing Clock (0xF8) continuously, so the receiver
     must filter System Real-Time bytes while reassembling SysEx replies.
-  * Bulk sample payloads are sent as RAW 8-bit bytes (see send_raw) — used by the
-    uploader, not here.
+  * Bulk sample payloads are raw 8-bit bytes (send_raw_blocks), used by the
+    upload and bank tools.
 
-This module provides the transport plus an `inquiry`/`monitor` CLI to validate
-the connection. pyusb + libusb are vendored (see vendor/), so nothing needs
-installing beyond Python 3 itself. Run it with sudo on macOS (CoreMIDI holds the
-interface):
-    sudo python3 msusb.py inquiry
-    sudo python3 msusb.py monitor
+This module provides the transport plus a diagnostic CLI. pyusb + libusb are
+vendored (see vendor/), so nothing needs installing beyond Python 3. Run it with
+sudo on macOS (CoreMIDI holds the interface):
+    sudo python3 msusb.py inquiry      device inquiry: is it there, which cable?
+    sudo python3 msusb.py monitor      print incoming panel edits (SysEx)
+    sudo python3 msusb.py params N     dump slot N's 64-byte param blob
+    sudo python3 msusb.py raw|debug    low-level packet dumps
+    sudo python3 msusb.py play|listen  audible / receive bring-up tests
+    python3 msusb.py selftest          offline packet-codec self-test
 """
 import logging, os, platform, sys, time
 
@@ -25,13 +28,13 @@ EP_OUT, EP_IN = 0x01, 0x82
 PACKET = 64
 
 # ---------------------------------------------------------------------------
-# Vendored dependencies (vendor/) — so the app needs only Python 3, no pip/brew.
+# Vendored dependencies (vendor/) - so the app needs only Python 3, no pip/brew.
 #   * pyusb (pure-Python, BSD) is appended to sys.path as a FALLBACK, so a
 #     system pyusb, if the user has one installed, still takes precedence.
 #   * libusb native libraries are shipped per OS+arch as a FALLBACK too. We
 #     PREFER a system libusb when one is installed (a brew/apt build is usually
 #     newer than the bundled 1.0.26 and survives more open/close cycles before
-#     the device's USB stack wedges — measured on HW), and use the bundled copy
+#     the device's USB stack wedges - measured on HW), and use the bundled copy
 #     only when nothing's installed. MSAMPLER_BUNDLED_LIBUSB=1 forces the bundle.
 # ---------------------------------------------------------------------------
 _VENDOR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vendor")
@@ -65,7 +68,7 @@ _add_vendored_pyusb()
 logging.getLogger("usb").setLevel(logging.CRITICAL)
 
 # ---------------------------------------------------------------------------
-# USB-MIDI 4-byte event packet codec  (cable 0)
+# USB-MIDI 4-byte event packet codec
 # ---------------------------------------------------------------------------
 def to_usb_midi(midi: bytes, cable: int = 0) -> bytes:
     """Encode a MIDI byte stream (here: one whole SysEx F0..F7) into 4-byte
@@ -102,7 +105,7 @@ def from_usb_midi(raw: bytes) -> bytes:
 
 
 # ---------------------------------------------------------------------------
-# SysEx reassembler — feed it a MIDI byte stream, get complete F0..F7 messages.
+# SysEx reassembler - feed it a MIDI byte stream, get complete F0..F7 messages.
 # Skips System Real-Time bytes (0xF8..0xFF) that interleave inside/around SysEx.
 # ---------------------------------------------------------------------------
 class SysExReassembler:
@@ -113,7 +116,7 @@ class SysExReassembler:
     def feed(self, midi: bytes):
         msgs = []
         for b in midi:
-            if 0xf8 <= b <= 0xff:          # System Real-Time — ignore (F8 clock etc.)
+            if 0xf8 <= b <= 0xff:          # System Real-Time - ignore (F8 clock etc.)
                 continue
             if b == 0xf0:
                 self.buf = bytearray([0xf0]); self.in_sysex = True
@@ -127,6 +130,17 @@ class SysExReassembler:
 # ---------------------------------------------------------------------------
 # Transport
 # ---------------------------------------------------------------------------
+def send_raw_blocks(ms, data, on_progress=None, block=0x4000):
+    """Write a raw 8-bit bulk payload (sample PCM, pattern data) to EP OUT in
+    `block`-byte chunks, no framing. `on_progress(sent)` runs after each chunk.
+    Takes the MicroSampler (uses ms.dev) so the offline tests' fake devices
+    exercise this loop too."""
+    for off in range(0, len(data), block):
+        ms.dev.write(EP_OUT, data[off:off + block], timeout=5000)
+        if on_progress:
+            on_progress(min(off + block, len(data)))
+
+
 class MicroSampler:
     def __init__(self, cable=1):
         import usb.core, usb.util
@@ -147,7 +161,7 @@ class MicroSampler:
             self.dev = usb.core.find(idVendor=VID, idProduct=PID, backend=backend)
         except usb.core.NoBackendError:
             raise RuntimeError(
-                "no libusb backend could load — the bundled library failed (on "
+                "no libusb backend could load: the bundled library failed (on "
                 "macOS, make sure the unzipped folder isn't quarantined) and no "
                 "system libusb was found.") from None
         if self.dev is None:
@@ -208,11 +222,6 @@ class MicroSampler:
         pkt = bytes([((cable & 0xf) << 4) | cin, status, d1, d2])
         self.dev.write(EP_OUT, pkt, timeout=2000)
 
-    def send_raw(self, data: bytes, block=0x4000):
-        """Raw 8-bit bulk payload (sample PCM). No framing."""
-        for off in range(0, len(data), block):
-            self.dev.write(EP_OUT, data[off:off+block], timeout=5000)
-
     def _read_raw(self, timeout=300):
         """One bulk read; returns the raw USB-MIDI packet bytes ([] on timeout)."""
         try:
@@ -260,8 +269,8 @@ def cmd_inquiry():
             return 1
         print(f"Reply (cable {cable}):", _hex(reply))
         if reply[5] == 0x42 and reply[6] == 0x7f:
-            print(f"✓ microSAMPLER confirmed — Korg, family 0x{reply[6]:02x}, "
-                  f"member 0x{reply[8]:02x}{reply[7]:02x}")
+            print(f"microSAMPLER found: Korg, family 0x{reply[7]:02x}{reply[6]:02x}, "
+                  f"member 0x{reply[9]:02x}{reply[8]:02x}")
             print(f"  (device speaks on USB-MIDI cable {cable})")
         else:
             print("Replied, but not recognised as microSAMPLER.")
@@ -287,7 +296,7 @@ def cmd_play():
 
 
 def cmd_listen(seconds=12):
-    """Dump EVERYTHING received (including clock) for N seconds — confirms the
+    """Dump EVERYTHING received (including clock) for N seconds - confirms the
     device->host path is alive. Start the microSAMPLER sequencer to make it
     stream clock if you want to see traffic."""
     with MicroSampler() as ms:
@@ -459,7 +468,7 @@ def cmd_monitor():
                 for i in range(0, len(raw) - 3, 4):
                     mp.feed_packet(raw[i:i + 4])
         except KeyboardInterrupt:
-            print(f"\nstopped. ({mp.clock} clock ticks seen — device alive)")
+            print(f"\nstopped. ({mp.clock} clock ticks seen, so the device is alive)")
     return 0
 
 
@@ -513,7 +522,7 @@ def cmd_params(slot):
     try:
         reply, _ = ms.device_inquiry(cables=(1,))
         if not reply:
-            print('no inquiry reply -- device off or wedged?')
+            print('no inquiry reply: is the device off or wedged?')
             return 1
         ch = reply[2] & 0x0f
         par = DL.fetch_params(ms, ch, slot)
@@ -522,9 +531,8 @@ def cmd_params(slot):
         for off in range(0, 64, 16):
             print('  %02x: %s' % (off, raw[off:off + 16].hex(' ')))
         f = raw[8]
-        print('  flags8=0x%02x  bits[7..0]=%s   (b3=FXSW b7=EMPTY; '
-              'b4/b5/b6 = loop/reverse/bpmsync candidates)'
-              % (f, format(f, '08b')))
+        print('  flags8=0x%02x  bits[7..0]=%s  loop=%d reverse=%d bpm_sync=%d fx_sw=%d'
+              % (f, format(f, '08b'), par['loop'], par['reverse'], par['bpm_sync'], par['fx_sw']))
         print('  b09=%02x b0a=%02x b0b=%02x b16=%02x b1c..1f=%s'
               % (raw[9], raw[0xa], raw[0xb], raw[0x16], raw[0x1c:0x20].hex(' ')))
     finally:

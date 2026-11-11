@@ -1,8 +1,7 @@
-/* GENERATED SPLIT of the former app.css — component stylesheet. */
-
 /* ── control strip ────────────────────────────────────────────────────── */
-/* groups wrap as whole units — controls inside a group never line-break */
+/* groups wrap as whole units - controls inside a group never line-break */
 .strip {
+    --ctl-badge-gutter: 2.1rem; /* .ctl-cc width (~32px) + breathing room, minus the .ctl side padding */
     margin-top: 1.1rem;
     display: flex;
     flex-wrap: wrap;
@@ -13,14 +12,14 @@
 .ctl-group {
     display: flex;
     gap: 0.6rem;
-    min-width: 0;
+    min-width: min-content;
     padding: 0.35rem 0.5rem;
     border: 1px solid var(--line);
     border-radius: 5px;
 }
 .ctl-group .ctl {
     flex: 1 1 0;
-    min-width: 0;
+    min-width: min-content; /* never narrower than the label + its badge gutters */
 }
 .ctl-group.g2 {
     flex: 2 1 252px;
@@ -29,8 +28,8 @@
     flex: 3 1 380px;
 }
 .ctl {
-    /* flat: controls sit directly on the panel, grouped by whitespace rather than
-       each boxed in its own card (avoids the "boxes-in-boxes" density) */
+    position: relative; /* anchors the corner MIDI badge (.ctl-cc) */
+    /* unboxed: the enclosing .ctl-group frames each cluster */
     border-radius: 5px;
     padding: 0.55rem 0.7rem;
     display: flex;
@@ -52,6 +51,39 @@
     font-size: 0.58rem;
     letter-spacing: 0.24em;
     color: var(--ink-dim);
+    /* symmetric gutters as wide as the corner badge: the label stays centred and
+       the box always has room right of it for LEARN / CCnn without resizing */
+    padding-inline: var(--ctl-badge-gutter, 0); /* defined on .strip; FX params get 0 */
+    white-space: nowrap;
+}
+/* MIDI badge (LEARN / CC21 / PB): pinned in the control's top-right corner, out
+   of flow, so arming or binding never resizes the box */
+.ctl-cc {
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-family: "Share Tech Mono", monospace;
+    font-size: 0.5rem;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    color: var(--amber);
+    background: color-mix(in srgb, rgb(var(--amber-rgb)) 14%, #000);
+    /* flush in the corner like a tab: the control's own outline is its top and
+       right edge, so only the inner (left/bottom) sides get a border, and the
+       outer corner follows the control's radius */
+    border: solid var(--amber-dk);
+    border-width: 0 0 1px 1px;
+    border-radius: 0 5px 0 4px;
+    padding: 0.15rem 0.3rem;
+    pointer-events: none;
+}
+.strip.midi-learn .ctl {
+    cursor: pointer;
+    box-shadow: inset 0 0 0 1px var(--line-hi);
+}
+.ctl.midi-target {
+    box-shadow: 0 0 0 1px var(--amber) !important;
+    background: color-mix(in srgb, rgb(var(--amber-rgb)) 10%, transparent);
 }
 .ctl-val {
     font-family: "Share Tech Mono", monospace;
@@ -112,10 +144,10 @@
 }
 
 /* ── segmented control ────────────────────────────────────────────────────
-   ONE style for every mutually-exclusive button group: BPM SYNC, INPUT source,
+   One style for every mutually-exclusive button group: BPM SYNC, INPUT source,
    the SAMPLE/KEYBOARD play toggle, the nav tabs, and the pattern-editor tool +
    track pickers. A bordered bar of segments; the selected one carries the
-   accent. Restyled in place (markup/JS keep their own class hooks). */
+   accent. Each group keeps its own class as a JS hook. */
 .seg,
 .views,
 .keybed-mode,
@@ -216,13 +248,12 @@
         #0c0c0f;
 }
 
-/* START/END inputs — sit in the .screen-meta row directly under the waveform */
+/* START/END inputs - sit in the .screen-meta row directly under the waveform */
 .ro-row {
     display: flex;
     gap: 0.45rem;
     flex-wrap: wrap;
 }
-/* plain label + input, no dashed box */
 .ro {
     display: inline-flex;
     align-items: center;
@@ -233,7 +264,7 @@
     letter-spacing: 0.06em;
     padding: 0.32rem 0;
 }
-/* editable START/END (device frames) — styling from the global field rule.
+/* editable START/END (device frames) - styling from the global field rule.
    Wide enough for a 7-digit frame count plus the number spinner arrows */
 .ro-input {
     width: 8em;

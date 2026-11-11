@@ -10,6 +10,7 @@
     border-radius: var(--r);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     padding: 0.8rem 1rem 1rem;
+    --kb-ctl-h: 16px; /* shared height of the stacked header controls (below) */
 }
 
 .keybed-head {
@@ -21,22 +22,18 @@
     letter-spacing: 0.18em;
     color: var(--ink-dim);
 }
-.keybed-title {
-    color: var(--ink);
-    font-weight: 600;
-}
 
-/* SAMPLE / KEYBOARD play-mode toggle (segmented, like the pattern editor's) */
-/* .keybed-mode / .kb-mode are styled by the shared segmented control (controls.css) */
+/* SAMPLE / KEYBOARD play-mode toggle: styled by the shared segmented control (controls.css) */
 
 .keybed-oct {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
 }
+/* keybed buttons (octave ◀ ▶, LEARN): same font + vertical padding as the
+   SAMPLE / KEYBOARD segmented buttons, so the header row shares one height */
 .kb-oct {
-    width: 22px;
-    height: 22px;
+    padding: 0.6rem 0.7rem;
     border-radius: 4px;
     cursor: pointer;
     background: var(--steel-2);
@@ -44,8 +41,9 @@
     color: var(--ink);
     display: grid;
     place-items: center;
-    font-size: 0.55rem;
-    line-height: 1;
+    font:
+        600 var(--btn-font)/1 "Chakra Petch",
+        sans-serif;
     transition:
         border-color 0.12s,
         color 0.12s;
@@ -70,15 +68,46 @@
 .keybed.armed #qwerty-cap {
     color: var(--amber);
 }
+.keybed.loop-hold #loop-hold-cap {
+    color: var(--amber);
+}
 .keybed.midi-on #midi-cap {
     color: var(--amber);
 } /* MIDI input active */
-.midi-ico {
-    width: 11px;
-    height: 11px;
-    fill: currentColor;
-    vertical-align: -2px;
-    margin-right: 0.1em;
+/* SMP / KBD channel routing - always shown (with Web MIDI), disabled while MIDI IN is off */
+.midi-ch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+/* stacked keybed controls share one explicit height (checkbox size differs per
+   OS), so the checkboxes and channel selects match and every caption lines up */
+.keybed .stack input[type="checkbox"] {
+    width: var(--kb-ctl-h);
+    height: var(--kb-ctl-h);
+}
+.keybed .stack-cap {
+    font-size: 0.6rem; /* a touch larger than the rail's LED captions, for readability */
+}
+.midi-ch select {
+    height: var(--kb-ctl-h);
+    font-size: 0.62rem;
+    line-height: 1;
+    padding: 0 1.4rem 0 0.4rem;
+}
+.midi-ch label:has(select:disabled) .stack-cap {
+    opacity: 0.4;
+}
+/* LEARN matches the SAMPLE / KEYBOARD segmented buttons (same font + padding) */
+.midi-learn-btn {
+    padding-inline: 0.85rem;
+    letter-spacing: 0.1em;
+    color: var(--ink-dim);
+}
+.midi-learn-btn.on {
+    border-color: var(--amber);
+    background: var(--amber);
+    color: #1a0d00;
 }
 
 /* the keyboard itself: 21 white keys in flow, 15 black keys overlaid */
@@ -176,18 +205,13 @@
     font-size: 0.58rem;
     min-height: 0.8em;
 }
-.pkey.white .pk-q {
-    margin-bottom: 4px;
-}
-.pkey.black .pk-q {
-    margin-bottom: 6px;
-}
-
 /* QWERTY letters: a dim reference when idle, lit on the mapped octave when armed */
 .pkey.white .pk-q {
+    margin-bottom: 4px;
     color: #b3aea2;
 }
 .pkey.black .pk-q {
+    margin-bottom: 6px;
     color: #5f5a51;
 }
 .keybed.armed .pkey.mapped.white {
@@ -204,10 +228,10 @@
 }
 
 /* ── play-mode emphasis ──────────────────────────────────────────────────── */
-/* SAMPLE mode: each key triggers its own pad, so recolour the keys with no
-   sample to a dark, recessed tone (opaque — opacity made the black keys
-   translucent, letting the white-key seams bleed through) so the loaded ones
-   stand out. A sounding key still lights amber via the rule above. */
+/* SAMPLE mode: each key triggers its own pad, so keys with no sample get a dark,
+   recessed tone and the loaded ones stand out. Use opaque colours, not opacity:
+   translucent black keys let the white-key seams show through. A sounding key
+   still lights amber via the rule above. */
 .keybed.mode-sample .pkey.white:not(.used):not(.sounding) {
     background: linear-gradient(#2e2e35, #202026);
     border-color: #131317;
@@ -222,7 +246,7 @@
     box-shadow: 0 3px 4px rgba(0, 0, 0, 0.5);
 }
 /* KEYBOARD mode: every key plays the one selected sample pitched, so the
-   per-key sample dots are meaningless here — hide them. */
+   per-key sample dots are meaningless here - hide them. */
 .keybed.mode-kbd .pkey.used::before {
     display: none;
 }

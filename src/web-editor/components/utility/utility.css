@@ -1,5 +1,3 @@
-/* GENERATED SPLIT of the former app.css — component stylesheet. */
-
 /* ── utility view ─────────────────────────────────────────────────────── */
 .utility-deck {
     grid-template-columns: 1fr;
@@ -52,9 +50,8 @@
     color: var(--ink-dim);
     letter-spacing: 0.08em;
 }
-/* empty / first-run prompt — centered with breathing room so it reads as an
-   intentional "do this next" state, not a stray dim line. grid-column spans the
-   whole grid where the parent is one (#pattern-grid, #fx-params); ignored else. */
+/* empty / first-run prompt, centred. grid-column spans the whole grid when the
+   parent is one (#pattern-grid, #fx-params). */
 .backup-empty {
     grid-column: 1 / -1;
     text-align: center;
@@ -181,7 +178,6 @@
     cursor: pointer;
 }
 .lib-pad.sounding {
-    border-color: var(--amber);
     box-shadow: 0 0 0 1px var(--amber-dk);
 }
 .lib-pad.sounding .pad-name {
@@ -199,7 +195,7 @@
 }
 .lib-dl .ico {
     margin-right: 0;
-} /* icon-only — no trailing gap */
+} /* icon-only - no trailing gap */
 .lib-pad:hover .lib-dl {
     opacity: 1;
 }

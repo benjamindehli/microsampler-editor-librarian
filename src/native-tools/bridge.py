@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-microSAMPLER local bridge — owns the USB device and serves the web app.
+microSAMPLER local bridge - owns the USB device and serves the web app.
 
 While the bridge HOLDS the device it is its single owner (libusb), and the
 browser does everything through it: live parameter edits, sample transfer,
@@ -24,7 +24,7 @@ API (JSON unless noted):
                               leaves dump mode; ~2 s)
   GET  /api/sample/N.wav      download slot N as a WAV (audio/wav)
   POST /api/sample/N          upload WAV body to slot N
-                              (?name=XXXXXXXX&tempo=120.0) — CURRENT BANK/RAM!
+                              (?name=XXXXXXXX&tempo=120.0) - CURRENT BANK/RAM!
   POST /api/param             {"obj":16,"param":16,"value":1} live edit
   GET  /api/events            text/event-stream of incoming parameter changes
 """
@@ -52,24 +52,25 @@ import protocol as P
 from msusb import MicroSampler, from_usb_midi
 import download as DL
 import upload as UL
+import bank as BK
 
 
 class DeviceGone(RuntimeError):
     """A device op was attempted while open() had failed (no USB device
-    claimed) — mapped to HTTP 503 so the UI can tell 'not connected' from a
+    claimed) - mapped to HTTP 503 so the UI can tell 'not connected' from a
     bad request."""
 
 
 # what the UI shows once a vanished device's handle has been dropped
 GONE_MSG = ('microSAMPLER disconnected (switched off, unplugged, or the '
-            'computer slept) — press RETRY to reconnect')
+            'computer slept). Press RETRY to reconnect.')
 
 
 def usb_gone(e):
     """True for libusb NO_DEVICE ('No such device (it may have been
     disconnected)', errno ENODEV): the device was unplugged/power-cycled or
-    the host slept. The handle is dead for GOOD — a returning device
-    re-enumerates as a new one — so only a fresh open() recovers. Walks the
+    the host slept. The handle can't recover (a returning device
+    re-enumerates as a new one), so only a fresh open() works. Walks the
     cause/context chain: download/upload helpers may re-raise it wrapped."""
     for _ in range(5):
         if e is None:
@@ -81,13 +82,13 @@ def usb_gone(e):
     return False
 
 class TooLarge(RuntimeError):
-    """A request body or zip import over its size cap — HTTP 413."""
+    """A request body or zip import over its size cap - HTTP 413."""
 
 
-# Size caps (A10: a huge body or a zip bomb would otherwise exhaust memory or
-# fill the disk). Generous vs real use: the device's whole sample pool is
-# 14.6 MB, a full backup is ~55 files — but a WAV upload arrives BEFORE
-# conversion, so a long 24-bit/96 kHz source can be several times that.
+# Size caps, so a huge body or a zip bomb can't exhaust memory or fill the
+# disk. Generous vs real use: the device's whole sample pool is 14.6 MB and a
+# full backup is ~55 files, but a WAV upload arrives before conversion, so a
+# long 24-bit/96 kHz source can be several times that.
 MAX_BODY = 256 << 20                  # any request body
 MAX_ZIP_BYTES = 64 << 20              # a backup zip, uncompressed total
 MAX_ZIP_FILES = 1000                  # … and member count
@@ -105,7 +106,7 @@ BACKUP_ROOT = os.environ.get('MSMPL_BACKUP_DIR') or \
 ALLOW_SHUTDOWN = os.environ.get('MSMPL_ALLOW_SHUTDOWN') == '1'
 # DAEMON mode (the launchd root daemon inside the Editor .app): start with the
 # device UNCLAIMED, lazily claim when the editor page opens, release it again
-# after the UI has been closed for MSMPL_IDLE_RELEASE seconds — so the daemon
+# after the UI has been closed for MSMPL_IDLE_RELEASE seconds - so the daemon
 # can run 24/7 without hogging the microSAMPLER from DAWs. Also --daemon.
 DAEMON = os.environ.get('MSMPL_DAEMON') == '1'
 IDLE_RELEASE_SECS = float(os.environ.get('MSMPL_IDLE_RELEASE', '300'))
@@ -179,7 +180,7 @@ class Device:
             def _inquire(ms):
                 # A prior bridge that exited abruptly (closing the Terminal
                 # window sends SIGHUP, not a clean shutdown) leaves the device
-                # streaming MIDI clock into a pipe nobody drained — so a single
+                # streaming MIDI clock into a pipe nobody drained - so a single
                 # un-drained inquiry reads stale bytes and times out, even though
                 # the device is fine. Drain first, and retry a few times.
                 for _ in range(3):
@@ -192,14 +193,13 @@ class Device:
             ms = _fresh_ms()
             reply, cable = _inquire(ms)
             if not reply:
-                # Last-resort recovery: a USB port reset re-enumerates the device
-                # and clears a stuck endpoint, so an intermittently wedged device
-                # often comes back WITHOUT a physical power-cycle. Only runs once
-                # the drained retries above have failed, so the normal open path
-                # is untouched. A deeper wedge can need a SECOND reset and a
-                # longer settle for macOS to finish re-enumerating; some still
-                # need a real power-cycle (the firmware, not USB, is stuck) — the
-                # final message says so. Reset invalidates the handle → reopen.
+                # Last-resort recovery after the drained retries above: a USB
+                # port reset re-enumerates the device and clears a stuck
+                # endpoint, so an intermittently wedged device often comes back
+                # without a power-cycle. A deeper wedge can need a second reset
+                # and a longer settle while macOS re-enumerates; some still need
+                # a real power-cycle (the firmware is stuck), which the final
+                # message says. A reset invalidates the handle, so reopen.
                 for settle in (0.7, 1.5):
                     try:
                         ms.dev.reset()
@@ -213,17 +213,17 @@ class Device:
                     try:
                         ms = _fresh_ms()
                     except Exception:
-                        continue                     # not back yet — wait longer
+                        continue                     # not back yet - wait longer
                     DL._drain(ms, ms_quiet=800)      # clear a larger backlog
                     reply, cable = _inquire(ms)
                     if reply:
                         break
             if not reply:
                 ms.close()
-                raise RuntimeError('no inquiry reply — the device did not answer '
-                                   '(often a transient USB claim glitch; press '
+                raise RuntimeError('no inquiry reply: the device did not answer '
+                                   '(often a transient USB claim glitch). Press '
                                    'RETRY, or power-cycle the device only if it '
-                                   'keeps failing)')
+                                   'keeps failing')
             self.ms, self.cable = ms, cable
             self.ms.cable = cable
             self.channel = reply[2] & 0x0f
@@ -234,7 +234,7 @@ class Device:
                 'cable': cable,
             }
         if self.reader_enabled:
-            # a prior close() set _stop and left its reader winding down — wait
+            # a prior close() set _stop and left its reader winding down - wait
             # it out and re-arm, or the fresh reader below exits immediately
             # (matters for the daemon's claim→release→re-claim cycles)
             if self._reader and self._reader.is_alive():
@@ -252,10 +252,10 @@ class Device:
                 self.ms = None
 
     def maybe_claim(self):
-        """DAEMON mode: lazily (re)claim the device — called when the editor
-        page loads or the bank is (re)read, NOT on passive status polls (the
+        """Daemon mode: lazily (re)claim the device. Called when the editor
+        page loads or the bank is (re)read, not on passive status polls (the
         menu-bar app polls /api/status and must never grab the USB device).
-        Failed attempts are throttled and attempts are SERIALIZED: repeated
+        Failed attempts are throttled and attempts are serialized: repeated
         fast open() cycles are exactly what wedges the device's USB stack
         (see the reopen-wedge gotcha), so a second concurrent trigger (two
         tabs, page load + focus resync) must wait and then see the first
@@ -267,7 +267,7 @@ class Device:
                 return
             if time.time() - self._claim_fail_at < 10:
                 return
-            # stamp BEFORE opening, not after failing — so triggers that
+            # stamp BEFORE opening, not after failing - so triggers that
             # arrive during a failing attempt are throttled too
             self._claim_fail_at = time.time()
             try:
@@ -286,7 +286,7 @@ class Device:
             try:
                 # leave the freed device SILENT: close() stops our clock, but
                 # without a MIDI Stop the slave sequencer stays "running" and
-                # resumes the pattern on the next external clock — i.e. from
+                # resumes the pattern on the next external clock - i.e. from
                 # the DAW this release is freeing the device FOR
                 self.stop_pattern()
             except Exception:
@@ -298,16 +298,15 @@ class Device:
 
     def drop_if_gone(self, e):
         """If `e` says the USB device vanished, drop the dead handle and
-        report it as an open failure — so status() goes 'not connected' (the
+        report it as an open failure - so status() goes 'not connected' (the
         UI shows its connection helper), RETRY's open() isn't short-circuited
         by the stale self.ms, and the daemon's maybe_claim() re-claims on the
-        next editor visit. Without this every op failed with errno 19 until
-        the bridge was restarted. Returns whether it was dropped."""
+        next editor visit. Returns whether it was dropped."""
         if not usb_gone(e):
             return False
         was = self.ms is not None
         if was:
-            sys.stderr.write('  USB device gone (%s) — released the handle\n' % e)
+            sys.stderr.write('  USB device gone (%s), released the handle\n' % e)
         self._stop.set()
         self._stop_clock()
         with self.lock:
@@ -320,7 +319,7 @@ class Device:
         self.open_error = GONE_MSG
         self._claim_fail_at = 0.0       # its return may be re-claimed at once
         if was:
-            # tell open pages NOW, once — the reader catches an idle unplug
+            # tell open pages now, once: the reader catches an idle unplug
             # too, so the helper appears without waiting for a failed op
             self._emit({'type': 'device', 'connected': False, 'gone': True,
                         'error': GONE_MSG})
@@ -349,14 +348,14 @@ class Device:
             if err is not None:
                 if self.drop_if_gone(err):  # unplugged: the handle is dead,
                     return                  # retrying it can never succeed
-                # A real USB error (device glitch/unplug — plain read timeouts
+                # A real USB error (device glitch/unplug - plain read timeouts
                 # are swallowed inside _read_raw) would otherwise propagate out
                 # of this thread and kill it, silently stopping EVERY live
                 # panel-edit SSE event for the rest of the session. Log it and
                 # back off, but keep looping so the reader recovers if the
                 # device returns; a clean close()/release() still exits us by
                 # setting _stop (and nulling self.ms → the `return` above).
-                sys.stderr.write('  reader: USB read error (%s) — retrying\n'
+                sys.stderr.write('  reader: USB read error (%s), retrying\n'
                                  % err)
                 time.sleep(0.5)
             else:
@@ -364,7 +363,7 @@ class Device:
 
     def _scan_cc(self, midi):
         """Forward Control Change messages as SSE events. The panel's FX EDIT
-        1/2 knobs transmit plain CC (not SysEx param changes) — the app maps
+        1/2 knobs transmit plain CC (not SysEx param changes) - the app maps
         them onto the knob-assigned effect params. Safe to scan the flat
         stream: status bytes (>=0x80) cannot occur inside SysEx bodies."""
         i, n = 0, len(midi)
@@ -380,7 +379,7 @@ class Device:
     def _scan_notes(self, midi):
         """Forward SAMPLE-mode note-ons (note = 48 + slot on the global channel,
         the inverse of play_note) as SSE 'note' events so the app can follow the
-        last-triggered sample. Emits ALL of them — the app gates this behind its
+        last-triggered sample. Emits ALL of them - the app gates this behind its
         FOLLOW toggle (on → manual plays AND pattern playback, app- or device-
         driven, move the selection; off → nothing follows). Device-panel pattern
         notes are indistinguishable from manual pad notes at the MIDI level
@@ -422,7 +421,7 @@ class Device:
                 raise RuntimeError('another operation is already running')
             self.op = op = {'name': name, 'lines': [], 'done': False, 'ok': None}
 
-        def run():                          # writes ITS op dict, not self.op —
+        def run():                          # writes ITS op dict, not self.op -
             ok = False                      # which a later op may have replaced
             try:
                 with self.lock:
@@ -450,25 +449,21 @@ class Device:
         return self.op or {'name': None, 'lines': [], 'done': True, 'ok': None}
 
     def patterns_summary(self):
-        """Fetch all 16 patterns (single-sequence receive per pattern — the
+        """Fetch all 16 patterns (single-sequence receive per pattern - the
         original's standalone SequenceReceive flow) and parse. Each fetch's
         data dump closes its own select session; patterns are a fixed 1308
         bytes on this hardware so the data phase always runs."""
-        from bank import fetch_sequence
-        # the device answers dump requests with err 0x29 while its sequencer is
-        # playing — stop it (no-op if idle) and let it settle before the dump
-        self.stop_pattern()
-        time.sleep(0.06)
+        self._quiesce()
         with self.lock:
             self._inquire()
             out = []
             try:
                 for q in range(16):
-                    # progress over SSE — the GET blocks until all 16 are read,
+                    # progress over SSE - the GET blocks until all 16 are read,
                     # but the event stream (separate thread) delivers these live
                     self._emit({'type': 'progress', 'op': 'patterns',
                                 'done': q, 'total': 16})
-                    blob = fetch_sequence(self.ms, self.channel, q)
+                    blob = BK.fetch_sequence(self.ms, self.channel, q, progress=False)
                     self.pattern_cache[q] = blob
                     out.append(_pattern_json(q, blob))
             except Exception:
@@ -481,11 +476,10 @@ class Device:
     def pattern_mid(self, q):
         blob = self.pattern_cache.get(q)
         if blob is None:
-            from bank import fetch_sequence
             with self.lock:
                 self._inquire()
                 try:
-                    blob = fetch_sequence(self.ms, self.channel, q)
+                    blob = BK.fetch_sequence(self.ms, self.channel, q, progress=False)
                 except Exception:
                     self._abort_dump()   # a failed 0x13 select may be left open
                     raise
@@ -494,17 +488,19 @@ class Device:
             return None
         return P.pattern_to_smf(blob)
 
-    def pattern_write(self, q, blob):
-        """Write a pattern blob (standalone SequenceWrite flow), update cache."""
-        from bank import send_sequence
-        # the device errs 0x29 on a write while its sequencer is playing (same as
-        # the dumps) — stop it (no-op if idle) and let it settle first
+    def _quiesce(self):
+        """Stop the sequencer (a no-op when idle) and let the device settle: it
+        answers dumps and pattern writes with err 0x29 while a pattern plays."""
         self.stop_pattern()
         time.sleep(0.06)
+
+    def pattern_write(self, q, blob):
+        """Write a pattern blob (standalone SequenceWrite flow), update cache."""
+        self._quiesce()
         with self.lock:
             self._inquire()
             try:
-                send_sequence(self.ms, self.channel, q, blob)
+                BK.send_sequence(self.ms, self.channel, q, blob)
             except Exception:
                 self._abort_dump()   # a failed write session may be left open
                 raise
@@ -512,7 +508,6 @@ class Device:
         return _pattern_json(q, blob)
 
     def start_backup(self):
-        import bank as BK
         os.makedirs(BACKUP_ROOT, exist_ok=True)
         _own_backups_to_invoker()    # if sudo: keep backups/ user-owned so a
         #                              non-root library bridge can write here too
@@ -520,15 +515,14 @@ class Device:
         out = os.path.join(BACKUP_ROOT, label)
         self.start_op('backup',
                       lambda log: BK.backup(self.ms, self.channel, None, out,
-                                            log=log))
+                                            log=log, progress=False))
         return {'dir': label}
 
     def start_restore(self, dirname, bank):
-        import bank as BK
         src = restorable_dir(dirname)
         self.start_op('restore',
                       lambda log: BK.restore(self.ms, self.channel, bank, src,
-                                             log=log))
+                                             log=log, progress=False))
         return {'dir': dirname,
                 'target': 'current' if bank is None else bank + 1}
 
@@ -544,25 +538,25 @@ class Device:
         instead of an opaque NoneType AttributeError."""
         if self.ms is None:
             if DAEMON and not self.open_error:
-                # idle-released, not failed — reconnecting is one reload away
-                raise DeviceGone('device not claimed — reload the editor '
+                # idle-released, not failed - reconnecting is one reload away
+                raise DeviceGone('device not claimed: reload the editor '
                                  'page (or press RETRY) to reconnect')
             if self.open_error == GONE_MSG:  # unplugged, not wedged: no
                 raise DeviceGone(GONE_MSG)   # power-cycle advice
-            raise DeviceGone('device not connected%s — power-cycle it and '
+            raise DeviceGone('device not connected%s: power-cycle it and '
                              'press RETRY' % (' (%s)' % self.open_error
                                               if self.open_error else ''))
 
     def _inquire(self):
-        """Fresh Device Inquiry — the original editor opens EVERY session with
+        """Fresh Device Inquiry - the original editor opens EVERY session with
         one (DeviceInquiry at the top of each UsbSession::process); the device
         refuses dump-mode requests (func 0x29) without it. Caller holds lock."""
         self._require_device()
         reply, _ = self.ms.device_inquiry(timeout_ms=2000, cables=(self.cable,))
         if not reply:
-            raise RuntimeError('device inquiry failed — the device did not answer '
-                               '(often transient; press RETRY, or power-cycle it '
-                               'only if it keeps failing)')
+            raise RuntimeError('device inquiry failed: the device did not answer '
+                               '(often transient). Press RETRY, or power-cycle it '
+                               'only if it keeps failing')
         self.channel = reply[2] & 0x0f
 
     def send_param(self, obj, param, value):
@@ -572,9 +566,9 @@ class Device:
 
     def set_bank_settings(self, name, bpm):
         """Bank name + BPM in ONE lock acquisition (object 0: name chars as
-        params 0..7, BPM*10 as param 16 — from EditBankParameterAction).
+        params 0..7, BPM*10 as param 16 - from EditBankParameterAction).
         Batched because 9 separate /api/param round-trips each contend with
-        the background reader's lock cycle — user-visibly sluggish."""
+        the background reader's lock cycle - user-visibly sluggish."""
         padded = name[:8].ljust(8)
         with self.lock:
             self._require_device()
@@ -614,7 +608,7 @@ class Device:
             else:
                 UL.upload(self.ms, self.channel, slot, d['pcm'], d['rate'],
                           d['stereo'], d['blob'], d['tempo'],
-                          mode_bit=d.get('mode_bit', 0))
+                          mode_bit=d.get('mode_bit', 0), progress=False)
         return {'slot': slot, 'empty': bool(d.get('empty'))}
 
     def copy_sample(self, frm, to):
@@ -627,20 +621,16 @@ class Device:
         return {'a': a, 'b': b}
 
     def clear_sample(self, slot):
-        """Empty a slot in the current bank (RAM) using two VERBATIM proven
-        flows, each in its own inquired session (no novel intra-session
-        ordering):
-          1. 0-size header — frees the audio (the old clear; confirmed to free
-             the data on hardware).
-          2. the exact rename()/set_points() param-write — fetch the blob
-             (func 0x14), blank the name + zero START/END, write back (func
-             0x44). END==0 is the bank's emptiness marker (@0x10); the header
-             alone leaves END/name stale, so the bank kept reporting the slot
-             as a non-empty sample and the GUI showed the old name. The 0x44
-             only lands when a func 0x14 fetch precedes it in the SAME clean
-             session — which is why an earlier "header then 0x44" attempt
-             didn't reset the param. Step 2 runs last so END=0 is the final
-             state."""
+        """Empty a slot in the current bank (RAM) with two hardware-proven
+        flows, each in its own inquired session:
+          1. a 0-size header frees the audio.
+          2. the rename()/set_points() param write: fetch the blob (func 0x14),
+             blank the name + zero START/END, write it back (func 0x44).
+             END == 0 (@0x10) is the bank's emptiness marker; the header alone
+             leaves END and the name stale, so the slot would still read as a
+             sample. A 0x44 only lands when a 0x14 fetch precedes it in the
+             same clean session, hence the separate session. Step 2 runs last
+             so END == 0 is the final state."""
         # 1. free the audio data (own session)
         self.write_sample(slot, {'empty': True})
         # 2. reset the param blob (own session, identical to rename())
@@ -658,7 +648,7 @@ class Device:
 
     def set_effect(self, fx_type, knobs, params):
         """Apply a whole effect preset in ONE lock grab (object 80): FX type
-        (param 1) — the device re-inits its params on type change, so we then
+        (param 1) - the device re-inits its params on type change, so we then
         send the 2 knob assigns (params 2-3) + every effect param (16+i) to
         override. Batched for the same reason bank settings are (per-message
         round-trips contend the reader lock = sluggish)."""
@@ -692,7 +682,7 @@ class Device:
                                cable=self.cable)
 
     def pitch_bend(self, value, keyboard=True):
-        """Pitch bend (En bb mm, ±1 octave on the device) — keyboard-mode only,
+        """Pitch bend (En bb mm, ±1 octave on the device) - keyboard-mode only,
         so it is sent on the keyboard channel (global + 1) by default. 14-bit
         value 0..16383, centre 8192 (no bend)."""
         value = max(0, min(16383, int(value)))
@@ -710,7 +700,7 @@ class Device:
     def _start_clock(self, bpm):
         """Stream MIDI Timing Clock (0xF8) at 24 PPQN for `bpm` in a background
         thread until stopped. The device's sequencer is a SLAVE under external
-        transport — Start only sets it running; the clock is what advances it
+        transport - Start only sets it running; the clock is what advances it
         (so without this, Start does nothing). The device must have GLOBAL >
         MIDI CLK = AUTO or EXT MIDI to follow it."""
         self._stop_clock()
@@ -733,18 +723,17 @@ class Device:
         threading.Thread(target=run, daemon=True).start()
 
     def play_pattern(self, q, bpm=120):
-        """Select a pattern + start the sequencer on the DEVICE. Owner's manual
+        """Select a pattern + start the sequencer on the device. Owner's manual
         MIDI guide (p.45-46): select the [PATTERN] dial via NRPN
         [Bn 63 20, Bn 62 01, Bn 06 mm] on the GLOBAL channel; per the value
         table mm 0-7→pattern 1 … 120-127→pattern 16, so 0-based pattern q ⇒
-        mm = q*8. Then stream MIDI clock (the sequencer is a slave — clock
+        mm = q*8. Then stream MIDI clock (the sequencer is a slave - clock
         advances it) and send system-realtime Start (0xFA). send_short derives
         the USB-MIDI CIN automatically (0xB CC, 0xF single-byte real-time)."""
         mm = max(0, min(127, int(q) * 8))
-        # Always STOP first: a pattern-select (NRPN) doesn't register while the
-        # sequencer is running, and a Start during playback just restarts the
-        # CURRENT pattern — so switching patterns mid-play would replay the old
-        # one. Stop, let the device settle, then select + start the new one.
+        # Always stop first: a pattern select (NRPN) doesn't register while the
+        # sequencer runs, and a Start during playback restarts the current
+        # pattern. So stop, let the device settle, then select + start.
         self._stop_clock()
         with self.lock:
             self._require_device()
@@ -768,7 +757,7 @@ class Device:
 
     def set_master_volume(self, value):
         """Set the device's overall output via the Universal Real-Time Master
-        Volume SysEx [F0 7F 7F 04 01 vv mm F7] (owner's manual p.46) — 14-bit,
+        Volume SysEx [F0 7F 7F 04 01 vv mm F7] (owner's manual p.46) - 14-bit,
         mm = MSB, max when both 7F. `value` is a 0..127 slider position."""
         v = max(0, min(127, int(value)))
         v14 = round(v / 127 * 0x3FFF)
@@ -823,21 +812,18 @@ class Device:
         return {'ok': True}
 
     def bank_summary(self):
-        """Bank blob only, then leave dump mode. NO per-slot header requests:
-        func 0x16 opens a dump session that ONLY a data dump (0x1F) closes
-        (hardware-traced 2026-06-05; the 0x14 param request does NOT close it
-        — the original's Target=1 flow is dead code). Rate/length are filled
-        in lazily by the client from the WAV when a sample is downloaded."""
-        # dumps fail with err 0x29 while the sequencer plays — stop it first
-        self.stop_pattern()
-        time.sleep(0.06)
+        """Bank blob only, then leave dump mode. Never request per-slot headers:
+        func 0x16 opens a dump session that only a 0x1F data dump closes (a
+        0x14 param request doesn't). Rate/length are filled in lazily by the
+        client from the WAV when a sample is downloaded."""
+        self._quiesce()
         with self.lock:
             self._inquire()
             try:
                 bank = self._fetch_bank_blob()
             except Exception:
                 # the 0x10 request may have opened a dump session before the
-                # failure (timeout / garbled reply) — abort so the device
+                # failure (timeout / garbled reply) - abort so the device
                 # isn't stranded needing a power-cycle
                 self._abort_dump()
                 raise
@@ -866,39 +852,27 @@ class Device:
 
     @staticmethod
     def _slot_json(i, par):
-        # empty/init slots have END == 0 (name 'INITSMPL', hardware-dumped
-        # 2026-06-08). NOT flags8 bit7 — that is LOOP, which merely defaults
-        # ON for initialized slots (the old bit7 test hid looping samples!).
+        # empty/init slots have END == 0 (name 'INITSMPL'). flags8 bit 7 is
+        # LOOP, which init slots default on, so it can't be the empty test.
         out = {'slot': i,
                'empty': par['u32_10'] in (0, 0xFFFFFFFF)}
         if not out['empty']:
-            raw = par['raw']
-            # bipolar params are stored byte-centred at 0x40 in the blob (the
-            # live message uses signed 14-bit; the app slider works in signed
-            # model space, so send signed models here). Confirmed offsets:
-            # 0x17 level, 0x18 pan, 0x19 semitone, 0x1a tune, 0x1b velo int.
-            out.update(
-                name=par['name'], long_name=par['long_name'],
-                start=par['u32_0c'], end=par['u32_10'],
-                level=raw[0x17], pan=raw[0x18],
-                semitone=raw[0x19] - 0x40, tune=raw[0x1a],  # tune = wire 0..127
-                velo_int=raw[0x1b] - 0x40,
-                decay=raw[0x14], release=raw[0x15],
-                loop=par['loop'], reverse=par['reverse'],
-                bpm_sync=par['bpm_sync'], fx_sw=par['fx_sw'],
-            )
+            # the app's controls use the same model values parse_param_blob
+            # decodes (signed semitone / velo int, tune as the wire value)
+            out.update({k: par[k] for k in (
+                'name', 'long_name', 'level', 'pan', 'semitone', 'tune', 'velo_int',
+                'decay', 'release', 'loop', 'reverse', 'bpm_sync', 'fx_sw')})
+            out.update(start=par['u32_0c'], end=par['u32_10'])
         return out
 
     def _fetch_bank_blob(self):
-        from bank import fetch_bank_blob
-        return fetch_bank_blob(self.ms, self.channel)
+        return BK.fetch_bank_blob(self.ms, self.channel)
 
     def _leave_dump(self, commit=True):
-        from bank import leave_dump_mode
-        leave_dump_mode(self.ms, self.channel, commit=commit)
+        BK.leave_dump_mode(self.ms, self.channel, commit=commit)
 
     def _abort_dump(self):
-        """Best-effort leave-dump (abort, no commit) after a mid-dump failure —
+        """Best-effort leave-dump (abort, no commit) after a mid-dump failure -
         the device may be stranded in a select/dump session that otherwise
         needs a power-cycle. Caller holds the lock; swallows every error
         (this only ever runs on an already-failing path)."""
@@ -929,7 +903,7 @@ class Device:
         with self.lock:
             self._inquire()
             UL.upload(self.ms, self.channel, slot, pcm, target,
-                      len(chans) == 2, blob, tempo)
+                      len(chans) == 2, blob, tempo, progress=False)
         return {'slot': slot, 'frames': frames, 'rate_hz': target,
                 'stereo': len(chans) == 2}
 
@@ -953,8 +927,8 @@ class Device:
 
     def sample_params(self, slot):
         """Diagnostic: fetch a sample's raw 64-byte param blob (standalone
-        func 0x14, session-safe). Use THIS instead of `msusb.py params` for
-        repeated dumps — one-shot CLI sessions wedge the device's TX FIFO
+        func 0x14, session-safe). Use this instead of `msusb.py params` for
+        repeated dumps - one-shot CLI sessions wedge the device's TX FIFO
         (nothing drains the clock stream after exit); the bridge's reader
         keeps draining."""
         with self.lock:
@@ -967,10 +941,10 @@ class Device:
                 'bpm_sync': par['bpm_sync'], 'fx_sw': par['fx_sw']}
 
     def set_points(self, slot, start, end):
-        """Set START/END points. These are u32 frame counts — they don't fit a
+        """Set START/END points. These are u32 frame counts - they don't fit a
         live 0x41 value (14-bit), and the editor binary's id converter refuses
-        them — so (like the original) they go via the 64-byte param blob:
-        fetch the CURRENT blob (func 0x14, session-safe — does not open or
+        them - so (like the original) they go via the 64-byte param blob:
+        fetch the current blob (func 0x14, session-safe: it doesn't open or
         close a select session), patch the two u32s, send it back (func 0x44).
         Fetching first means panel edits made since the bank read survive."""
         with self.lock:
@@ -987,8 +961,8 @@ class Device:
 
     def set_tempo(self, slot, bpm):
         """Set a sample's ORIGINAL BPM (sample tempo). It lives ONLY in the
-        8-byte upload header — there is no live 0x41 param for it and it is not
-        in the 64-byte param blob — so the only way to change it on an existing
+        8-byte upload header - there is no live 0x41 param for it and it is not
+        in the 64-byte param blob - so the only way to change it on an existing
         sample is to RE-UPLOAD it (exactly what the original editor did: it
         flagged the sample and re-transmitted on TRANSMIT). We round-trip the
         same audio + param blob through the proven receive/write flows (each its
@@ -1030,7 +1004,7 @@ class MockDevice(Device):
             self._slots[i] = {'name': name, 'rate': 48000, 'stereo': False,
                               'pcm': voice(n, 0.05 + 0.02 * i, plucks), 'tempo': 120.0}
         # one stereo slot so the two-lane waveform is exercised in UI dev:
-        # L = slow, full voice; R = faster, quieter — each with its own envelope
+        # L = slow, full voice; R = faster, quieter - each with its own envelope
         n, seg = 24000, 24000 // 3
         spcm = bytearray()
         for j in range(n):
@@ -1063,11 +1037,9 @@ class MockDevice(Device):
         self._last_bend = (int(value), bool(keyboard))
 
     def play_pattern(self, q, bpm=120):
-        self._transport = ('play', int(q), float(bpm))
         return {'pattern': int(q), 'playing': True}
 
     def stop_pattern(self):
-        self._transport = ('stop', None)
         return {'playing': False}
 
     def set_master_volume(self, value):
@@ -1238,10 +1210,8 @@ class MockDevice(Device):
                 continue
             frames = len(s['pcm']) // 2 // (2 if s['stereo'] else 1)
             start, end = s.get('points', (0, frames - 2))
-            # NB: like the real bank summary, do NOT include rate/stereo/
-            # frames/seconds — those aren't in the bank blob and only become
-            # known once a sample's WAV is loaded (so the meter starts
-            # estimated and LOAD ALL is offered, matching hardware).
+            # like the real bank summary: no rate/stereo/frames/seconds, which
+            # aren't in the bank blob and arrive with the sample's WAV
             slots.append({'slot': i, 'empty': False, 'name': s['name'],
                           'long_name': s['name'].title(), 'tempo_bpm': s['tempo'],
                           'start': start, 'end': end, 'level': 101,
@@ -1273,11 +1243,8 @@ class MockDevice(Device):
         chans, rate = UL.load_wav(io.BytesIO(wav_bytes))
         target = min(UL.RATES, key=lambda r: abs(r - rate))
         pcm, frames = UL.to_device_pcm(chans, rate, target)
-        # store as LE mono mixdown of channel 0 for simplicity
-        le = bytearray(pcm)
-        le[0::2], le[1::2] = pcm[1::2], pcm[0::2]
-        self._slots[slot] = {'name': name, 'rate': target,
-                             'stereo': len(chans) == 2, 'pcm': bytes(le),
+        self._slots[slot] = {'name': name, 'rate': target,      # stored as WAV LE
+                             'stereo': len(chans) == 2, 'pcm': DL.swap16(pcm),
                              'tempo': tempo}
         return {'slot': slot, 'frames': frames, 'rate_hz': target,
                 'stereo': len(chans) == 2}
@@ -1317,7 +1284,7 @@ class MockDevice(Device):
 
 
 class LibraryDevice(MockDevice):
-    """Hardware-free LIBRARY mode (--library): no device, no fake bank — just the
+    """Hardware-free LIBRARY mode (--library): no device, no fake bank - just the
     backup librarian (import original .msmpl_bank / our .zip, browse + play +
     download samples in the browser). Reuses MockDevice's op runner / SSE / no-op
     USB; status carries `library:true` so the app shows the library UI and hides
@@ -1350,11 +1317,11 @@ def _pattern_json(q, blob):
 
 
 def backup_dir(dirname):
-    """Resolve a backup name (arrives in an HTTP body — untrusted) to a
-    directory STRICTLY inside BACKUP_ROOT. Allowlist the characters, reject
-    dot-names, and verify realpath containment (also defuses symlinks). The
-    realpath + `startswith(root + os.sep)` prefix guard is the form static
-    analysis recognises as a path-traversal sanitizer."""
+    """Resolve a backup name (from an HTTP body, so untrusted) to a directory
+    directly inside BACKUP_ROOT: allowlist the characters, reject dot-names,
+    and check realpath containment (which also defuses symlinks). The
+    `startswith(root + os.sep)` form is what static analysers recognise as a
+    path-traversal guard."""
     name = str(dirname)
     if not re.match(r'^[A-Za-z0-9._-]+$', name) or name.strip('.') == '':
         raise RuntimeError('invalid backup name: %r' % dirname)
@@ -1366,11 +1333,9 @@ def backup_dir(dirname):
     return src
 
 
-# Sample files: on disk a backup keeps the 0-based machine names sNN.wav /
-# sNN.param.bin (what restore, cherry-pick and older versions read), but the
-# ZIP a person downloads names them like the PADS — 1-based + note + sample
-# name, "01 C3 KICK.wav" — so a file lines up with its pad (user-reported:
-# s00 = pad 01 read as off by one). Import maps either form back.
+# Sample files: on disk a backup uses 0-based sNN.wav / sNN.param.bin; the ZIP a
+# person downloads names them like the pads (1-based + note + sample name,
+# "01 C3 KICK.wav") so each file lines up with its pad. Import accepts both.
 _NOTE_NAMES = ('C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B')
 _DISK_SAMPLE = re.compile(r'^s(\d{2})(\.wav|\.param\.bin)$')
 _ZIP_SAMPLE = re.compile(r'^(\d{2}) [^/]*?(\.param\.bin|\.wav)$')
@@ -1391,7 +1356,7 @@ def zip_sample_name(slot, name, ext):
 
 def disk_sample_name(fname):
     """Inverse of zip_sample_name: '01 C3 KICK.wav' → 's00.wav'. Anything else
-    (incl. the old sNN names) comes back unchanged."""
+    (e.g. sNN names) comes back unchanged."""
     m = _ZIP_SAMPLE.match(fname)
     if m and 1 <= int(m.group(1)) <= 36:
         return 's%02d%s' % (int(m.group(1)) - 1, m.group(2))
@@ -1428,15 +1393,29 @@ def backup_zip(name):
     return buf.getvalue()
 
 
-def backup_sample_list(dirname):
-    """Non-empty samples in a backup (for the cherry-pick picker). `dirname` is
-    validated by backup_dir() (untrusted HTTP input)."""
+def _require_manifest(dirname):
+    """(backup dir, parsed manifest.json) for an existing backup; RuntimeError
+    (→ 400) when it has no manifest. `dirname` is untrusted HTTP input,
+    validated by backup_dir()."""
     src = backup_dir(dirname)
     mf = os.path.join(src, 'manifest.json')
     if not os.path.isfile(mf):
         raise RuntimeError('unknown backup: %s' % dirname)
     with open(mf) as f:
-        m = json.load(f)
+        return src, json.load(f)
+
+
+def _unused_backup_dir(base):
+    """backup_dir(base), or base-1, base-2 … if that folder already exists."""
+    dest, n = backup_dir(base), 1
+    while os.path.exists(dest):
+        dest = backup_dir('%s-%d' % (base, n)); n += 1
+    return dest
+
+
+def backup_sample_list(dirname):
+    """Non-empty samples in a backup (for the cherry-pick picker)."""
+    src, m = _require_manifest(dirname)
     return [{'slot': s['slot'], 'name': s.get('name') or '?',
              'rate_hz': s.get('rate_hz'), 'stereo': s.get('stereo'),
              'tempo_bpm': s.get('tempo_bpm')}
@@ -1470,12 +1449,7 @@ def backup_sample_wav(dirname, frm):
 
 def backup_pattern_list(dirname):
     """Non-empty patterns in a backup (for the library pattern list)."""
-    src = backup_dir(dirname)
-    mf = os.path.join(src, 'manifest.json')
-    if not os.path.isfile(mf):
-        raise RuntimeError('unknown backup: %s' % dirname)
-    with open(mf) as f:
-        m = json.load(f)
+    src, m = _require_manifest(dirname)
     return [{'pattern': s['pattern'], 'name': s.get('name') or '',
              'note_count': s.get('note_count')}
             for s in m.get('sequences', [])
@@ -1490,7 +1464,6 @@ def backup_pattern_smf(dirname, q):
     path = os.path.join(backup_dir(dirname), 'sequences', 'q%02d.bin' % q)
     if not os.path.isfile(path):
         raise RuntimeError('pattern %d not in this backup' % q)
-    import protocol as P
     with open(path, 'rb') as f:
         mid = P.pattern_to_smf(f.read())
     if not mid:
@@ -1502,7 +1475,6 @@ def backup_patterns_zip(dirname):
     """All non-empty patterns of a backup, zipped as .mid files."""
     import zipfile
 
-    import protocol as P
     src = backup_dir(dirname)
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as z:
@@ -1517,11 +1489,11 @@ def backup_patterns_zip(dirname):
 
 
 def _check_backup_writable():
-    """Friendly error when BACKUP_ROOT exists but isn't writable — happens when a
+    """Friendly error when BACKUP_ROOT exists but isn't writable - happens when a
     sudo (device) run made it root-owned and a non-root (library) run now writes."""
     if os.path.isdir(BACKUP_ROOT) and not os.access(BACKUP_ROOT, os.W_OK):
         raise RuntimeError(
-            'cannot write backups in %s — it is owned by another user (most '
+            'cannot write backups in %s: it is owned by another user (most '
             'likely root, from running the device bridge with sudo). Fix it once '
             'with:  sudo chown -R "$(id -un)" "%s"' % (BACKUP_ROOT, BACKUP_ROOT))
 
@@ -1561,7 +1533,7 @@ def import_backup_zip(data):
         names = [i.filename for i in infos]
         if not any(n.endswith('manifest.json') for n in names):
             raise RuntimeError('not a backup zip (no manifest.json)')
-        # zip-bomb guard, up front from the declared sizes (cheap) — the copy
+        # zip-bomb guard, up front from the declared sizes (cheap) - the copy
         # loop below re-counts the ACTUAL bytes, so a lying header can't win
         if len(infos) > MAX_ZIP_FILES or \
                 sum(i.file_size for i in infos) > MAX_ZIP_BYTES:
@@ -1570,10 +1542,7 @@ def import_backup_zip(data):
         # derive a name: the zip's common top folder, else a timestamp
         tops = {n.split('/', 1)[0] for n in names if '/' in n}
         base = tops.pop() if len(tops) == 1 else 'import'
-        dest = backup_dir(base)
-        n = 1
-        while os.path.exists(dest):
-            dest = backup_dir('%s-%d' % (base, n)); n += 1
+        dest = _unused_backup_dir(base)
         root = os.path.realpath(dest) + os.sep
         total = 0
         try:
@@ -1611,25 +1580,22 @@ def import_msmpl_bank(data):
     base = re.sub(r'[^A-Za-z0-9._-]', '', (bank['name'] or 'bank')) or 'bank'
     _check_backup_writable()
     os.makedirs(BACKUP_ROOT, exist_ok=True)
-    dest = backup_dir(base)                           # allowlist + containment guard
-    n = 1
-    while os.path.exists(dest):
-        dest = backup_dir('%s-%d' % (base, n)); n += 1
+    dest = _unused_backup_dir(base)                   # allowlist + containment guard
     msmpl_bank.extract_bytes(data, dest)
     return os.path.basename(dest)
 
 
 def restorable_dir(dirname):
     """The backup's directory, if it can be written back to a device: RESTORE
-    sends its bank.bin (device backups, and Korg .msmpl_bank imports since
-    msmpl_bank.bank_blob — older imports lack it). Checked BEFORE the op starts, so the user gets a clear
-    error instead of a failed restore. `dirname` is untrusted HTTP input."""
+    sends its bank.bin, so a backup without one can't be restored. Checked
+    before the op starts, so the user gets a clear error instead of a failed
+    restore. `dirname` is untrusted HTTP input."""
     src = backup_dir(dirname)
     if not os.path.isfile(os.path.join(src, 'manifest.json')):
         raise RuntimeError('unknown backup: %s' % dirname)
     if not os.path.isfile(os.path.join(src, 'bank.bin')):
         raise RuntimeError("this backup can't be restored to the device "
-                           '(no bank.bin) — import the original .msmpl_bank '
+                           '(no bank.bin). Import the original .msmpl_bank '
                            'file again to make a restorable copy')
     return src
 
@@ -1667,8 +1633,8 @@ DEVICE = None        # set in main()
 
 def _watch_idle_exit(srv, secs, poll=5):
     """Stop `srv` (→ clean process exit) once no SSE listener has been
-    connected for `secs`. The web UI holds an EventSource while open — in
-    library mode too — and the SSE handler removes dead queues within one
+    connected for `secs`. The web UI holds an EventSource while open - in
+    library mode too - and the SSE handler removes dead queues within one
     ~15 s keepalive cycle of a tab closing. Startup counts as idle, so `secs`
     doubles as the grace period for the browser's first connect."""
     empty_since = time.monotonic()
@@ -1680,7 +1646,7 @@ def _watch_idle_exit(srv, secs, poll=5):
         if empty_since is None:
             empty_since = time.monotonic()
         if time.monotonic() - empty_since >= secs:
-            print('no UI connected for %ds — exiting' % secs)
+            print('no UI connected for %ds, exiting' % secs)
             srv.shutdown()
             return
 
@@ -1688,7 +1654,7 @@ def _watch_idle_exit(srv, secs, poll=5):
 class BridgeServer(ThreadingHTTPServer):
     def handle_error(self, request, client_address):
         """A client dropping mid-request (tab closed, EventSource aborted,
-        page refresh) is routine — socketserver's default prints a full
+        page refresh) is routine - socketserver's default prints a full
         traceback for it, which reads like a crash in the daemon log."""
         exc = sys.exc_info()[0]
         if exc and issubclass(exc, (ConnectionResetError, BrokenPipeError,
@@ -1703,7 +1669,7 @@ class Handler(BaseHTTPRequestHandler):
     # -- helpers --------------------------------------------------------------
     def end_headers(self):
         """Hardening headers on EVERY response (JSON, static, SSE, errors):
-        no framing by another site (clickjacking — a hidden iframe of the
+        no framing by another site (clickjacking - a hidden iframe of the
         editor could trick clicks onto RESTORE/confirm), and no MIME sniffing
         (MIME covers every file type the app ships)."""
         self.send_header('X-Frame-Options', 'DENY')
@@ -1716,6 +1682,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header('Content-Type', 'application/json')
         self.send_header('Content-Length', str(len(body)))
+        if self.close_connection:             # tell the client to reconnect
+            self.send_header('Connection', 'close')
         self.end_headers()
         self.wfile.write(body)
 
@@ -1729,6 +1697,10 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def _err(self, msg, code=500):
+        # an error before the request body was read leaves it on the socket,
+        # where it would be parsed as the next keep-alive request: close instead
+        if not getattr(self, '_body_read', True) and self.headers.get('Content-Length', '0') != '0':
+            self.close_connection = True
         self._json({'error': str(msg)}, code)
 
     def _fail(self, e):
@@ -1745,6 +1717,7 @@ class Handler(BaseHTTPRequestHandler):
         if not 0 <= n <= MAX_BODY:
             raise TooLarge('request body too large (max %d MB)'
                            % (MAX_BODY >> 20))
+        self._body_read = True
         return self.rfile.read(n)
 
     @staticmethod
@@ -1772,7 +1745,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _bad_host(self):
         """Reject requests whose Host header isn't a loopback name. The server
-        only binds 127.0.0.1, but a Host check is what defeats DNS rebinding —
+        only binds 127.0.0.1, but a Host check is what defeats DNS rebinding -
         a hostile page resolving its own domain to 127.0.0.1 would otherwise
         reach these device-control routes (Host: attacker.com). Only the
         hostname matters; the port is fixed by which socket the browser hit.
@@ -1788,9 +1761,9 @@ class Handler(BaseHTTPRequestHandler):
         """Reject state-changing requests sent by ANOTHER site. The Host check
         stops DNS rebinding, but not CSRF: any page can fire a no-cors POST at
         http://localhost:<port> (text/plain body, response unreadable) and the
-        side effect still lands — e.g. import its own backup zip, then restore
+        side effect still lands - e.g. import its own backup zip, then restore
         it over a user bank in flash. Browsers always send Origin on a POST
-        (it must be exactly our own origin — another localhost port is
+        (it must be exactly our own origin - another localhost port is
         another origin) and mark cross-site fetches via Sec-Fetch-Site.
         Non-browser clients (menu-bar app, CLI, tests) send neither and pass.
         Returns True (and answers 403) when the request is cross-site."""
@@ -1835,8 +1808,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({'patterns': backup_pattern_list(m.group(1))})
             m = re.match(r'^/api/backup/(.+)/sample/(\d+)\.wav$', path)
             if m:
-                wav, name, _tempo = backup_sample_wav(m.group(1), int(m.group(2)))
-                return self._bytes(wav, 'audio/wav', {'X-Sample-Name': name})
+                wav, _name, _tempo = backup_sample_wav(m.group(1), int(m.group(2)))
+                return self._bytes(wav, 'audio/wav')
             m = re.match(r'^/api/backup/(.+)/pattern/(\d+)\.mid$', path)
             if m:
                 return self._bytes(backup_pattern_smf(m.group(1), int(m.group(2))),
@@ -1877,10 +1850,11 @@ class Handler(BaseHTTPRequestHandler):
             self._fail(e)
 
     def do_POST(self):
+        self._body_read = False
         if self._bad_host() or self._cross_site():
             return
         path, _, query = self.path.partition('?')
-        # the app percent-encodes query values (encodeURIComponent) — decode,
+        # the app percent-encodes query values (encodeURIComponent) - decode,
         # or a sample named "MY KIT" lands on the device as literal "MY%20KIT"
         params = {k: unquote(v)
                   for k, v in (p.split('=', 1)
@@ -2111,7 +2085,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--port', type=int, default=None,
-                    help='HTTP port (default 8765; 8766 in --library mode so it '
+                    help='HTTP port (default 8765, or 8766 in --library mode so it '
                          'never collides with a running device bridge)')
     ap.add_argument('--mock', action='store_true',
                     help='serve fake data for UI development (no hardware)')
@@ -2120,10 +2094,10 @@ def main():
                          'backups + original .msmpl_bank files, no device needed')
     ap.add_argument('--daemon', action='store_true',
                     help='background-service mode (the Editor .app\'s launchd '
-                         'daemon): start UNCLAIMED, claim lazily when the editor '
-                         'opens, auto-release after idle (MSMPL_IDLE_RELEASE s)')
+                         'daemon): start without claiming the device, claim it when '
+                         'the editor opens, release it after MSMPL_IDLE_RELEASE s idle')
     ap.add_argument('--no-reader', action='store_true',
-                    help='disable the background panel-edit reader (diagnostic; '
+                    help='disable the background panel-edit reader (diagnostic: '
                          'the /api/events stream stays silent)')
     ap.add_argument('--trace', action='store_true',
                     help='hexdump every USB read/write to stderr (diagnostic)')
@@ -2137,11 +2111,11 @@ def main():
               MockDevice() if args.mock else
               Device(reader=not args.no_reader, trace=args.trace))
     if DAEMON:
-        # background service: don't claim at startup — the device stays free
+        # background service: don't claim at startup - the device stays free
         # for DAWs until the editor page actually opens (maybe_claim), and is
         # released again after MSMPL_IDLE_RELEASE s without any UI connected
-        print('DAEMON mode — device unclaimed until the editor opens; '
-              'idle-release after %ds without UI.' % IDLE_RELEASE_SECS)
+        print('Daemon mode: the device stays unclaimed until the editor opens, '
+              'and is released after %ds without a UI.' % IDLE_RELEASE_SECS)
 
         def idle_watch():
             empty_since = None
@@ -2151,11 +2125,11 @@ def main():
                     empty_since = None            # UI connected / nothing held
                     continue
                 if DEVICE.op and not DEVICE.op['done']:
-                    empty_since = None            # headless backup/restore —
+                    empty_since = None            # headless backup/restore -
                     continue                      # never release mid-transfer
                 empty_since = empty_since or time.monotonic()
                 if time.monotonic() - empty_since >= IDLE_RELEASE_SECS:
-                    print('no UI for %ds — releasing the device'
+                    print('no UI for %ds, releasing the device'
                           % IDLE_RELEASE_SECS)
                     try:
                         DEVICE.release()
@@ -2171,15 +2145,14 @@ def main():
             # panel with a Retry button (POST /api/connect), instead of the user
             # seeing only this terminal line. Power-cycle + Retry usually recovers.
             DEVICE.open_error = str(e)
-            print('device open failed: %s\n  → serving the editor anyway; '
-                  'power-cycle the device and click Retry (or restart).' % e)
+            print('device open failed: %s\n  → serving the editor anyway. '
+                  'Power-cycle the device and click Retry (or restart).' % e)
     if args.library:
-        print('LIBRARY mode — no device; browse/import/export bank backups.')
+        print('Library mode: no device. Browse, import and export bank backups.')
     if not args.mock and not args.library and not DAEMON \
             and DEVICE.open_error is None:
-        print('microSAMPLER claimed (cable %d, channel %d) — Web MIDI mode is '
-              'unavailable until the bridge exits.'
-              % (DEVICE.cable, DEVICE.channel + 1))
+        print("microSAMPLER claimed (cable %d, channel %d). Other MIDI apps can't "
+              'use it until the bridge exits.' % (DEVICE.cable, DEVICE.channel + 1))
 
     # Closing the Terminal window sends SIGHUP (service managers send SIGTERM);
     # treat them like Ctrl+C so DEVICE.close() runs and the USB interface is

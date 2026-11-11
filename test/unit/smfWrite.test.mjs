@@ -1,6 +1,6 @@
 // Unit tests for the pattern editor's SMF writer (src/web-editor/functions/smfWrite.js).
 // Builds an SMF from a note model, parses it back with a minimal reader, and
-// checks notes / name / keyboard-sample survive — the offline guard on the save
+// checks notes / name / keyboard-sample survive - the offline guard on the save
 // path before it reaches the (proven) Python smf_to_pattern. node:test, no deps.
 import assert from "node:assert/strict";
 import test from "node:test";

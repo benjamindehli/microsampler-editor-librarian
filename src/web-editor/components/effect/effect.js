@@ -1,4 +1,4 @@
-// EFFECT view — bank effect = object 80. Wire ids: param 1 = FX type, 2-3 =
+// EFFECT view - bank effect = object 80. Wire ids: param 1 = FX type, 2-3 =
 // the two assignable-knob targets, 16+i = effect param i. Wire VALUE =
 // display value (negatives travel as signed 14-bit, like sample params);
 // the bank blob stores byte = display + descriptor center.
@@ -71,7 +71,7 @@ export function renderFx() {
         ""
     );
     const grid = $("#fx-params");
-    grid.innerHTML = fx.params.length ? "" : '<p class="backup-empty">EFFECT OFF — NO PARAMETERS</p>';
+    grid.innerHTML = fx.params.length ? "" : '<p class="backup-empty">EFFECT OFF: NO PARAMETERS</p>';
     $("#fx-legend").hidden = !fx.params.length; // the legend only makes sense with params
     for (const p of fx.params) {
         const v = state.fx.vals[p.idx];
@@ -82,7 +82,7 @@ export function renderFx() {
             // popup select
             const t = VALUE_TABLES[p.table] || FX_TABLES_EXTRA[p.table] || [];
             div.innerHTML = `<span class="ctl-label">${esc(p.name)}</span>
-        <select class="fx-select">${Array.from(
+        <select class="fx-select" aria-label="${esc(p.name)}">${Array.from(
             { length: p.max - p.min + 1 },
             (_, i) => `<option value="${p.min + i}"${p.min + i === v ? " selected" : ""}>${esc(t[i] ?? String(p.min + i))}</option>`
         ).join("")}</select>`;
@@ -90,7 +90,7 @@ export function renderFx() {
         } else if (p.type === 4) {
             // on/off switch
             div.innerHTML = `<span class="ctl-label">${esc(p.name)}</span>
-        <button class="switch" role="switch" aria-checked="${v ? "true" : "false"}">
+        <button class="switch" role="switch" aria-checked="${v ? "true" : "false"}" aria-label="${esc(p.name)}">
           <span class="switch-track"><span class="switch-knob"></span></span>
           <span class="switch-val">${v ? "ON" : "OFF"}</span>
         </button>`;
@@ -99,11 +99,14 @@ export function renderFx() {
             // knob/slider
             const center = p.min < 0 ? " center" : "";
             div.innerHTML = `<span class="ctl-label">${esc(p.name)}</span>
-        <input type="range" class="fader${center}" min="${p.min}" max="${p.max}" value="${v}">
+        <input type="range" class="fader${center}" min="${p.min}" max="${p.max}" value="${v}"
+          aria-label="${esc(p.name)}" aria-valuetext="${esc(fxValStr(p, v))}">
         <span class="ctl-val">${esc(fxValStr(p, v))}</span>`;
             const inp = div.querySelector("input");
             inp.oninput = () => {
-                div.querySelector(".ctl-val").textContent = fxValStr(p, +inp.value);
+                const text = fxValStr(p, +inp.value);
+                div.querySelector(".ctl-val").textContent = text;
+                inp.setAttribute("aria-valuetext", text);
             };
             inp.onchange = () => fxSet(p, +inp.value);
         }
@@ -130,8 +133,10 @@ function fxUpdateControl(idx) {
     const btn = div.querySelector("button");
     if (sel) sel.value = String(v);
     if (inp) {
+        const text = fxValStr(p, v);
         inp.value = v;
-        div.querySelector(".ctl-val").textContent = fxValStr(p, v);
+        inp.setAttribute("aria-valuetext", text);
+        div.querySelector(".ctl-val").textContent = text;
     }
     if (btn) {
         btn.setAttribute("aria-checked", v ? "true" : "false");
@@ -153,7 +158,7 @@ function fxEnabledMap() {
 // currently-ACTIVE member of a swap pair (Reverb Time long/short, LFO
 // Frequency/Sync Note, delay Time-Ratio pairs…). The device does the same
 // internally when the physical knob is used; assigning the inactive twin
-// explicitly makes the device display INVALID — so the app never offers it.
+// explicitly makes the device display INVALID - so the app never offers it.
 function fxSnapKnob(idx) {
     for (const s of fxDesc().swaps) {
         const on = FX_PRED[s.when](state.fx.vals[s.cond]);
@@ -178,8 +183,8 @@ function renderFxKnobs() {
         const sel = $(k ? "#fx-knob2" : "#fx-knob1");
         const cur = fxSnapKnob(state.fx.knobs[k]);
         const html = opts.map((p) => `<option value="${p.idx}"${p.idx === cur ? " selected" : ""}>${esc(p.name)}</option>`).join("");
-        if (sel.innerHTML !== html) sel.innerHTML = html; // don't disturb an
-        sel.disabled = !opts.length; // open dropdown
+        if (sel.innerHTML !== html) sel.innerHTML = html; // unchanged options: leave an open dropdown alone
+        sel.disabled = !opts.length;
     }
 }
 
@@ -192,7 +197,7 @@ function applyFxEnable() {
         div.classList.toggle("locked", !on);
         $$("input,select,button", div).forEach((el) => (el.disabled = !on));
         // in-place swap pairs (Reverb Time long/short, delay ms-vs-sync-note):
-        // a disabled param whose same-named twin is enabled is HIDDEN outright —
+        // a disabled param whose same-named twin is enabled is HIDDEN outright -
         // the hardware and original GUI only ever show the active one.
         const p = fx.params.find((q) => q.idx === idx);
         div.hidden = !on && fx.params.some((q) => q.idx !== idx && q.name === p.name && enabled[q.idx] !== false);
@@ -227,14 +232,17 @@ function markKnobParams() {
     }
 }
 
+// a type change re-initialises the params and knob assigns to that type's defaults (the device does the same)
+function setFxType(t) {
+    state.fx.type = t;
+    state.fx.vals = fxDefaults(t);
+    state.fx.knobs = [...(FX_TYPES[t] || FX_TYPES[0]).knobs];
+    renderFx();
+}
 $("#fx-type").onchange = (ev) => {
     const t = +(/** @type {HTMLSelectElement} */ (ev.target).value);
-    state.fx.type = t;
-    state.fx.vals = fxDefaults(t); // device re-inits its params on type
-    const fx = FX_TYPES[t]; // change — mirror with the defaults
-    state.fx.knobs = [...fx.knobs];
     sendFx(1, t);
-    renderFx();
+    setFxType(t);
 };
 for (const k of [0, 1])
     $(k ? "#fx-knob2" : "#fx-knob1").onchange = (ev) => {
@@ -245,7 +253,7 @@ for (const k of [0, 1])
     };
 
 // The panel's FX EDIT 1/2 knobs transmit plain MIDI CC (Korg's Effect
-// Control 1/2 = CC#12/13), not SysEx — map them onto the assigned params.
+// Control 1/2 = CC#12/13), not SysEx - map them onto the assigned params.
 // The 0..127 CC sweep covers the param's full display range.
 const FX_KNOB_CC = [12, 13];
 export function onCC(evt) {
@@ -255,7 +263,7 @@ export function onCC(evt) {
         return;
     }
     if (!state.fx) return;
-    // the device applies the knob to the ACTIVE swap twin — mirror that
+    // the device applies the knob to the ACTIVE swap twin - mirror that
     const idx = fxSnapKnob(state.fx.knobs[k]);
     const p = fxDesc().params.find((q) => q.idx === idx);
     if (!p) return;
@@ -314,10 +322,7 @@ export function fxReflect(param, value) {
     if (!state.fx) return;
     value = dec14(value);
     if (param === 1) {
-        state.fx.type = value;
-        state.fx.vals = fxDefaults(value);
-        state.fx.knobs = [...(FX_TYPES[value] || FX_TYPES[0]).knobs];
-        renderFx();
+        setFxType(value);
     } else if (param === 2 || param === 3) {
         state.fx.knobs[param - 2] = value;
         renderFx();

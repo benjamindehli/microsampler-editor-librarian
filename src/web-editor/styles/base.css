@@ -1,7 +1,7 @@
 /* design tokens + shared primitives (LCD, buttons) */
 
 /* ════════════════════════════════════════════════════════════════════════
-   microSAMPLER Editor — sample edit page
+   microSAMPLER Editor
    Aesthetic: matte powder-coat hardware panel · amber phosphor LCD ·
    silkscreen labels. Fonts: Chakra Petch (silkscreen) + Share Tech Mono (LCD).
    ════════════════════════════════════════════════════════════════════════ */
@@ -14,10 +14,10 @@
     --line: #2b2b33; /* panel seams                */
     --line-hi: #3a3a44;
     --ink: #b9b2a6; /* silkscreen text            */
-    --ink-dim: #837d71; /* muted labels — lifted from #6d685f for legible contrast */
+    --ink-dim: #837d71; /* muted labels (≥4.5:1 on the panels) */
     /* accent = one tunable colour (the theme switcher overrides these three RGB
-     triplets; everything else — glows, borders, the phosphor backgrounds, the
-     canvas waveform — derives from them so a theme change is total). */
+     triplets; everything else - glows, borders, the phosphor backgrounds, the
+     canvas waveform - derives from them so a theme change is total). */
     --amber-rgb: 255, 138, 30; /* Korg backlight             */
     --amber-hi-rgb: 255, 192, 99;
     --amber-dk-rgb: 138, 69, 0;
@@ -82,7 +82,7 @@ body {
 .spacer {
     flex: 1;
 }
-/* shared LED/status blink — used across sheets (.offline-led in layout,
+/* shared LED/status blink - used across sheets (.offline-led in layout,
    .screen-status in sample-editor), so it lives in the base sheet */
 @keyframes blink {
     50% {
@@ -98,7 +98,7 @@ body {
 
 /* ── silkscreen + LCD primitives ─────────────────────────────────────── */
 .lcd {
-    /* flat phosphor panel — no gradient sheen, inset depth, or amber glow */
+    /* flat phosphor panel */
     background: var(--phos-bg);
     border: 1px solid #000;
     border-radius: var(--ctl-r);
@@ -147,9 +147,8 @@ body {
     text-decoration: none;
     display: inline-block;
 }
-/* flat, legible button: solid face + hairline border, no bevel/press/gradient.
-   Every button looks the same; the accent is reserved for the SELECTED option in
-   a group (nav tabs, segmented switches), not for "primary" actions. */
+/* solid face + hairline border. All buttons share one style; the accent marks
+   only the selected option in a group (nav tabs, segmented switches). */
 .hw-btn-cap {
     display: inline-block;
     font:
@@ -185,7 +184,7 @@ body {
 }
 
 /* ── form fields ─────────────────────────────────────────────────────────
-   ONE phosphor style + size for every text/number/search field and native
+   One phosphor style + size for every text/number/search field and native
    <select>, so a row of mixed controls (e.g. NAME · BARS · GRID · PLAY in the
    pattern editor) lines up. Components set only widths/min-widths on top. */
 input[type="text"],
@@ -234,7 +233,7 @@ select {
 }
 
 /* PLAY/STOP icon buttons (sample audition + pattern cards): matched-size SVG
-   icons — the ▶/■ glyphs render at different sizes across fonts. The .playing
+   icons - the ▶/■ glyphs render at different sizes across fonts. The .playing
    class on the button swaps which icon shows. */
 .ai-cap {
     display: inline-flex;
@@ -264,7 +263,7 @@ select {
     display: inline-block;
 }
 
-/* keyboard focus ring — only for keyboard focus (mouse clicks don't trigger
+/* keyboard focus ring - only for keyboard focus (mouse clicks don't trigger
    :focus-visible), so it never shows on click but is clear when tabbing. Field
    :focus rules (inputs) are more specific and keep their own ring. */
 :focus-visible {
@@ -272,7 +271,7 @@ select {
     outline-offset: 2px;
 }
 
-/* inline button icons (CSS-masked SVG) — for the up/down/reset glyphs the fonts
+/* inline button icons (CSS-masked SVG) - for the up/down/reset glyphs the fonts
    render inconsistently (⇧ wider than ⇩, ↺ undersized). Same idea as the SVG
    play/stop; recolours via currentColor, so theming + hover just work. */
 .ico {

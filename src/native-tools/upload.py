@@ -6,7 +6,7 @@ Mirrors SampleWrite::process from the original editor:
   1. func 0x42 (ss|0x40) + 8-byte header (7-bit enc)  -> ACK
      (funcs 0x23/0x27 = ok, 0x28/0x29 = error)
   2. raw 16-bit BIG-endian PCM straight to bulk OUT in 0x4000-byte blocks, no framing
-     (no marker in this direction — verified in DirectUsbAccessBase::sendCommand)
+     (no marker in this direction - verified in DirectUsbAccessBase::sendCommand)
      -> ACK (funcs 0x21/0x23 = ok, 0x22/0x24 = error)
   3. func 0x44 ss + 64-byte param blob (7-bit enc) -> ACK
 
@@ -16,11 +16,11 @@ with linear interpolation to the nearest supported rate (48/24/12/6 kHz) unless
 
 SAFETY: this OVERWRITES the target slot on the device. Test on a FREE slot.
 `--dry-run` converts and prints everything without touching the device.
-NOTE: after `--header-only` the device may sit waiting for PCM — power-cycle it
+NOTE: after `--header-only` the device may sit waiting for PCM - power-cycle it
 before doing anything else.
 
 PERSISTENCE (by design, per the editor manual): transfers go to the device's
-CURRENT BANK, which is RAM — lost on power-off or bank switch. To keep the
+CURRENT BANK, which is RAM - lost on power-off or bank switch. To keep the
 sample, save the current bank to a user bank on the device afterwards.
 Use `--verify` to read the sample back in the same USB session and compare
 byte-for-byte (separate back-to-back sessions tend to wedge the device).
@@ -33,7 +33,7 @@ Usage:
 import argparse, os, sys, wave
 from array import array
 
-from msusb import MicroSampler, _hex
+from msusb import MicroSampler, _hex, send_raw_blocks
 import protocol as P
 from download import (_drain, _wait_korg_reply,
                       fetch_header, fetch_pcm, fetch_params)
@@ -106,32 +106,29 @@ def to_device_pcm(chans, rate, target_rate):
 
 
 # --- upload phases ------------------------------------------------------------
-def upload(ms, channel, slot, pcm, rate, stereo, blob, tempo, mode_bit=0):
+def upload(ms, channel, slot, pcm, rate, stereo, blob, tempo, mode_bit=0, progress=True):
+    say = print if progress else (lambda *a, **k: None)   # CLI progress; the bridge passes False
     # phase 1: header
     _drain(ms)
     ms.send_sysex(P.sample_header(channel, slot, len(pcm), rate, stereo,
                                   tempo_bpm=tempo, mode_bit=mode_bit))
     _wait_korg_reply(ms, P.UPLOAD_HDR_OK, P.UPLOAD_HDR_ERR,
                      timeout_ms=8000, what='header ACK')
-    print("  header ACKed")
+    say("  header ACKed")
 
     # phase 2: raw PCM, 0x4000-byte blocks
-    sent = 0
-    for off in range(0, len(pcm), 0x4000):
-        ms.dev.write(0x01, pcm[off:off + 0x4000], timeout=5000)
-        sent += len(pcm[off:off + 0x4000])
-        print(f"\r  PCM {sent}/{len(pcm)} bytes ({sent * 100 // len(pcm)}%)",
-              end='', flush=True)
-    print()
+    send_raw_blocks(ms, pcm, lambda sent: say(
+        f"\r  PCM {sent}/{len(pcm)} bytes ({sent * 100 // len(pcm)}%)", end='', flush=True))
+    say()
     _wait_korg_reply(ms, P.UPLOAD_DATA_OK, P.UPLOAD_DATA_ERR,
                      timeout_ms=30000, what='PCM ACK')
-    print("  PCM ACKed")
+    say("  PCM ACKed")
 
     # phase 3: parameter blob
     ms.send_sysex(P.sample_param_send(channel, slot, blob))
     _wait_korg_reply(ms, P.UPLOAD_DATA_OK, P.UPLOAD_DATA_ERR,
                      timeout_ms=8000, what='param ACK')
-    print("  params ACKed")
+    say("  params ACKed")
 
 
 def main():
@@ -149,12 +146,12 @@ def main():
                     help='64-byte .param.bin template from download.py '
                          '(names/points patched, rest kept)')
     ap.add_argument('--dry-run', action='store_true',
-                    help='convert + print everything; do not touch the device')
+                    help='convert + print everything, without touching the device')
     ap.add_argument('--header-only', action='store_true',
-                    help='send only phase 1 (DEVICE WILL WAIT FOR PCM — '
+                    help='send only phase 1 (the device then waits for PCM: '
                          'power-cycle it afterwards)')
     ap.add_argument('--verify', action='store_true',
-                    help='read the sample back in the SAME session afterwards '
+                    help='read the sample back in the same session afterwards '
                          'and compare byte-for-byte (recommended)')
     ap.add_argument('--yes', action='store_true', help='skip the overwrite prompt')
     args = ap.parse_args()
@@ -190,7 +187,7 @@ def main():
         print("header:", _hex(P.korg_decode(
             P.sample_header(0, args.slot, len(pcm), rate, stereo, args.tempo)[6:-1])))
         print("blob:  ", _hex(blob))
-        print("dry run — nothing sent.")
+        print("dry run, nothing sent.")
         return 0
 
     if not args.yes:
@@ -201,7 +198,7 @@ def main():
     with MicroSampler() as ms:
         reply, cable = ms.device_inquiry()
         if not reply:
-            print("No inquiry reply — is the device on? (power-cycle if wedged)")
+            print("No inquiry reply. Is the device on? (power-cycle it if wedged)")
             return 1
         channel = reply[2] & 0x0f
         ms.cable = cable
@@ -213,11 +210,11 @@ def main():
                                           stereo, tempo_bpm=args.tempo))
             _wait_korg_reply(ms, P.UPLOAD_HDR_OK, P.UPLOAD_HDR_ERR,
                              timeout_ms=8000, what='header ACK')
-            print("header ACKed — STOPPING (power-cycle the device now).")
+            print("header ACKed, stopping here (power-cycle the device now).")
             return 0
 
         upload(ms, channel, args.slot, pcm, rate, stereo, blob, args.tempo)
-        print(f"done — slot {args.slot} written to the device's CURRENT BANK (RAM).")
+        print(f"done: slot {args.slot} written to the device's CURRENT BANK (RAM).")
 
         if args.verify:
             print("verifying (same session)...")
@@ -236,11 +233,11 @@ def main():
             print(f"  params: name '{par['name']}' "
                   f"{'IDENTICAL' if ok_par else 'DIFFERS'}")
             if not (ok_hdr and ok_pcm and ok_par):
-                print("VERIFY FAILED — round-trip is not byte-exact.")
+                print("VERIFY FAILED: round-trip is not byte-exact.")
                 return 1
-            print("VERIFY OK — byte-exact round-trip.")
+            print("VERIFY OK: byte-exact round-trip.")
 
-        print("NOTE: the current bank is volatile — save it to a user bank on "
+        print("NOTE: the current bank is volatile. Save it to a user bank on "
               "the device (see its Owner's Manual) to keep the sample after "
               "power-off or bank switch.")
     return 0

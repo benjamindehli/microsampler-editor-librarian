@@ -1,8 +1,8 @@
 @echo off
-REM Double-clickable LIBRARY-mode starter for Windows — browse, play and export
+REM Double-clickable LIBRARY-mode starter for Windows - browse, play and export
 REM the samples in microSAMPLER bank backups (original Korg ".msmpl_bank" files,
 REM or this app's ".zip" backups) with NO hardware connected. Library mode never
-REM touches USB, so no WinUSB/Zadig driver setup is needed — just Python 3.
+REM touches USB, so no WinUSB/Zadig driver setup is needed - just Python 3.
 
 setlocal
 title microSAMPLER Library

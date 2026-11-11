@@ -1,9 +1,9 @@
-// microSAMPLER Library — Dock-app shell (macOS 12+).
+// microSAMPLER Library - Dock-app shell (macOS 12+).
 //
 // A plain frozen (PyInstaller) process has no macOS app lifecycle: it can't
 // receive reopen events (double-clicking the "running" app does nothing),
 // has no ⌘Q, and lingers as an invisible ghost after its browser window
-// closes — which also confuses LaunchServices into "The application is not
+// closes - which also confuses LaunchServices into "The application is not
 // open anymore" states. This tiny NSApplication supervises the frozen
 // library bridge (Contents/Resources/bridge/) as a child process and gives
 // it real app semantics:
@@ -13,19 +13,17 @@
 //   • bridge exits by itself (web QUIT button, 2-min idle-exit) → shell
 //     quits too, so the Dock icon never outlives the server
 //
-// Built by make_library_app.sh with plain swiftc — no Xcode project.
+// Built by make_library_app.sh with plain swiftc - no Xcode project.
 import AppKit
 import Foundation
 
 let uiURL = URL(string: "http://localhost:8766")!
 let bridgePort: UInt16 = 8766
 
-// Is the bridge accepting connections? A raw socket connect to an explicit
-// IPv4 127.0.0.1 — NOT URLSession, whose per-request proxy discovery + IPv6
-// (localhost → ::1) attempt stalled ~60 s EACH on localhost here, so the two
-// launch-time checks cost ~2 min before the window appeared (measured). A
-// POSIX connect is instant: immediate refusal when nothing listens, immediate
-// accept when it's up. Same approach the Python side already uses.
+// Is the bridge accepting connections? A raw socket connect to explicit IPv4
+// 127.0.0.1 answers instantly (refused or accepted). URLSession's proxy
+// discovery plus an IPv6 ::1 attempt for `localhost` can stall ~60 s per
+// request. The Python side checks the same way.
 func bridgeIsUp() -> Bool {
     let fd = socket(AF_INET, SOCK_STREAM, 0)
     if fd < 0 { return false }
@@ -43,9 +41,15 @@ func bridgeIsUp() -> Bool {
 
 // timestamped shell log next to the bridge's own library.log, so a slow or
 // failed launch pins the exact step (which browser, how long) instead of
-// leaving us guessing — this whole file has no other visible output.
-let shellLogPath = ("~/Library/Application Support/DehliMusikk/microSAMPLER Library/shell.log"
-                    as NSString).expandingTildeInPath
+// leaving us guessing - this whole file has no other visible output.
+let shellLogPath: String = {
+    let path = ("~/Library/Application Support/DehliMusikk/microSAMPLER Library/shell.log"
+                as NSString).expandingTildeInPath
+    // on a first launch the bridge hasn't created the folder yet
+    try? FileManager.default.createDirectory(atPath: (path as NSString).deletingLastPathComponent,
+                                             withIntermediateDirectories: true)
+    return path
+}()
 
 func shellLog(_ msg: String) {
     let stamp = ISO8601DateFormatter().string(from: Date())
@@ -57,10 +61,10 @@ func shellLog(_ msg: String) {
     }
 }
 
-// The user's DEFAULT browser first when it's a Chromium (already running &
-// healthy → its app-mode window opens instantly); otherwise probe the known
-// Chromium browsers. Forcing a non-default, possibly-cold Chrome via a new
-// instance was the cause of multi-minute stalls before an app window appeared.
+// The user's default browser first when it's a Chromium (already running, so
+// its app-mode window opens instantly); otherwise probe the known Chromium
+// browsers. Launching a new instance of a cold, non-default Chrome can stall
+// for minutes before the window appears.
 func browserOrder() -> [String] {
     let byBundleID = ["com.google.Chrome": "Google Chrome",
                       "com.microsoft.edgemac": "Microsoft Edge",
@@ -87,7 +91,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         openOrStart()
     }
 
-    // Dock icon click (and app double-click while running) lands here — the
+    // Dock icon click (and app double-click while running) lands here - the
     // whole reason this shell exists.
     func applicationShouldHandleReopen(_ sender: NSApplication,
                                        hasVisibleWindows: Bool) -> Bool {
@@ -108,7 +112,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let up = bridgeIsUp()
             DispatchQueue.main.async {
                 if up {
-                    shellLog("bridge already up — opening UI")
+                    shellLog("bridge already up, opening UI")
                     self.openUI()          // bridge already up (ours or a CLI one)
                 } else {
                     self.startChild()
@@ -130,9 +134,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         p.terminationHandler = { proc in
             DispatchQueue.main.async {
                 // the bridge ended on its own (web QUIT button, idle-exit, or
-                // a crash) — the Dock icon must not outlive the server
+                // a crash) - the Dock icon must not outlive the server
                 if !self.quitting {
-                    shellLog("child bridge exited (status \(proc.terminationStatus)) — quitting shell")
+                    shellLog("child bridge exited (status \(proc.terminationStatus)), quitting shell")
                     NSApp.terminate(nil)
                 }
             }
@@ -157,7 +161,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let up = bridgeIsUp()
             DispatchQueue.main.async {
                 if up {
-                    shellLog("bridge up after \(attempt) poll(s) — opening UI")
+                    shellLog("bridge up after \(attempt) poll(s), opening UI")
                     self.openUI()
                 } else {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -168,7 +172,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// Open the UI in a Chromium "app mode" window — the user's default browser
+    /// Open the UI in a Chromium "app mode" window - the user's default browser
     /// first when it's Chromium (see browserOrder), else the known list; falls
     /// back to the plain default browser. Off the main thread: each `open`
     /// probe waits for exit.
@@ -189,7 +193,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 shellLog("  \(app): open exited \(p.terminationStatus)")
                 if p.terminationStatus == 0 { return }
             }
-            shellLog("no Chromium app-mode browser — using the default browser")
+            shellLog("no Chromium app-mode browser, using the default browser")
             DispatchQueue.main.async { NSWorkspace.shared.open(uiURL) }
         }
     }
@@ -225,7 +229,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 let app = NSApplication.shared
-app.setActivationPolicy(.regular)        // real Dock app — that's the point
+app.setActivationPolicy(.regular)        // real Dock app - that's the point
 let delegate = AppDelegate()
 app.delegate = delegate
 app.run()

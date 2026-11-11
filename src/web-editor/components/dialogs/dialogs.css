@@ -1,5 +1,3 @@
-/* GENERATED SPLIT of the former app.css — component stylesheet. */
-
 /* ── dialogs ─────────────────────────────────────────────────────────── */
 .hw-dialog {
     background: var(--steel-1);
@@ -11,9 +9,8 @@
     min-width: 360px;
     font-family: "Chakra Petch", sans-serif;
 }
-/* NB: no backdrop-filter:blur — a full-viewport blur re-runs every frame
-   over the continuously-animating waveform behind it, which froze input
-   while a dialog was open. The dark dim alone reads fine. */
+/* plain dim backdrop. Avoid backdrop-filter: blur here: a full-viewport blur
+   re-renders every frame over the animating waveform behind it and stalls input. */
 .hw-dialog::backdrop {
     background: rgba(5, 5, 7, 0.8);
 }
@@ -152,7 +149,6 @@
     width: 15px;
     height: 15px;
     padding: 0;
-    box-shadow: none;
     accent-color: var(--amber);
 }
 .ud-fades {

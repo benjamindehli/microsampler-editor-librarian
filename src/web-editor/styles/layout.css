@@ -1,10 +1,10 @@
-/* GENERATED SPLIT of the former app.css — component stylesheet. */
+/* Page layout: top rail, deck grid, ticker, curtains, view nav, toasts. */
 
 /* ── top rail ─────────────────────────────────────────────────────────── */
 .rail {
     display: flex;
     align-items: center;
-    gap: 1.4rem;
+    gap: 1.1rem; /* minimum spacing - .bank-lcd's auto margins spread the rest */
     flex-wrap: wrap;
     row-gap: 0.55rem; /* narrow widths: wrap instead of clipping the right cluster */
     padding: 0.8rem 1.2rem;
@@ -14,7 +14,7 @@
         0 1px 0 var(--line-hi) inset,
         0 6px 18px rgba(0, 0, 0, 0.5);
     /* sit above the deck so the theme dropdown (and the rail's shadow) overlay the
-     content below — the .reveal transform makes the rail a stacking context, so
+     content below - the .reveal transform makes the rail a stacking context, so
      its absolutely-positioned menu can't otherwise escape above main */
     position: relative;
     z-index: 50;
@@ -23,8 +23,7 @@
     height: 38px;
     width: auto;
     display: block;
-    margin-right: 1.1rem;
-    padding-right: 1.1rem;
+    padding-right: 1.1rem; /* divider spacing; the rail gap sets the brand's side */
     border-right: 1px solid var(--line);
     box-sizing: content-box;
     opacity: 0.92;
@@ -55,6 +54,7 @@
 }
 .bank-lcd {
     margin-inline: auto;
+    cursor: pointer;
 }
 .rail-right {
     display: flex;
@@ -103,6 +103,22 @@
     letter-spacing: 0.22em;
     color: var(--ink-dim);
 }
+/* STACKED control: the checkbox/select on top, a small caption underneath -
+   same shape as the CONNECTED LED block, and narrower than a side-by-side label
+   (.follow-toggle.stack beats .follow-toggle's row gap, which loads later) */
+.stack,
+.follow-toggle.stack {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+.stack-cap {
+    font-size: 0.52rem;
+    letter-spacing: 0.22em;
+    line-height: 1;
+    white-space: nowrap;
+}
 
 /* ── deck layout ─────────────────────────────────────────────────────── */
 .deck {
@@ -118,8 +134,7 @@
         grid-template-columns: 1fr;
     }
 }
-/* gentle entrance when a view is shown (display none->grid restarts the anim on
-   every tab switch), so switching SAMPLES/EFFECT/PATTERNS/UTILITY feels smooth */
+/* short fade-in each time a view is shown (display none→grid restarts it) */
 .deck:not([hidden]) {
     animation: view-in 0.16s cubic-bezier(0.2, 0.8, 0.25, 1) both;
 }
@@ -211,7 +226,7 @@
     z-index: 80;
     display: grid;
     place-items: center;
-    background: rgba(8, 8, 10, 0.96); /* opaque dim, no blur — see dialogs.css note */
+    background: rgba(8, 8, 10, 0.96); /* opaque dim, no blur - see dialogs.css note */
 }
 .quit-curtain {
     z-index: 95;
@@ -263,8 +278,6 @@
 }
 
 /* ── view nav ─────────────────────────────────────────────────────────── */
-/* backlit channel-select buttons (was browser-style tabs): the active one is
-   lit amber like the panel's segmented switches, not underlined like a web tab */
 /* nav tabs are a segmented control (styled in controls.css); only the layout
    position lives here */
 .views {
@@ -272,9 +285,6 @@
 }
 
 /* bank LCD is clickable (bank name/BPM dialog) */
-.bank-lcd {
-    cursor: pointer;
-}
 .lcd-edit {
     font-size: 0.7rem;
     color: var(--amber-dk);
@@ -354,10 +364,9 @@
     text-align: right;
 }
 
-/* accent-theme picker (swatch + named select) */
-/* theme picker — a custom dropdown (native <select> options can't show colour
-   swatches: macOS Chrome renders the popup with the OS menu, ignoring option
-   styling), so the list previews each accent with a real colour swatch. */
+/* theme picker: a custom dropdown so each row can show its accent as a colour
+   swatch (macOS Chrome draws a native <select> popup with the OS menu, which
+   ignores option styling) */
 .theme-pick {
     position: relative;
     background: var(--steel-3);
@@ -395,7 +404,7 @@
     color: var(--amber-hi);
 }
 /* reserve the width of the longest name (a hidden ghost sizer stacked under the
-   current one) so the trigger never resizes between themes — and it adapts to
+   current one) so the trigger never resizes between themes - and it adapts to
    the web font automatically once it loads */
 .theme-name {
     display: inline-grid;
@@ -517,7 +526,7 @@
     transition: width 0.2s ease;
 }
 
-/* "update available" notice — top-right pill, dismissible */
+/* "update available" notice - top-right pill, dismissible */
 .update-toast {
     position: fixed;
     top: 1rem;
@@ -572,9 +581,10 @@
     color: var(--amber-hi);
 }
 
-/* LIBRARY mode (no device) — hide device-only chrome */
+/* LIBRARY mode (no device) - hide device-only chrome */
 body.library-mode .view-btn:not(.lib-tab),
 body.library-mode #refresh-btn,
+body.library-mode #autosync-toggle,
 body.library-mode .rail-vol,
 body.library-mode #bank-lcd,
 body.library-mode #panic-btn {

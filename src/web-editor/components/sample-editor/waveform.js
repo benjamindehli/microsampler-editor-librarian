@@ -23,10 +23,7 @@ const curBuf = () => (state.sel != null ? state.buffers.get(state.sel) : null);
 // Cutting a sample mid-cycle clicks; snapping the trim points to the nearest
 // zero crossing avoids it. Points are in DEVICE frames but the decoded buffer may
 // be resampled (decodeAudioData → context rate), so map frame⇄buffer-sample.
-const zeroSnapOn = () => {
-    const t = $("#zero-snap");
-    return !t || t.checked;
-};
+const zeroSnapOn = () => $("#zero-snap").checked;
 
 // snap a device-frame point to the nearest zero crossing in the (maybe-resampled)
 // buffer: map frame→buffer-sample, find the crossing, map back to a device frame
@@ -67,16 +64,16 @@ export async function loadWave(i) {
         drawWave(buf, s);
         updateZoomUI();
     } catch (e) {
-        status.textContent = "READ ERROR — " + e.message.toUpperCase();
+        status.textContent = "READ ERROR: " + e.message.toUpperCase();
     }
 }
 
 // Redraw coalescing: pointermove (drag/pan) and wheel fire faster than the
 // display refresh, so hot paths schedule at most ONE drawWave per animation
-// frame (which just blits the cached waveform — see buildWaveCache).
+// frame (which just blits the cached waveform - see buildWaveCache).
 let redrawReq = 0;
 
-// theme accent colours, read from the CSS custom props once and cached —
+// theme accent colours, read from the CSS custom props once and cached -
 // getComputedStyle forces a synchronous style recalc, too costly to run on
 // every drag frame. Invalidated on the theme-change event (see bottom).
 let _themeColors = null;
@@ -99,14 +96,11 @@ function scheduleRedraw() {
     });
 }
 
-// The waveform is rendered to an OFFSCREEN canvas once per geometry/theme
-// change; a marker drag then just blits that bitmap + a dim overlay + two
-// marker lines (≈6 canvas ops) instead of re-drawing ~W bars + ~W trace
-// segments every frame (which ran at ~30fps on a wide/Retina canvas). The
-// only per-frame difference during a drag is the marker position, so the
-// heavy waveform pixels never need recomputing until zoom/sample/size/theme.
+// The waveform is rendered to an offscreen canvas once per zoom/sample/size/theme
+// change; a marker drag then only blits that bitmap plus a dim overlay and two
+// marker lines (≈6 canvas ops a frame instead of ~W bars + trace segments).
 let waveCache = null;
-// per-column lo/hi/mid PER CHANNEL — returns one {los,his,mids} per channel so
+// per-column lo/hi/mid PER CHANNEL - returns one {los,his,mids} per channel so
 // stereo can be drawn as two lanes (mono = a single-element array).
 function computePeaks(buf, n, v0, vlen, W) {
     const spp = vlen / W;
@@ -141,8 +135,8 @@ function computePeaks(buf, n, v0, vlen, W) {
     });
 }
 
-// render the static waveform (grid + bars + trace, flat — no glow) to an
-// offscreen canvas — done only when geometry/theme changes, so its per-column
+// render the static waveform (grid + bars + trace, flat - no glow) to an
+// offscreen canvas - done only when geometry/theme changes, so its per-column
 // cost is off the drag hot path (a drag just re-blits this bitmap)
 function buildWaveCache(buf, n, v0, vlen, W, H, rgb, hiRgb, dpr) {
     const oc = waveCache && waveCache.canvas.width === W && waveCache.canvas.height === H ? waveCache.canvas : document.createElement("canvas");
@@ -166,8 +160,8 @@ function buildWaveCache(buf, n, v0, vlen, W, H, rgb, hiRgb, dpr) {
         g.strokeStyle = A(0.07);
         g.lineWidth = 1; // baseline
         line(g, 0, mid, W, mid);
-        // min/max bars, filled as ONE path (flat — the per-column shadowBlur glow
-        // was rasterised at blit time and was the bulk of a zoom rebuild)
+        // min/max bars, filled as one flat path (a per-column shadowBlur glow
+        // would dominate the cost of every zoom rebuild)
         const bars = new Path2D();
         for (let x = 0; x < W; x++) {
             // fill the column from its most-negative to its most-positive sample
@@ -181,10 +175,9 @@ function buildWaveCache(buf, n, v0, vlen, W, H, rgb, hiRgb, dpr) {
         g.globalAlpha = 0.95;
         g.fill(bars);
         g.restore();
-        // connecting trace (avg) — only when zoomed in enough to be meaningful.
-        // Zoomed out it's a full-height aliased zigzag: visually noisy AND the
-        // dominant rasterisation cost of a rebuild (a tall anti-aliased polyline
-        // across every column), which is why zooming out felt laggy.
+        // connecting trace (avg), only when zoomed in enough to be meaningful:
+        // zoomed out it's a full-height aliased zigzag, visually noisy and the
+        // most expensive thing to rasterise (a tall anti-aliased polyline).
         if (vlen / W <= 12) {
             g.save();
             g.strokeStyle = `rgba(${hiRgb},.85)`;
@@ -198,9 +191,9 @@ function buildWaveCache(buf, n, v0, vlen, W, H, rgb, hiRgb, dpr) {
             g.restore();
         }
         if (nch > 1) {
-            // L / R lane label — bottom-left
-            g.fillStyle = `rgba(${hiRgb},.5)`; // of the lane, clear of the top
-            g.font = `${9 * dpr}px "Share Tech Mono", monospace`; // S/E marker flags
+            // L / R lane label, bottom-left of the lane (clear of the S/E marker flags at the top)
+            g.fillStyle = `rgba(${hiRgb},.5)`;
+            g.font = `${9 * dpr}px "Share Tech Mono", monospace`;
             g.fillText(c === 0 ? "L" : "R", 4 * dpr, (c + 1) * laneH - 5 * dpr);
         }
     });
@@ -238,15 +231,14 @@ function drawWave(buf, s) {
     const startX = frameToX(s.start),
         endX = frameToX(s.end);
 
-    // (re)build the offscreen waveform only when geometry/theme changed — NOT on
+    // (re)build the offscreen waveform only when geometry/theme changed - NOT on
     // a marker drag (only startX/endX below move), so the drag stays cheap
     const key = `${v0}|${vlen}|${W}|${H}|${n}|${rgb}|${hiRgb}`;
     if (!waveCache || waveCache.key !== key || waveCache.buf !== buf)
         waveCache = { key, buf, canvas: buildWaveCache(buf, n, v0, vlen, W, H, rgb, hiRgb, dpr) };
-    g.drawImage(waveCache.canvas, 0, 0); // one blit — the whole waveform
+    g.drawImage(waveCache.canvas, 0, 0); // one blit - the whole waveform
 
-    // in/out-of-range: dim outside [start,end] with a cheap overlay that moves
-    // with the markers (was baked per-bar, forcing a full redraw every frame)
+    // dim outside [start,end] with a cheap overlay that moves with the markers
     const l = Math.max(0, Math.min(W, startX)),
         r = Math.max(0, Math.min(W, endX));
     g.fillStyle = "rgba(0,0,0,.72)";
@@ -254,7 +246,7 @@ function drawWave(buf, s) {
     if (r < W) g.fillRect(r, 0, W - r, H);
 
     // start/end marker flags (skip when scrolled off-screen). Each label sits
-    // OUTSIDE the selection — S to the left of its line, E to the right — and
+    // OUTSIDE the selection - S to the left of its line, E to the right - and
     // flips to the inside only when it would run off that edge of the canvas
     // (so START-at-0 and END-at-the-end both stay on-screen).
     /** @type {[number, string, number][]} */
@@ -316,7 +308,7 @@ function updateZoomUI() {
 function redrawZoom() {
     const buf = curBuf();
     if (!buf) return;
-    scheduleRedraw(); // coalesced — wheel/pan events outpace the display
+    scheduleRedraw(); // coalesced - wheel/pan events outpace the display
     updateZoomUI();
 }
 
@@ -425,15 +417,15 @@ wave.addEventListener("dblclick", () => {
         const mode = drag.mode;
         drag = null;
         wave.style.cursor = "";
+        // pan: redraw one final frame; panning sends nothing to the device
         if (mode === "pan") {
             scheduleRedraw();
             return;
-        } // full-quality final frame;
-        //                                                     panning sends nothing
+        }
         const s = slotData(state.sel);
         const buf = curBuf();
         // snap the just-dragged marker to the nearest zero crossing (numeric inputs
-        // stay exact — they commit straight through commitPoints)
+        // stay exact - they commit straight through commitPoints)
         if (buf && zeroSnapOn()) {
             if (mode === "start") s.start = snapZeroFrame(s.start, s, buf);
             else s.end = snapZeroFrame(s.end, s, buf);
@@ -441,7 +433,7 @@ wave.addEventListener("dblclick", () => {
         await commitPoints(s.start, s.end);
     };
     wave.addEventListener("pointerup", endDrag);
-    // pointercancel commits like pointerup — pointermove already mutated
+    // pointercancel commits like pointerup - pointermove already mutated
     // s.start/s.end, so just dropping the drag would leave the readouts and
     // markers diverged from the device until the next commit or focus resync
     wave.addEventListener("pointercancel", endDrag);
@@ -455,14 +447,14 @@ wave.addEventListener("dblclick", () => {
     });
 }
 
-// Commit START/END points to the device — shared by the marker drag and the
+// Commit START/END points to the device - shared by the marker drag and the
 // numeric inputs under the waveform: clamp, redraw, POST, refresh the readout.
 async function commitPoints(start, end) {
     if (state.sel == null) return;
     const i = state.sel,
         s = slotData(i);
-    if (!s.frames) return; // length unknown (WAV not loaded yet) —
-    // clamping here would collapse to 1 frame
+    // length unknown until the WAV is loaded; clamping now would collapse to 1 frame
+    if (!s.frames) return;
     const max = s.frames - 2; // start < end ≤ max, so start ≤ max-1
     s.start = Math.max(0, Math.min(max - 1, Math.round(start)));
     s.end = Math.max(s.start + 1, Math.min(max, Math.round(end)));
@@ -483,13 +475,13 @@ async function commitPoints(start, end) {
 $("#ro-row").addEventListener("change", (e) => {
     if (!closestEl(e.target, ".ro-input") || state.sel == null) return;
     const s = slotData(state.sel);
-    if (!s.frames) return renderPoints(s); // not ready — restore the shown values
+    if (!s.frames) return renderPoints(s); // not ready - restore the shown values
     const sv = $('#ro-row [data-point="start"]').value;
     const ev = $('#ro-row [data-point="end"]').value;
     const start = sv === "" ? s.start : Number(sv);
     const end = ev === "" ? s.end : Number(ev);
     if (Number.isFinite(start) && Number.isFinite(end)) commitPoints(start, end);
-    else renderPoints(s); // bad input — restore the shown values
+    else renderPoints(s); // bad input - restore the shown values
 });
 
 // Follow the hardware: select the slot the device just triggered (SSE 'note').
@@ -502,11 +494,11 @@ export function followSelect(i) {
 }
 
 // ───────────────────────────────────────────────────────────── audition ──
-// Audition plays the sample ON THE DEVICE (like the pad ▶), via a MIDI note —
-// click toggles note-on/off. The playhead is APPROXIMATE: the app can't read
+// Audition plays the sample on the device (like the pad ▶) via a MIDI note;
+// a click toggles note-on/off. The playhead is approximate: the app can't read
 // the device's true position, so a rAF line sweeps START→END over the region's
 // natural duration ((end−start)/rate), looping if the sample loops, mapped
-// through the zoom window. Needs the slot's WAV loaded (it is — its waveform is
+// through the zoom window. Needs the slot's WAV loaded (it is - its waveform is
 // shown); skipped otherwise.
 let playRAF = null,
     playing = false,
@@ -528,7 +520,7 @@ export function stopAudition(sendNoteOff = true) {
 // playhead sweeps at the right rate. BPM SYNC off → pitched by SEMITONE (±24)
 // + TUNE (±1 semitone, via cents); stretch/pitch-sync → time scales by the
 // bank BPM ÷ the sample's original BPM (orig BPM known only once the WAV has
-// loaded — falls back to 1 until then).
+// loaded - falls back to 1 until then).
 function playbackSpeed(s) {
     if ((s.bpm_sync || 0) === 0) {
         const semis = (s.semitone || 0) + tuneCents(s.tune == null ? 64 : s.tune) / 100;
@@ -546,9 +538,9 @@ function startPlayhead(s) {
     const speed = playbackSpeed(s) || 1; // faster pitch = shorter sweep
     const regionMs = ((s.end - s.start) / s.rate_hz / speed) * 1000;
     const rev = !!s.reverse; // REVERSE → sweep END→START
-    // width read ONCE (not per frame — a per-frame clientWidth read right after
+    // width read ONCE (not per frame - a per-frame clientWidth read right after
     // moving the line forces a reflow every frame); moved via transform so the
-    // sweep stays compositor-only. Approximate anyway — a mid-play resize is fine.
+    // sweep stays compositor-only. Approximate anyway - a mid-play resize is fine.
     const width = wave.clientWidth;
     let t0 = null;
     const frame = (ts) => {
@@ -605,7 +597,7 @@ export const redrawCurrent = () => {
         updateZoomUI();
     }
 };
-// resize streams events while the window is being dragged — coalesce to one
+// resize streams events while the window is being dragged - coalesce to one
 // draw per frame (scheduleRedraw); the zoom chrome only needs a cheap update
 addEventListener("resize", () => {
     if (state.sel != null && state.buffers.has(state.sel)) {
@@ -614,7 +606,6 @@ addEventListener("resize", () => {
     }
 });
 addEventListener("msmpl-theme", () => {
-    // one-shot — sync is fine
     _themeColors = null; // re-read the new accent
     redrawCurrent();
 });

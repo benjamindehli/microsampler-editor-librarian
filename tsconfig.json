@@ -1,10 +1,10 @@
-// TypeScript used ONLY as a type checker for the browser ES modules — no
+// TypeScript used ONLY as a type checker for the browser ES modules - no
 // TypeScript in the app, no build step, no emit. Dev/CI only; the app still
 // ships zero runtime npm dependencies.
 //
 //   npm run lint:types
 //
-// EVERY module under src/web-editor is checked — including new ones, which is
+// EVERY module under src/web-editor is checked - including new ones, which is
 // the point of doing it here rather than with per-file `// @ts-check` headers.
 // See CONTRIBUTING.md ("Code style & conventions") for the JSDoc idioms this
 // codebase uses to satisfy it (casts on ev.target, the $ / $$ / closestEl
@@ -18,7 +18,7 @@
         "module": "esnext",
         "moduleResolution": "bundler",
         "lib": ["es2022", "dom", "dom.iterable"],
-        // strict would demand null guards on every $() lookup — the app relies
+        // strict would demand null guards on every $() lookup - the app relies
         // on its own markup being present. Bad-property/bad-arithmetic checks
         // are the payload here, and those work without it.
         "strict": false,
@@ -31,7 +31,7 @@
         }
     },
     "include": ["src/web-editor/**/*.js"],
-    // generated data modules — not hand-written, same exclusion ESLint makes.
+    // generated data modules - not hand-written, same exclusion ESLint makes.
     // (They are still reached through imports and type-check clean; this only
     // keeps them out of the root file list.)
     "exclude": ["src/web-editor/functions/valueTables.js", "src/web-editor/functions/fxData.js"]

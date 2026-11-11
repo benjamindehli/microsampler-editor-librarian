@@ -1,4 +1,4 @@
-// microSAMPLER Editor / Librarian — entry module.
+// microSAMPLER Editor / Librarian - entry module.
 // Talks to the local bridge (same origin). Live edits = POST /api/param with
 // the hardware-verified 3-value Parameter Change (obj = 16 + slot).
 import "components/dialogs/dialogs.js"; // wires upload/rename dialogs + editor drop
@@ -8,10 +8,11 @@ import "components/ux/ux.js"; // keyboard shortcuts, theming, help overlay
 import "components/keyboard/keyboard.js"; // QWERTY pad-play (computer MIDI keyboard)
 
 import { fxFromBank, renderFx } from "components/effect/effect.js";
+import { releaseLatched } from "components/keyboard/keyboard.js";
 import { initLibrary, renderLibrary } from "components/library/library.js";
 import { loadAllSamples, renderMeter } from "components/meter/meter.js";
 import { renderPads } from "components/pads/pads.js";
-import { reapplyFormats } from "components/sample-editor/sampleLoad.js";
+import { forgetAllSamples, reapplyFormats } from "components/sample-editor/sampleLoad.js";
 import { showSlot } from "components/sample-editor/slot.js";
 import { redrawCurrent } from "components/sample-editor/waveform.js"; // also wires marker drag/audition
 import { checkForUpdate } from "components/update/update.js";
@@ -19,7 +20,7 @@ import { loadBackups } from "components/utility/utility.js";
 import { subscribeEvents } from "functions/events.js";
 import { state } from "functions/state.js";
 import { tick } from "functions/ticker.js";
-import { $, $$, apiJson, confirmDialog, lsGet, lsSet } from "functions/util.js";
+import { $, $$, apiJson, confirmDialog, lsGet, lsSet, setSegActive } from "functions/util.js";
 
 let subscribed = false;
 let reloadAll = false; // set when the device vanished: its RAM may have reset
@@ -40,7 +41,7 @@ async function boot() {
         enterLibraryMode(st);
         return;
     }
-    // bridge is up but couldn't claim the device (missing / wedged) — show the
+    // bridge is up but couldn't claim the device (missing / wedged) - show the
     // connection helper with a Retry button instead of failing into the editor.
     if (!st.connected) {
         showDeviceHelp(st);
@@ -69,21 +70,21 @@ function enterLibraryMode(st) {
 async function onConnected(st) {
     $("#device-help").hidden = true;
     if (!subscribed) {
-        subscribeEvents();
+        subscribeEvents(); // SSE, once
         subscribed = true;
-    } // SSE, once
+    }
     try {
         await refreshBank();
     } catch (e) {
-        // bridge is up but the device op failed — stay online, surface the error
+        // bridge is up but the device op failed - stay online, surface the error
         tick(`⚠ bank read failed: ${e.message}`);
         $("#bank-name").textContent = "ERROR";
-        $("#editor-empty").querySelector("p").textContent = "BANK READ FAILED — " + e.message.toUpperCase();
+        $("#editor-empty").querySelector("p").textContent = "BANK READ FAILED: " + e.message.toUpperCase();
         console.error("bank read failed:", e.message);
     }
     restoreView(); // now that the app is up
     checkForUpdate(st.version).catch(() => {}); // GitHub releases → toast
-} // refreshBank() preloads samples
+}
 
 // The bundled app has no terminal to Ctrl+C, so its bridge enables
 // POST /api/shutdown (advertised via status.shutdown) and the rail shows QUIT.
@@ -104,7 +105,7 @@ function wireQuit(st) {
 }
 
 // `gone` = it WAS connected and vanished (unplugged, switched off, host slept),
-// vs a claim that failed (missing / wedged) — different wording, same RETRY.
+// vs a claim that failed (missing / wedged) - different wording, same RETRY.
 function showDeviceHelp(st) {
     const gone = !!(st && st.gone);
     $("#device-help-title").textContent = gone ? "microSAMPLER DISCONNECTED" : "microSAMPLER NOT RESPONDING";
@@ -112,15 +113,15 @@ function showDeviceHelp(st) {
         ? "The bridge lost its USB connection to the device:"
         : "The bridge is running, but it couldn’t claim the device:";
     $("#device-help-hint").textContent = gone
-        ? "Make sure the microSAMPLER is switched on and the USB cable is connected, then retry — no need to restart the bridge."
-        : "Power-cycle the microSAMPLER (turn it off, then on), check the USB cable, then retry — no need to restart the bridge.";
+        ? "Make sure the microSAMPLER is switched on and the USB cable is connected, then retry. There's no need to restart the bridge."
+        : "Power-cycle the microSAMPLER (turn it off, then on), check the USB cable, then retry. There's no need to restart the bridge.";
     $("#device-help-msg").textContent = (st && st.error) || "The microSAMPLER isn’t responding.";
     $("#device-help").hidden = false;
 }
 
 // SSE 'device' event: the bridge dropped a vanished device's dead USB handle.
 // Show the helper at once (modal dialogs sit in the top layer, ABOVE it, so
-// close them), and reload every sample on reconnect — a power-cycle reverts the
+// close them), and reload every sample on reconnect - a power-cycle reverts the
 // device's RAM bank, so the cached audio may no longer match.
 export function onDeviceLost(evt) {
     $$("dialog[open]").forEach((d) => d.close());
@@ -143,9 +144,10 @@ $("#device-help-retry").addEventListener("click", async () => {
             showDeviceHelp(st);
         }
     } catch {
-        setOnline(false); // bridge went away mid-retry —
-        setTimeout(boot, 2500); // resume the reconnect polling
-    } // (boot's own catch keeps it up)
+        // the bridge went away mid-retry: resume the reconnect polling (boot's own catch keeps it going)
+        setOnline(false);
+        setTimeout(boot, 2500);
+    }
     btn.disabled = false;
     cap.textContent = was;
 });
@@ -164,14 +166,17 @@ export async function refreshBank() {
     try {
         const prevName = state.bank && state.bank.name;
         state.bank = await apiJson("/api/bank");
+        // a bank read cuts any notes the device was sounding (HW-observed: LOOP
+        // HOLD loops stop on a focus re-sync), so drop the latches without sending
+        // note-offs - otherwise pads stay lit and the next press only "releases"
+        releaseLatched(false);
         // a different bank (switched on the device, or the first load) invalidates
-        // cached audio; same bank keeps it — re-stamp persisted formats so the meter
+        // cached audio; same bank keeps it - re-stamp persisted formats so the meter
         // stays exact and load state survives a focus re-sync.
         const bankChanged = reloadAll || state.bank.name !== prevName;
         reloadAll = false;
         if (bankChanged) {
-            state.buffers.clear();
-            state.formats.clear();
+            forgetAllSamples();
         }
         reapplyFormats();
         $("#bank-name").textContent = (state.bank.name || "--------").padEnd(8);
@@ -197,7 +202,7 @@ export async function refreshBank() {
 
 // ── view nav ─────────────────────────────────────────────────────────────
 function showView(name) {
-    $$(".view-btn").forEach((b) => b.classList.toggle("on", b.dataset.view === name));
+    setSegActive([...$$(".view-btn")].map((b) => [b, b.dataset.view === name]));
     $("#view-samples").hidden = name !== "samples";
     $("#view-effect").hidden = name !== "effect";
     $("#view-patterns").hidden = name !== "patterns";
@@ -224,11 +229,21 @@ $("#refresh-btn").onclick = () => refreshBank().catch((e) => tick("⚠ " + e.mes
 // only transmits panel param-edits while on its SAMPLE-EDIT page, so toggles
 // made elsewhere on the hardware leave the GUI snapshot stale; re-reading the
 // authoritative bank blob on focus-return fixes that transparently. Guarded:
-// online only, skip while any device op holds the lock (#refresh-btn busy),
-// debounced to 2 s so a quick click-in doesn't double-read.
+// AUTO-SYNC toggle, online only, skip while any device op holds the lock
+// (#refresh-btn busy), debounced to 2 s so a quick click-in doesn't double-read.
+let autoSync = lsGet("msmpl.autosync") !== "0";
+{
+    const ab = $("#auto-sync");
+    ab.checked = autoSync;
+    ab.addEventListener("change", () => {
+        autoSync = ab.checked;
+        lsSet("msmpl.autosync", autoSync ? "1" : "0");
+        tick(`auto-sync: ${autoSync ? "ON" : "OFF"}`);
+    });
+}
 let lastSync = Date.now();
 function maybeResync() {
-    if (document.visibilityState !== "visible" || !state.online) return;
+    if (!autoSync || document.visibilityState !== "visible" || !state.online) return;
     if (!$("#device-help").hidden) return; // disconnected: RETRY reconnects
     if ($("#refresh-btn").hasAttribute("aria-busy")) return; // device busy
     if (Date.now() - lastSync < 2000) return;

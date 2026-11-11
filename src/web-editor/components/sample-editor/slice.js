@@ -1,7 +1,7 @@
 // Auto-slice: chop one decoded sample into several pads. Opened from the upload
 // dialog's SLICE… button with the (already tool-processed) decoded buffer. Two
-// modes — equal-length pieces, or detected transients (audioTools.sliceBuffer)
-// — then each slice is encoded to a WAV and uploaded to consecutive slots via
+// modes - equal-length pieces, or detected transients (audioTools.sliceBuffer)
+// - then each slice is encoded to a WAV and uploaded to consecutive slots via
 // the same raw /api/sample/N path uploadBatch uses.
 import { refreshBank } from "app.js";
 import { loadAllSamples } from "components/meter/meter.js";
@@ -99,7 +99,7 @@ for (const r of document.querySelectorAll('input[name="sl-mode"]'))
         preview();
     });
 // debounced: preview() runs sliceBuffer (copies + de-clicks every segment's
-// audio) just to display a count — per-tick recompute makes the sliders laggy
+// audio) just to display a count - per-tick recompute makes the sliders laggy
 let previewT = null;
 const previewSoon = () => {
     clearTimeout(previewT);

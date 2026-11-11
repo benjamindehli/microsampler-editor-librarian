@@ -1,4 +1,4 @@
-// Keep the docs' freshness dates honest from git history — no manual upkeep:
+// Keep the docs' freshness dates honest from git history - no manual upkeep:
 //   - docs/*.html: the JSON-LD "dateModified" of each doc page.
 //   - docs/sitemap.xml: each URL's <lastmod>.
 //
@@ -6,12 +6,12 @@
 //   node tools/stamp-docs-dates.mjs --check    # exit 1 if a date is stale
 //
 // Each page's date is the committer date of the newest commit that changed the
-// file's CONTENT — commits that only rewrote a date line (i.e. this script's own
+// file's CONTENT - commits that only rewrote a date line (i.e. this script's own
 // commits) are skipped, so re-running is a no-op and --check is stable (a plain
 // `git log -1` would loop: the stamp commit becomes the newest change, bumping
 // the date, forever). datePublished is never touched. Zero deps (git + node
 // built-ins). Runs from the npm `version` lifecycle; also run it after editing a
-// doc page. Needs full history — on a shallow clone --check no-ops with a notice.
+// doc page. Needs full history - on a shallow clone --check no-ops with a notice.
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -35,7 +35,7 @@ const LASTMOD_RE = /<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/; // in sitemap.xml
 // a diff line (already stripped of its +/-) that is ONLY a date rewrite
 const DATE_ONLY_LINE = /^\s*("dateModified":|<lastmod>)/;
 
-// committer date (YYYY-MM-DD) of the newest commit that changed real content —
+// committer date (YYYY-MM-DD) of the newest commit that changed real content -
 // skipping commits whose only change to the file was a date line.
 function contentDate(file) {
     const log = git(["log", "--format=%H %cs", "--", file]).trim();
@@ -54,7 +54,7 @@ function contentDate(file) {
 
 const check = process.argv.includes("--check");
 if (check && git(["rev-parse", "--is-shallow-repository"]).trim() === "true") {
-    console.log("shallow clone — skipping docs date --check (needs full history)");
+    console.log("shallow clone - skipping docs date --check (needs full history)");
     process.exit(0);
 }
 
@@ -68,7 +68,7 @@ function apply(file, re, next, label) {
     const out = src.replace(re, next);
     if (out === src) return;
     stale = true;
-    if (check) console.error(`${file}: ${label} is stale — run: npm run stamp-dates`);
+    if (check) console.error(`${file}: ${label} is stale - run: npm run stamp-dates`);
     else {
         writeFileSync(path, out);
         console.log(`stamped ${label} in ${file}`);
@@ -95,7 +95,7 @@ for (const p of PAGES) {
     });
     if (src !== before) {
         stale = true;
-        if (check) console.error(`${file}: a <lastmod> is stale — run: npm run stamp-dates`);
+        if (check) console.error(`${file}: a <lastmod> is stale - run: npm run stamp-dates`);
         else {
             writeFileSync(path, src);
             console.log(`stamped <lastmod> in ${file}`);

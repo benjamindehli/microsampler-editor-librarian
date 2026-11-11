@@ -6,8 +6,7 @@ labels: bug
 assignees: ""
 ---
 
-<!-- Independent, unofficial project — not affiliated with Korg. Please DON'T
-     attach copyrighted samples or full bank backups. -->
+<!-- Independent, unofficial project, not affiliated with Korg. Please don't attach copyrighted samples or full bank backups. -->
 
 **Describe the bug**
 A clear and concise description of what goes wrong.
@@ -23,17 +22,16 @@ Which view (SAMPLES / EFFECT / PATTERNS / UTILITY) and the steps:
 What you expected to happen instead.
 
 **Does it also happen in mock mode?**
-Run the bridge without hardware — `python3 src/native-tools/bridge.py --mock` — and try
-the same thing. This tells us whether it's a UI bug or device/protocol-related.
+Run the bridge without hardware (`python3 src/native-tools/bridge.py --mock`) and try the same thing.
+This tells us whether it's a UI bug or device/protocol-related.
 
 - [ ] Reproduces in `--mock`
 - [ ] Only with the real device
 - [ ] Haven't tried
 
 **Bridge terminal output**
-The bridge prints errors to the terminal it runs in — paste anything relevant
-(especially Python tracebacks). For a transfer-related issue, `--trace` adds a
-USB-MIDI dump.
+The bridge prints errors to the terminal it runs in, so paste anything relevant (especially Python tracebacks).
+For a transfer-related issue, `--trace` adds a USB-MIDI dump.
 
 ```
 (paste here)
@@ -58,6 +56,6 @@ If it's visual, a screenshot of the editor helps.
 - microSAMPLER connected over USB: <!-- yes / no -->
 
 **Additional context**
-Anything else — e.g. did power-cycling the device help? Which sample / bank /
-pattern? Did it follow another action (upload, backup, switching banks on the
-hardware)?
+Anything else, e.g. did power-cycling the device help?
+Which sample / bank / pattern?
+Did it follow another action (upload, backup, switching banks on the hardware)?

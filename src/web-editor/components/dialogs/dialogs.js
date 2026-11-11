@@ -10,10 +10,10 @@ import { decodeWavPcm, encodeWav, processBuffer, readWavHeader, toolsActive } fr
 import { noteName } from "functions/notes.js";
 import { slotData, state } from "functions/state.js";
 import { tick } from "functions/ticker.js";
-import { $, api, apiJson, confirmDialog, jsonBody } from "functions/util.js";
+import { $, api, apiJson, clampBpm, confirmDialog, jsonBody } from "functions/util.js";
 
 // the selected file decoded to float channels (null if not a PCM WAV we can
-// process) and its raw bytes — both cached so OK doesn't re-read the file.
+// process) and its raw bytes - both cached so OK doesn't re-read the file.
 let udDecoded = null,
     udBytes = null;
 const UD_TOOL_IDS = ["ud-channels", "ud-normalize", "ud-trim", "ud-gain", "ud-fadein", "ud-fadeout"];
@@ -34,7 +34,7 @@ const fileToName = (f) =>
         .slice(0, 8) || "SAMPLE";
 
 // Bulk-load several WAVs into consecutive slots starting at `startSlot`
-// (dropping >1 file on the grid/editor). Raw upload — no audio-tools panel —
+// (dropping >1 file on the grid/editor). Raw upload - no audio-tools panel -
 // using each filename as the sample name; one confirm, sequential transfer.
 export async function uploadBatch(startSlot, files) {
     files = files.slice(0, 36 - startSlot); // clamp to the last pad
@@ -99,7 +99,7 @@ function setToolsEnabled(on, haveFile) {
     $("#ud-slice").disabled = !on; // slicing needs a decodable WAV
     const note = $("#ud-tools-note");
     note.hidden = on || !haveFile;
-    if (!note.hidden) note.textContent = "Tools unavailable for this file — it will upload unchanged.";
+    if (!note.hidden) note.textContent = "Tools unavailable for this file. It will upload unchanged.";
 }
 async function syncNameFromFile() {
     const f = $("#ud-file").files[0];
@@ -120,7 +120,7 @@ async function syncNameFromFile() {
     uploadPreflight();
 }
 $("#ud-file").onchange = syncNameFromFile;
-// debounced: the pre-flight runs processBuffer (full-file DSP — peak scans,
+// debounced: the pre-flight runs processBuffer (full-file DSP - peak scans,
 // trim, fades) just to update the memory estimate; per-keystroke recompute
 // makes the dialog laggy while typing a value on a long sample
 let preflightT = null;
@@ -154,7 +154,7 @@ async function uploadPreflight() {
     let frames, channels, rate;
     const opts = readToolOpts();
     if (udDecoded) {
-        const r = udDecoded && toolsActive(opts) ? processBuffer(udDecoded, opts) : udDecoded;
+        const r = toolsActive(opts) ? processBuffer(udDecoded, opts) : udDecoded;
         channels = r.channels.length;
         frames = r.channels[0].length;
         rate = r.rate;
@@ -174,7 +174,7 @@ async function uploadPreflight() {
     el.hidden = false;
     if (need > free) {
         el.classList.add("over");
-        el.textContent = `✕ WON'T FIT — needs ${fmtMem(need)}, only ${fmtMem(Math.max(0, free))} free`;
+        el.textContent = `✕ WON'T FIT: needs ${fmtMem(need)}, only ${fmtMem(Math.max(0, free))} free`;
         ok.disabled = true;
     } else {
         el.textContent = `SMPL MEM after load: ${fmtMem(used - freed + need)}/${fmtMem(MEM_SMPL_TOTAL)}`;
@@ -249,7 +249,7 @@ $("#rn-ok").onclick = async (e) => {
         s.long_name = res.long_name;
         tick(`✎ S${state.sel + 1} renamed "${res.name}"`);
         $("#rename-dialog").close();
-        syncPads(); // name-only change — in-place
+        syncPads(); // name-only change - in-place
         $("#sel-name").textContent = res.name.padEnd(8);
         $("#sel-long").textContent = res.long_name;
     } catch (err) {
@@ -279,13 +279,13 @@ $("#bank-lcd").onkeydown = (e) => {
 $("#bd-ok").onclick = async (e) => {
     e.preventDefault();
     const name = $("#bd-name").value.trim().toUpperCase().slice(0, 8);
-    const bpm = Math.max(20, Math.min(300, +$("#bd-bpm").value || 120));
+    const bpm = clampBpm(+$("#bd-bpm").value);
     if (!name) return;
     $("#bd-ok").setAttribute("aria-busy", "true");
     try {
-        // one batched request — the bridge sends all 9 messages (8 name chars +
-        // BPM) in a single device-lock acquisition; per-message /api/param
-        // round-trips were user-visibly sluggish
+        // one batched request: the bridge sends all 9 messages (8 name chars +
+        // BPM) under one device-lock grab; separate /api/param calls would
+        // contend for the lock and feel sluggish
         const res = await apiJson("/api/bank/settings", jsonBody({ name, bpm }));
         state.bank.name = res.name;
         state.bank.bpm = res.bpm;
