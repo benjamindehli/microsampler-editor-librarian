@@ -19,7 +19,8 @@
         "test": "node --import ./test/unit/alias-register.mjs --test test/unit/*.test.mjs",
         "stamp-version": "node tools/stamp-docs-version.mjs",
         "stamp-dates": "node tools/stamp-docs-dates.mjs",
-        "version": "node tools/stamp-docs-version.mjs && node tools/stamp-docs-dates.mjs && git add docs/*.html docs/sitemap.xml src/native-tools/bridge.py CITATION.cff"
+        "docs-markdown": "python3 tools/make-docs-markdown.py",
+        "version": "node tools/stamp-docs-version.mjs && node tools/stamp-docs-dates.mjs && python3 tools/make-docs-markdown.py && git add docs/*.html docs/*.md docs/sitemap.xml src/native-tools/bridge.py CITATION.cff"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",

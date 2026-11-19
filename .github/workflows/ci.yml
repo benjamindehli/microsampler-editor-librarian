@@ -91,6 +91,11 @@ jobs:
             # version (npm version stamps it; this catches a manual bump that forgot)
             - name: docs version in sync
               run: node tools/stamp-docs-version.mjs --check
+            # each docs page has a generated Markdown copy beside it, for AI
+            # tools that read Markdown. Fails when a page changed without
+            # running npm run docs-markdown.
+            - name: docs Markdown copies in sync
+              run: python tools/make-docs-markdown.py --check
 
     e2e:
         name: e2e smoke (playwright)

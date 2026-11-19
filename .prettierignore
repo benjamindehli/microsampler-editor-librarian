@@ -10,5 +10,8 @@ package-lock.json
 src/web-editor/functions/valueTables.js
 src/web-editor/functions/fxData.js
 
+# Generated Markdown copies of the docs pages (rebuilt by tools/make-docs-markdown.py)
+docs/*.md
+
 # Vendored third-party code
 src/native-tools/vendor/
