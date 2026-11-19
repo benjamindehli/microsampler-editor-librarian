@@ -96,6 +96,10 @@ jobs:
             # running npm run docs-markdown.
             - name: docs Markdown copies in sync
               run: python tools/make-docs-markdown.py --check
+            # every link to the repo's own files and docs site resolves,
+            # including #section ids, so a renamed page or section shows up here
+            - name: docs links resolve
+              run: python tools/check-docs-links.py
 
     e2e:
         name: e2e smoke (playwright)
