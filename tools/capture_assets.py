@@ -6,8 +6,13 @@ It drives the mock bridge headless via Playwright at 1540x940 DSR=1, then
 downscales LANCZOS to the published sizes. Full-colour PNGs (no 256-quantize - that
 posterises the dark gradients); the demo mp4/webm are a 12 fps, 2 s-per-view slideshow.
 
-The author/copyright/location metadata (XMP + IPTC on PNGs; Exif+GPS + XMP + IPTC on
-the JPG) is carried forward - it reads the identical stamp from the already-tagged
+Each screenshot PNG gets a WebP beside it, which is what the guide serves (the PNG is
+the <picture> fallback). Lossy WebP at quality 90 is about a fifteenth of the PNG's
+size and looks the same at 2x zoom, text and gradients included. Lossless WebP saves
+almost nothing on these, because of the gradients.
+
+The author/copyright/location metadata (XMP + IPTC on PNGs; XMP on the WebPs, which
+have no IPTC block; Exif+GPS + XMP + IPTC on the JPG) is carried forward - it reads the identical stamp from the already-tagged
 committed assets and splices it into each regenerated file, so the manual tagging step
 isn't needed after a regen (retag once to change it; --no-metadata to skip).
 
@@ -21,6 +26,7 @@ Usage (from anywhere):
     python3 tools/capture_assets.py --only demo      # the mp4/webm + poster
     python3 tools/capture_assets.py --only library   # just the Library screenshot
     python3 tools/capture_assets.py --only og        # the docs pages' Open Graph cards
+    python3 tools/capture_assets.py --only webp      # rebuild the WebPs from the PNGs, no capture
     python3 tools/capture_assets.py --out /tmp/check # write elsewhere (e.g. to verify)
 
 It reuses a bridge already serving on the chosen port, otherwise spawns a mock one
@@ -36,6 +42,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+import zlib
 
 import imageio_ffmpeg
 from PIL import Image
@@ -139,6 +146,8 @@ def load_stamps():
 
 
 def save_png(img, path):
+    """The PNG and, beside it, its WebP, so the two can never drift apart."""
+    save_webp(img, path[:-4] + '.webp')
     img.save(path, optimize=True)
     if STAMP['png']:                                 # splice the chunks before IEND
         data = bytearray(_read(path))
@@ -146,6 +155,33 @@ def save_png(img, path):
         if end >= 4:
             data[end - 4:end - 4] = STAMP['png']
             _write(path, bytes(data))
+
+
+def _png_xmp(chunks):
+    """The XMP packet inside the PNG stamp's iTXt chunk, or b'' if it has none."""
+    i = 0
+    while i + 8 <= len(chunks):
+        ln = int.from_bytes(chunks[i:i + 4], 'big')
+        typ, body = chunks[i + 4:i + 8], chunks[i + 8:i + 8 + ln]
+        if typ == b'iTXt' and body.startswith(b'XML:com.adobe.xmp\0'):
+            rest = body[len(b'XML:com.adobe.xmp\0'):]
+            compressed, text = rest[0], rest[2:].split(b'\0', 2)[2]
+            return zlib.decompress(text) if compressed else text
+        i += 12 + ln
+    return b''
+
+
+WEBP_QUALITY = 90
+
+
+def save_webp(img, path):
+    """The WebP the guide serves, with the PNG stamp's XMP. WebP has no IPTC block,
+    and the XMP carries the same author, copyright and location."""
+    kw = {'quality': WEBP_QUALITY, 'method': 6}
+    xmp = _png_xmp(STAMP['png'])
+    if xmp:
+        kw['xmp'] = xmp
+    img.save(path, 'WEBP', **kw)
 
 
 def save_jpg(img, path, quality):
@@ -369,7 +405,7 @@ def capture_library(out, port):
 def main():
     ap = argparse.ArgumentParser(description='Regenerate docs/assets from the live app.')
     ap.add_argument('--only', default='all',
-                    help='comma list of samples,screenshots,demo,library,og (default: all)')
+                    help='comma list of samples,screenshots,demo,library,og,webp (default: all)')
     ap.add_argument('--out', default=ASSETS, help='output assets dir (default: docs/assets)')
     ap.add_argument('--no-metadata', action='store_true',
                     help='skip the XMP/IPTC/Exif/GPS stamp carried from the tagged assets')
@@ -382,13 +418,23 @@ def main():
     for tok in (t.strip() for t in args.only.split(',')):
         if tok == 'all':
             want.update({'screenshots', 'demo', 'library', 'og'})
-        elif tok in ('samples', 'screenshots', 'demo', 'library', 'og'):
+        elif tok in ('samples', 'screenshots', 'demo', 'library', 'og', 'webp'):
             want.add(tok)
         elif tok:
-            ap.error('unknown --only target %r (use samples, screenshots, demo, library, og)' % tok)
+            ap.error('unknown --only target %r (use samples, screenshots, demo, library, og, webp)'
+                     % tok)
     os.makedirs(os.path.join(args.out, 'screenshots'), exist_ok=True)
 
     written = []
+    if 'webp' in want:
+        # The PNGs are already the published size, so this is the same WebP a
+        # capture would write, without starting the bridge or a browser.
+        shots = os.path.join(args.out, 'screenshots')
+        for f in sorted(os.listdir(shots)):
+            if f.endswith('.png'):
+                save_webp(Image.open(os.path.join(shots, f)).convert('RGB'),
+                          os.path.join(shots, f[:-4] + '.webp'))
+                written.append('screenshots/' + f[:-4] + '.webp')
     if want & {'samples', 'screenshots', 'demo'}:
         banks = tempfile.mkdtemp(prefix='cap-banks-')
         tmp = tempfile.mkdtemp(prefix='cap-')
@@ -399,14 +445,14 @@ def main():
         if want & {'samples', 'screenshots'}:
             save_png(lanczos(frames['samples'], SHOT),
                      os.path.join(args.out, 'screenshots', 'samples.png'))
-            written.append('screenshots/samples.png')
+            written += ['screenshots/samples.png', 'screenshots/samples.webp']
         if 'screenshots' in want:
             for v, name in [('effect', 'effect'), ('patterns', 'patterns'),
                             ('utility', 'utility'), ('upload', 'upload'),
                             ('editor', 'pattern-editor')]:
                 save_png(lanczos(frames[v], SHOT),
                          os.path.join(args.out, 'screenshots', name + '.png'))
-                written.append('screenshots/%s.png' % name)
+                written += ['screenshots/%s.png' % name, 'screenshots/%s.webp' % name]
         if 'demo' in want:
             build_demo(frames, args.out)
             written += ['demo-poster.jpg', 'demo.mp4', 'demo.webm']
@@ -414,14 +460,14 @@ def main():
         shutil.rmtree(tmp, ignore_errors=True)
     if 'library' in want:
         capture_library(args.out, LIB_PORT)
-        written.append('screenshots/library.png')
+        written += ['screenshots/library.png', 'screenshots/library.webp']
     if 'og' in want:
         written += capture_og(args.out)
 
     print('wrote %d asset(s) to %s:' % (len(written), args.out))
     for p in written:
         fp = os.path.join(args.out, p)
-        size = Image.open(fp).size if fp.endswith(('png', 'jpg')) else ''
+        size = Image.open(fp).size if fp.endswith(('png', 'jpg', 'webp')) else ''
         print('  %-28s %7.1f kB  %s' % (p, os.path.getsize(fp) / 1024, size))
 
 
