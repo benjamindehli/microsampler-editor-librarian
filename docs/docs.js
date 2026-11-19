@@ -21,6 +21,22 @@ if (menuBtn && nav) {
     );
 }
 
+// Reduced motion: the demo shows its poster with a play button instead of
+// starting by itself, and scrolling jumps instead of gliding. Visitors without
+// the setting see no change.
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+const demo = document.querySelector("video.demo");
+if (demo) {
+    const applyMotion = () => {
+        if (reduceMotion.matches) {
+            demo.removeAttribute("autoplay");
+            demo.pause();
+        }
+    };
+    applyMotion();
+    reduceMotion.addEventListener("change", applyMotion);
+}
+
 // back-to-top button appears after scrolling
 const toTop = document.querySelector(".to-top");
 if (toTop) {
@@ -31,7 +47,7 @@ if (toTop) {
     // nav, which browsers treat as already in view (so it only nudged per click)
     toTop.addEventListener("click", (e) => {
         e.preventDefault();
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        window.scrollTo({ top: 0, behavior: reduceMotion.matches ? "auto" : "smooth" });
     });
 }
 

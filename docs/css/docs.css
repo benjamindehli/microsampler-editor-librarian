@@ -79,6 +79,33 @@ a {
 a:hover {
     text-decoration: underline;
 }
+
+/* Keyboard focus. Mouse clicks do not show the ring, Tab does. */
+:focus-visible {
+    outline: 2px solid var(--amber-hi);
+    outline-offset: 2px;
+}
+
+/* Skip link, off screen until it gets keyboard focus. */
+.skip {
+    position: fixed;
+    left: 12px;
+    top: -60px;
+    z-index: 100;
+    padding: 0.5rem 0.9rem;
+    color: var(--steel-0);
+    background: var(--amber);
+    font-weight: 600;
+}
+.skip:focus {
+    top: 12px;
+}
+/* main has tabindex="-1" only so the skip link moves focus there. It is never
+   in the tab order, so it does not need a ring around the whole page. */
+main:focus {
+    outline: none;
+}
+
 /* WCAG 1.4.1 / Lighthouse "links rely on colour to be distinguishable":
    amber-on-ink is under the 3:1 required against surrounding body text, so a
    link embedded in a RUN OF TEXT needs a second cue - underline it. Links that
@@ -630,4 +657,17 @@ h2 .anchor:focus {
 }
 h2 .anchor:hover {
     color: var(--amber);
+}
+
+/* Reduced motion: no smooth scrolling and no fades or slides. docs.js also
+   stops the demo from starting by itself. */
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+        transition: none !important;
+    }
 }
