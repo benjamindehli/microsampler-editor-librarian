@@ -1,0 +1,47 @@
+name: IndexNow
+
+# Tells the search engines that take IndexNow which docs pages changed in the
+# last day, so they fetch them again now rather than whenever their crawler
+# next comes round. tools/indexnow.py explains how a page counts as
+# changed and where the key lives.
+#
+# A daily schedule rather than a push trigger. The docs dates change in the
+# npm version commit, and a day later Pages has long since published the pages,
+# so there is nothing to wait for and no deployment to watch. It is also the
+# same workflow the SidStation ASID repository runs.
+#
+# GitHub turns a schedule off in a public repository after 60 days without a
+# commit. The Actions tab says so and has a button to turn it back on.
+on:
+    schedule:
+        - cron: "41 5 * * *"
+    workflow_dispatch:
+        inputs:
+            every_page:
+                description: Send every page in the sitemap, not only those whose date changed in the last day.
+                type: boolean
+                default: false
+
+permissions:
+    contents: read
+
+jobs:
+    notify:
+        name: Notify
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  # Full history, to read the sitemap as it was a day ago.
+                  fetch-depth: 0
+
+            - name: Send the pages whose date changed
+              env:
+                  EVERY_PAGE: ${{ inputs.every_page || false }}
+              run: |
+                  if [ "$EVERY_PAGE" = "true" ]; then
+                    python3 tools/indexnow.py --every-page
+                  else
+                    python3 tools/indexnow.py
+                  fi
