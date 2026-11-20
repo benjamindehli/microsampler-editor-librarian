@@ -1,0 +1,98 @@
+name: Pages
+
+# Publishes docs/ as the project site, only when a release is out or when
+# started by hand.
+#
+# The site used to be served straight from the main branch. npm version stamps
+# the new version and its ZIP link into the pages, so from that push until the
+# GitHub release was published and its files attached, the download link led
+# nowhere. Now the site changes when a release is out: package.yml calls this
+# once its apps are attached, and this waits for the source ZIP that
+# release.yml attaches beside them, since the two run side by side. It
+# publishes the pages as they are in the release's tag.
+#
+# A fix to a page that should not wait for a release goes out with "Run
+# workflow" on this workflow in the Actions tab, which publishes main as it is.
+#
+# This needs two settings on GitHub. Under Settings, Pages, the source is
+# "GitHub Actions". Under Settings, Environments, github-pages, the deployment
+# branches and tags allow the tag pattern v* as well as main, since a release
+# runs on its tag.
+on:
+    workflow_call:
+        inputs:
+            tag:
+                description: The release to publish the pages of.
+                type: string
+                required: true
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    deploy:
+        name: Publish
+        runs-on: ubuntu-latest
+        timeout-minutes: 40
+
+        # One deployment at a time. A newer one waiting replaces an older one
+        # waiting.
+        concurrency:
+            group: pages
+            cancel-in-progress: false
+
+        permissions:
+            contents: read
+            pages: write
+            id-token: write
+
+        environment:
+            name: github-pages
+            url: ${{ steps.deployment.outputs.page_url }}
+
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  ref: ${{ inputs.tag || github.sha }}
+
+            # The pages link to the release's own ZIP by name, so they wait for
+            # it. Thirty minutes is far longer than release.yml takes.
+            - name: Wait for the release's ZIP
+              if: inputs.tag != ''
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  TAG: ${{ inputs.tag }}
+              run: |
+                  name=$(node -p 'require("./package.json").name')
+                  zip="$name-$TAG.zip"
+                  for attempt in $(seq 1 60); do
+                    if gh release view "$TAG" --json assets --jq '.assets[].name' | grep -qx "$zip"; then
+                      echo "$zip is attached"
+                      exit 0
+                    fi
+                    echo "waiting for $zip ($attempt of 60)"
+                    sleep 30
+                  done
+                  echo "::error::$zip was not attached to $TAG within 30 minutes, so the site was not published"
+                  exit 1
+
+            # The pages are committed as they are served, so there is nothing
+            # to build. Hidden files stay out, which only drops .nojekyll, and a
+            # site published from an artefact is never run through Jekyll.
+            - uses: actions/upload-pages-artifact@v5
+              with:
+                  path: docs
+
+            - id: deployment
+              uses: actions/deploy-pages@v5
+
+    # Every page, since the pages a release changed may be dated days before
+    # it was published. There are only a handful, so sending all costs nothing.
+    indexnow:
+        name: Tell IndexNow
+        needs: deploy
+        uses: ./.github/workflows/indexnow.yml
+        with:
+            ref: ${{ inputs.tag || github.sha }}
+            every_page: true

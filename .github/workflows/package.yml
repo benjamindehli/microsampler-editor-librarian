@@ -231,3 +231,19 @@ jobs:
               run: |
                   gh release upload "$TAG" \
                     "dist/bundle/microSAMPLER-macos-${{ matrix.arch }}.dmg" --clobber
+
+    # The site, once the apps are attached. The Pages workflow also waits for
+    # the source ZIP release.yml attaches, since that runs beside this one. A
+    # push from a workflow starts no other workflow, and release.yml and this
+    # one cannot wait on each other, so the call is made here.
+    site:
+        name: Publish the site
+        needs: [linux, macos]
+        if: github.event_name == 'release' && github.event.release.prerelease == false
+        permissions:
+            contents: read
+            pages: write
+            id-token: write
+        uses: ./.github/workflows/pages.yml
+        with:
+            tag: ${{ github.event.release.tag_name }}

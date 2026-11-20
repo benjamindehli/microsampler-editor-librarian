@@ -202,7 +202,7 @@ tools/                        dev + build + packaging (not shipped as the app):
                                 scripts (built by workflows/package.yml)
   make_app_icon.sh              give the launcher its icon (run once, macOS)
 test/                         unit/ (node --test) + e2e/ (Playwright smoke)
-docs/                         the documentation site (published to GitHub Pages)
+docs/                         the documentation site (published to GitHub Pages on a release)
 ```
 
 The packaged ZIP is flattened for convenience: `web-editor/`, `native-tools/`, and the per-OS launcher folders sit at its top level, not under `src/`.
@@ -285,6 +285,9 @@ Publishing triggers two workflows:
 - **Package apps**: (`.github/workflows/package.yml`) builds, signs, notarizes and attaches the macOS DMGs and the Linux AppImage + tar.gz.
 
 Both verify the tag matches `package.json` first.
+
+The docs site is not published from `main` on a push. Once the apps are attached, **Package apps** calls **Pages** (`.github/workflows/pages.yml`), which waits for the source ZIP and then publishes `docs/` as it is in the release's tag, so the Download button never points at a file that is not there yet.
+A fix to a page between releases goes out with Actions, Pages, Run workflow, which publishes `main` as it is.
 
 ## Disclaimer
 
